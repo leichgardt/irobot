@@ -1,6 +1,6 @@
 from aiogram.utils.executor import start_webhook
 
-from layers import bot, dp
+from src.bot.layers import bot, dp
 from src.utils import logger, config
 
 CERTIFICATE = ''
