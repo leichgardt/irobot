@@ -1,7 +1,7 @@
 import logging
 
 f_format = logging.Formatter('[%(asctime)s] %(levelname)s - in %(filename)s: %(funcName)s(%(lineno)d): %(message)s')
-s_format = logging.Formatter('[%(asctime)s] %(levelname)s in %(filename)s(%(lineno)d): %(message)s')
+s_format = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
 logfile = '/var/log/iron/mega_bot.log'
 
 
