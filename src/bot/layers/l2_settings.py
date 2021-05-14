@@ -90,7 +90,7 @@ async def inline_cb_h_agrm_control(query: types.CallbackQuery, state: FSMContext
 @dp.callback_query_handler(text='agrm-del', state=AgrmSettingsFSM.agrm)
 async def inline_cb_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        logger.info(f'Agrm {data["agrms"]} deleted [{query.message.chat.id}]')
+        logger.info(f'Agrm {data["agrm"]} deleted [{query.message.chat.id}]')
         await state.finish()
         await AgrmSettingsFSM.agrm.set()
         await sql.del_agrm(query.message.chat.id, data['agrm'])
@@ -125,7 +125,7 @@ async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
         await message.delete()
         pwd_check, agrm_id = await check_account_pass(data['agrm'], data['pwd'])
         if pwd_check == 1:
-            logger.info(f'Agrm {data["agrms"]} was added [{message.chat.id}]')
+            logger.info(f'Agrm {data["agrm"]} was added [{message.chat.id}]')
             await sql.add_agrm(message.chat.id, data['agrm'], agrm_id)
             text, kb, parse_mode = await get_keyboard_menu('agrms', message.chat.id)
             text = text.split('\n\n')
