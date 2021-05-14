@@ -34,7 +34,7 @@ async def help_cmd_handler(query: types.CallbackQuery):
 
 @dp.callback_query_handler(text='about')
 async def help_cmd_handler(query: types.CallbackQuery):
-    await query.answer('@IronnetBot - телеграм-бот, разработанный ООО "Айроннет" 2021', show_alert=True)
+    await query.answer('@ironnet_bot - телеграм-бот, разработанный ООО "Айроннет" 2021', show_alert=True)
 
 
 @dp.callback_query_handler(text='main-menu', state='*')

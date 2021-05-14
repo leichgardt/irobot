@@ -9,7 +9,7 @@ async def get_keyboard_menu(menu: str, chat_id=None):
     parse_mode = None
 
     if menu in ('main', 'main-menu'):
-        text = '@IronnetBot\nГлавное меню'
+        text = '@ironnet_bot\nГлавное меню'
         buttons = main_menu_btn
 
     elif menu == 'help':
