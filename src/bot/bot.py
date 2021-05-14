@@ -5,7 +5,7 @@ from src.utils import logger, config
 
 CERTIFICATE = ''
 HOST = config['paladin']['userside']  # api.userside.com
-WEBHOOK_HOST = f'https://{HOST}/bot1'
+WEBHOOK_HOST = f'https://{HOST}/irobot'
 WEBHOOK_PATH = '/'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 

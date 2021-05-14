@@ -5,7 +5,7 @@ from aiogram.dispatcher import Dispatcher
 
 from src.utils import config
 
-API_TOKEN = config['tesseract']['token-test-bot']
+API_TOKEN = config['tesseract']['token-iro-mega-bot']
 
 
 bot = Bot(token=API_TOKEN)
