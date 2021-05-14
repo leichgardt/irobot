@@ -11,8 +11,8 @@ git clone https://github.com/carpedm20/emoji.git
 cd emoji
 echo "installing custom module 'emoji'"
 python setup.py install
-pip install -r requirements.txt
 cd ../../
+pip install -r requirements.txt
 echo "cleaning tmp files"
 rm -rf installations
 echo ""
