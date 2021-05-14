@@ -1,7 +1,8 @@
 #!/bin/sh
 echo "create virtual env"
 python3.8 -m venv venv
-source venv/bin/activate
+. venv/bin/activate
+pip -V
 echo "installing env"
 pip install -U pip setuptools
 mkdir installations
