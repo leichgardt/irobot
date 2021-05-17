@@ -1,7 +1,6 @@
 aiodns==2.0.0
 aiogram==2.13
 aiohttp==3.7.4.post0
-aiologger==0.6.1
 aiopg==1.2.1
 async-timeout==3.0.1
 attrs==21.2.0
@@ -12,10 +11,12 @@ cffi==1.14.5
 chardet==4.0.0
 emoji==1.2.1
 idna==2.10
+motor==2.4.0
 multidict==5.1.0
 psycopg2-binary==2.8.6
 pycares==3.2.3
 pycparser==2.20
+pymongo==3.11.4
 pytz==2021.1
 requests==2.25.1
 suds-community==0.8.4
