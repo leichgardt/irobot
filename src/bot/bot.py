@@ -38,7 +38,7 @@ def run_bot():
         webhook_path=WEBHOOK_PATH,
         on_startup=on_startup,
         on_shutdown=on_shutdown,
-        skip_updates=True,
+        # skip_updates=True,
         host=WEBAPP_HOST,
         port=WEBAPP_PORT,
         loop=loop
