@@ -12,7 +12,7 @@ back_to_main = (
 main_menu_btn = (
     (
         {'text': ':scales: Баланс', 'callback_data': 'balance'},
-        {'text': ':moneybag: Обещанный платёж', 'callback_data': 'payments'},
+        {'text': ':moneybag: Платежи', 'callback_data': 'payments'},
     ),
     (
         # {'text': 'Тариф', 'callback_data': 'tariff'},

@@ -50,14 +50,16 @@ async def get_keyboard_menu(menu: str, chat_id=None):
         buttons = await get_notify_settings_btn(chat_id) + notify_settings_btn
 
     elif menu == 'payments':
-        text = 'Как хочешь пополнить счёт?'
+        text = 'Платежи\n\nКак хочешь пополнить счёт?'
         buttons = payment_choice_btn
 
-    elif menu == 'payments-agrm':
-        text = 'Обещанный платёж\n\nОбещанный платёж на сумму 100 руб. на 5 дней. Если на балансе договора менее 300 ' \
-               'рублей, то подключить эту услугу <u>нельзя</u>.\n\nВыбери, счёт какого договора пополнить.'
+    elif menu == 'payments-online-agrm':
+        text = 'Платежи\n\nВыбери, счёт какого договора пополнить.'
+        buttons = await get_agrms_btn(chat_id) + back_to_main
+
+    elif menu == 'payments-promise-agrm':
+        text = 'Платежи\n\nВыбери, счёт какого договора пополнить.'
         buttons = await get_payment_btn(chat_id) + back_to_main
-        parse_mode = types.ParseMode.HTML
 
     elif menu == 'payments-amount':
         text = 'Выбери сумму, на которую хочешь пополнить счёт, или введи её сам.'
