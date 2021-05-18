@@ -74,7 +74,7 @@ async def inline_cb_h_payments_agrm(query: types.CallbackQuery, state: FSMContex
             text = 'Подключить обещанный платёж на 100 руб. на 5 дней?'
             await update_inline_query(bot, query, 'Обещанный платёж', text=text, keyboard=kb)
         else:
-            text = 'На сколько хочешь пополнить счёт? Введи сумму.'
+            text = f'Платежи >> Оплата онлайн\n\nДоговор: {data["agrm"]}\n\nНа сколько хочешь пополнить счёт?\nВведи сумму.'
             await update_inline_query(bot, query, 'Обещанный платёж', text=text, keyboard=cancel_menu[1])
 
 
@@ -89,7 +89,8 @@ async def inline_cb_h_payment(message: types.Message, state: FSMContext):
 async def inline_cb_h_payment(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['amount'] = message.text
-        text = 'Оплата онлайн\n\nДоговор: {agrm}\nК оплате: {sum}\nПоступит на счёт: {tax}'
+        text = 'Платежи >> Оплата онлайн\n\nДоговор: {agrm}\nК оплате: {sum}\nКомиссия 5%: {tax}'.format(
+            agrm=data['agrm'], sum=data['amount'], tax=float(data['amount']) * 0.05)
         url = await yoomoney_pay(data['agrm'], data['amount'])
         kb = types.InlineKeyboardMarkup()
         btn = [types.InlineKeyboardButton(text='Оплатить', url=url),
