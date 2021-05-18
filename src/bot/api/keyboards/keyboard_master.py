@@ -5,7 +5,7 @@ from .kb_agrms import *
 from src.utils import logger
 
 
-async def get_keyboard_menu(menu: str, chat_id=None):
+async def get_keyboard_menu(menu: str, chat_id: int = None, title: str = None):
     parse_mode = None
 
     if menu in ('main', 'main-menu'):
@@ -72,6 +72,8 @@ async def get_keyboard_menu(menu: str, chat_id=None):
     else:
         logger.info(f'Bad keyboard getting: menu={menu}; chat_id={chat_id}')
         return None, None, {}
+
+    text = f'{title}\n\n{text}' if title else text
     keyboard_markup = types.InlineKeyboardMarkup(row_width=3)
     for row in buttons:
         row_btns = []

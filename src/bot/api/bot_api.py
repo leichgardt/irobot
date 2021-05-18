@@ -38,10 +38,11 @@ async def update_inline_query(
         menu: str = None,
         alert=False,
         text=None,
+        title=None,
         keyboard=None,
         parse_mode=None):
     if menu:
-        text, keyboard, parse_mode = await get_keyboard_menu(menu, query.message.chat.id)
+        text, keyboard, parse_mode = await get_keyboard_menu(menu, query.message.chat.id, title=title)
     try:
         res = await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, reply_markup=keyboard,
                                           parse_mode=parse_mode)
