@@ -3,12 +3,12 @@ from .logger import logger
 
 
 async def request(*args, **kwargs):
-    res = {}
+    res = None
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(*args, **kwargs) as resp:
                 if resp.status == 200:
-                    res = await resp.json()
+                    res = resp
                 else:
                     logger.info(f'Bad status [{resp.status}] for {resp.url}')
         except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
