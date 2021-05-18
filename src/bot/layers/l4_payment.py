@@ -12,7 +12,9 @@ from aiogram.utils.emoji import emojize
 from src.utils import logger
 from src.sql import sql
 from src.lb import promise_payment
-from src.bot.api import main_menu, clear_inline_message, get_keyboard_menu, update_inline_query, get_agrm_balances, edit_inline_message
+from src.payment.yoomoney import yoomoney_pay
+from src.bot.api import main_menu, cancel_menu, clear_inline_message, get_keyboard_menu, update_inline_query, get_agrm_balances, edit_inline_message
+
 from .l3_main import bot, dp
 
 
@@ -35,41 +37,77 @@ class PaymentFSM(StatesGroup):
     amount = State()
 
 
-@dp.callback_query_handler(text='payments')
-async def inline_cb_h_payments(query: types.CallbackQuery):
-    # await update_inline_query(bot, query, 'Платежи', 'payments')
-    # await PaymentFSM.oper.set()
-    logger.info(f'Start payment [{query.message.chat.id}]')
-    await bot.send_chat_action(query.message.chat.id, 'typing')
-    await update_inline_query(bot, query, 'Список договоров', 'payments-agrm')
-    await PaymentFSM.agrm.set()
+@dp.callback_query_handler(text='cancel', state=PaymentFSM.oper)
+@dp.callback_query_handler(text='cancel', state=PaymentFSM.agrm)
+@dp.callback_query_handler(text='cancel', state=PaymentFSM.amount)
+@dp.callback_query_handler(text='payments', state='*')
+async def inline_cb_h_payments(query: types.CallbackQuery, state: FSMContext):
+    await state.finish()
+    await PaymentFSM.oper.set()
+    await update_inline_query(bot, query, 'Платежи', 'payments')
+    # await bot.send_chat_action(query.message.chat.id, 'typing')
+    # await update_inline_query(bot, query, 'Список договоров', 'payments-agrm')
+    # await PaymentFSM.agrm.set()
 
 
-# @dp.callback_query_handler(text='payments-promise', state=PaymentFSM.oper)
-# @dp.callback_query_handler(text='payments-online', state=PaymentFSM.oper)
-# async def inline_cb_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
-#     async with state.proxy() as data:
-#         data['oper'] = 'promise' if query.data == 'payments-promise' else 'online'
-#         agrms = await sql.get_agrms(query.message.chat.id)
-#         await update_inline_query(bot, query, 'Список договоров', 'payments-choice', agrms)
-#         await PaymentFSM.next()
+@dp.callback_query_handler(text='payments-promise', state=PaymentFSM.oper)
+@dp.callback_query_handler(text='payments-online', state=PaymentFSM.oper)
+async def inline_cb_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
+    async with state.proxy() as data:
+        logger.info(f'Start payment [{query.message.chat.id}]')
+        await PaymentFSM.next()
+        data['oper'] = 'promise' if query.data == 'payments-promise' else 'online'
+        if data['oper'] == 'promise':
+            await update_inline_query(bot, query, 'Список договоров', 'payments-promise-agrm')
+        else:
+            await update_inline_query(bot, query, 'Список договоров', 'payments-online-agrm')
 
 
 @dp.callback_query_handler(Regexp(regexp=r'agrm-([^\s]*)'), state=PaymentFSM.agrm)
 async def inline_cb_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        data['oper'] = 'promise'
-        data['agrm'] = query.data[5:]
         await PaymentFSM.next()
-        _, kb, _ = await get_keyboard_menu('confirm')
-        text = 'Подключить обещанный платёж на 100 руб. на 5 дней?'
-        await update_inline_query(bot, query, 'Обещанный платёж', text=text, keyboard=kb)
+        data['agrm'] = query.data[5:]
+        if data['oper'] == 'promise':
+            _, kb, _ = await get_keyboard_menu('confirm')
+            data['amount'] = 100
+            text = 'Подключить обещанный платёж на 100 руб. на 5 дней?'
+            await update_inline_query(bot, query, 'Обещанный платёж', text=text, keyboard=kb)
+        else:
+            text = 'На сколько хочешь пополнить счёт? Введи сумму.'
+            await update_inline_query(bot, query, 'Обещанный платёж', text=text, keyboard=cancel_menu[1])
+
+
+@dp.message_handler(lambda message: not message.text.isdigit(), state=PaymentFSM.amount)
+async def inline_cb_h_payment(message: types.Message, state: FSMContext):
+    text = 'Введи число.'
+    await message.delete()
+    await edit_inline_message(bot, message.chat.id, text=text, reply_markup=cancel_menu[1])
+
+
+@dp.message_handler(lambda message: message.text.isdigit(), state=PaymentFSM.amount)
+async def inline_cb_h_payment(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['amount'] = message.text
+        text = 'Оплата онлайн\n\nДоговор: {agrm}\nК оплате: {sum}\nПоступит на счёт: {tax}'
+        url = await yoomoney_pay(data['agrm'], data['amount'])
+        kb = types.InlineKeyboardMarkup()
+        btn = [types.InlineKeyboardButton(text='Оплатить', url=url),
+               types.InlineKeyboardButton(text='Отмена', callback_data='main-menu')]
+        kb.add(*btn)
+        await message.delete()
+        await edit_inline_message(bot, message.chat.id, text, reply_markup=kb)
+
+
+@dp.callback_query_handler(text='no', state=PaymentFSM.amount)
+async def inline_cb_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
+    await update_inline_query(bot, query, 'Главное меню', text=main_menu[0], keyboard=main_menu[1], parse_mode=main_menu[2])
+    await state.finish()
 
 
 @dp.callback_query_handler(text='yes', state=PaymentFSM.amount)
 async def inline_cb_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        data['amount'] = 100
         agrm_id = await sql.get_agrm_id(query.message.chat.id, data['agrm'])
         res = await promise_payment(agrm_id, data['amount'])
         if res:
@@ -81,24 +119,6 @@ async def inline_cb_h_payment_yes(query: types.CallbackQuery, state: FSMContext)
             text = 'Не удалось подключить обещанный платёж.'
             await update_inline_query(bot, query, 'Неудача!', text=text, keyboard=main_menu[1], parse_mode=main_menu[2])
         await state.finish()
-
-
-@dp.callback_query_handler(text='no', state=PaymentFSM.amount)
-async def inline_cb_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
-    await update_inline_query(bot, query, 'Главное меню', text=main_menu[0], keyboard=main_menu[1], parse_mode=main_menu[2])
-    await state.finish()
-
-
-# @dp.message_handler(lambda message: not message.text.isdigit(), state=PaymentFSM.amount)
-# async def inline_cb_h_payment(message: types.Message, state: FSMContext):
-#     await clear_inline_message(bot, message.chat.id)
-#     await bot.send_message()
-#
-#
-# @dp.message_handler(lambda message: message.text.isdigit(), state=PaymentFSM.amount)
-# async def inline_cb_h_payment(message: types.Message, state: FSMContext):
-#     async with state.proxy() as data:
-#         data['amount'] = message.text
 
 
 # @dp.inline_handler()
