@@ -9,10 +9,12 @@ from aiogram.utils.emoji import emojize
 from src.utils import logger
 from src.sql import sql
 from src.lb import check_account_pass
-
-from src.bot.bot_core import bot, dp
 from src.bot.api import main_menu, clear_inline_message, cancel_menu, get_keyboard_menu, edit_inline_message, \
     get_reply_keyboard_menu, update_inline_query
+try:
+    from .l0_test import bot, dp
+except ImportError:
+    from src.bot.bot_core import bot, dp
 
 
 class AuthFSM(StatesGroup):
@@ -97,7 +99,8 @@ async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
             await sql.add_agrm(message.chat.id, data['agrm'], agrm_id)
             text = f'Ты успешно авторизовался под договором {data["agrm"]} :tada:\nДобро пожаловать! :smile:\n\n'
             text = emojize(text) + main_menu[0].split('\n\n')[-1]
-            inline = await edit_inline_message(bot, message.chat.id, text, reply_markup=main_menu[1])
+            await bot.send_message(message.chat.id, text, reply_markup=main_menu[1])
+            # inline = await edit_inline_message(bot, message.chat.id, text, reply_markup=main_menu[1])
             # await bot.pin_chat_message(message.chat.id, inline, True)
         elif pwd_check == 0:
             await AuthFSM.agrm.set()
@@ -110,8 +113,8 @@ async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
         data['pwd'] = ''
 
 
-@dp.message_handler(commands='cancel', state='*')
-@dp.message_handler(Text(equals='cancel', ignore_case=True), state='*')
+@dp.message_handler(commands='cancel', state=AuthFSM.agrm)
+@dp.message_handler(commands='cancel', state=AuthFSM.pwd)
 async def cancel_cmd_h(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
