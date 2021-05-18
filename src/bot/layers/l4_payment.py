@@ -89,8 +89,8 @@ async def inline_cb_h_payment(message: types.Message, state: FSMContext):
 async def inline_cb_h_payment(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['amount'] = message.text
-        text = 'Платежи >> Оплата онлайн\n\nДоговор: {agrm}\nК оплате: {sum}\nКомиссия 5%: {tax}'.format(
-            agrm=data['agrm'], sum=data['amount'], tax=float(data['amount']) * 0.05)
+        text = 'Платежи >> Оплата онлайн\n\nДоговор: {agrm}\nК оплате: {sum} руб.\nКомиссия: {tax} руб.'.format(
+            agrm=data['agrm'], sum=float(data['amount']), tax=float(data['amount']) * 0.05)
         url = await yoomoney_pay(data['agrm'], data['amount'])
         kb = types.InlineKeyboardMarkup()
         btn = [types.InlineKeyboardButton(text='Оплатить', url=url),
