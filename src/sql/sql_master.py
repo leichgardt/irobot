@@ -22,7 +22,7 @@ class SQLMaster(SQLCore):
         await self.execute('UPDATE irobot.fsm SET stage= %s WHERE id=%s', stage, ujson.dumps(data), fsm_id)
 
     async def get_sub(self, chat_id=None):
-        data = 'mailing, notify, datetime'
+        data = 'mailing, notify'
         if chat_id:
             res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true AND chat_id=%s', chat_id)
         else:
@@ -85,13 +85,3 @@ class SQLMaster(SQLCore):
 
 
 sql = SQLMaster()
-
-if __name__ == '__main__':
-    import uvloop
-
-    async def main():
-        res = await sql.get_inline()
-        print(res)
-
-    loop = uvloop.new_event_loop()
-    loop.run_until_complete(main())

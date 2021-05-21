@@ -1,5 +1,3 @@
-from src.sql import sql
-
 agrms_settings_btn = (
     (
         {'text': 'Добавить', 'callback_data': 'agrm-add'},
@@ -9,6 +7,7 @@ agrms_settings_btn = (
 
 
 async def get_agrms_btn(chat_id=None, agrms=None):
+    from src.sql import sql
     rows = []
     row = []
     if chat_id:

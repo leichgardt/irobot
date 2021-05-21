@@ -2,9 +2,12 @@ from aiogram.utils.emoji import emojize
 
 from src.sql import sql
 from src.lb import get_balance
+from src.bot.text import Texts
+from src.utils import alogger
 
 
 async def get_agrm_balances(chat_id):
+    await alogger.info(f'Balance check [{chat_id}]')
     text = []
     agrms = await sql.get_agrms(chat_id)
     if agrms:
@@ -12,12 +15,12 @@ async def get_agrm_balances(chat_id):
             bal = await get_balance(agrm)
             if bal:
                 summ = round(bal['balance'], 2)
-                text.append(f'Баланс договора №{agrm}:\n{summ} руб.\n')
+                text.append(Texts.balance.format(agrm=agrm, summ=summ))
                 if 'credit' in bal:
-                    date = bal["credit"]["date"].split(' ')
-                    text[-1] += f'Обещанный платёж:\n{bal["credit"]["sum"]} руб. до {date[0]}\n'
+                    text[-1] += Texts.balance_credit.format(cre=bal['credit']['sum'],
+                                                            date=bal["credit"]["date"].split(' ')[0])
     else:
-        text = 'У тебя удалены все договоры. Добавь их в Настройках Договоров /settings',
+        text = Texts.balance_no_agrms,
     return emojize('\n'.join(text))
 
 

@@ -1,5 +1,3 @@
-from src.sql import sql
-
 settings_menu_btn = (
     (
         {'text': 'Мои договоры', 'callback_data': 'settings-my-agrms'},
@@ -27,7 +25,7 @@ cancel_btn = (
         {'text': 'Отмена', 'callback_data': 'cancel'},
     ),
 )
-notify_settings_btn = (
+back_to_settings = (
     (
         {'text': 'Назад', 'callback_data': 'settings'},
     ),
@@ -46,31 +44,20 @@ start_r_btn = (
 
 
 async def get_notify_settings_btn(chat_id):
+    from src.sql import sql
     row = []
     data = await sql.get_sub(chat_id)
     if data:
-        mailing, notify, _ = data
-        if notify:
+        if data[1]:
             text = 'Выкл. уведомления'
         else:
             text = 'Вкл. уведомления'
         params = {'text': text, 'callback_data': 'settings-switch-notify'}
         row.append(params)
-        if mailing:
+        if data[0]:
             text = 'Выкл. рассылку'
         else:
             text = 'Вкл. рассылку'
         params = {'text': text, 'callback_data': 'settings-switch-mailing'}
         row.append(params)
     return (row,)
-
-
-if __name__ == '__main__':
-    import asyncio
-
-    async def main():
-        res = await get_notify_settings_btn(0)
-        print(res)
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())

@@ -1,5 +1,5 @@
 from src.lb.lb_suds import lb_request
-from src.utils import logger
+from src.utils import alogger
 
 from datetime import datetime, timedelta
 
@@ -17,7 +17,7 @@ async def check_account_pass(agrmnum, input_pass):
             if acc:
                 return 1 if acc[0].account['pass'] == input_pass else 0, agrm[0].agrmid
             else:
-                logger.info(f'Getting account error: agrmnum={agrm}')
+                await alogger.warning(f'Getting account error: agrmnum={agrm}')
                 return 0, None
     return -1, None
 

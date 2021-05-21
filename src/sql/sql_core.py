@@ -1,6 +1,6 @@
 import aiopg
 import psycopg2
-from src.utils import logger, config
+from src.utils import alogger, config
 
 
 class SQLCore:
@@ -10,7 +10,6 @@ class SQLCore:
         user = config['postgres']['dbuser']
         self._dsn = f'dbname={name} user={user} host={host}'
         self.pool = None
-        self.logger = logger
 
     def __del__(self):
         try:
@@ -31,7 +30,7 @@ class SQLCore:
             await self.init_pool()
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
-                self.logger.debug(f'cmd: {cmd}\t###\targs: {args}')
+                await alogger.debug(f'cmd: {cmd}\t###\targs: {args}')
                 if len(args) == 1 and isinstance(args[0], dict):
                     args = args[0]
                 try:
@@ -39,9 +38,9 @@ class SQLCore:
                 except Exception as e:
                     text = f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}'
                     if retrying:
-                        self.logger.warning(text)
+                        await alogger.warning(text)
                     else:
-                        self.logger.info(text)
+                        await alogger.info(text)
                     return res
                 else:
                     res = await get_res(cur)
@@ -59,7 +58,7 @@ async def get_res(cur):
         if 'no results to fetch' in str(e):
             return None
         else:
-            logger.error(f'Fetching error: {e}')
+            await alogger.error(f'Fetching error: {e}')
             return None
     else:
         ret = [list(line) for line in ret]

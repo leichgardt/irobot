@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from suds.client import Client
 from datetime import datetime
 
-from src.utils import config, logger, get_datetime, get_phone_number
+from src.utils import config, logger, alogger, get_datetime, get_phone_number
 
 
 class LBCore:
@@ -66,6 +66,7 @@ lb.login()
 async def lb_request(*args, **kwargs):
     if lb.loop is None:
         lb.loop = asyncio.get_event_loop()
+    await alogger.debug(f'LB request: {args} & {kwargs}')
     return await lb.loop.run_in_executor(lb.executor, partial(lb.direct_request, *args, **kwargs))
 
 

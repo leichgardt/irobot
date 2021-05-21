@@ -1,10 +1,20 @@
+import typing
+
 from aiogram import Bot, types
 from aiogram.utils.exceptions import MessageNotModified, BadRequest
-from asyncio import get_event_loop
+from aiogram.utils.emoji import emojize
 
 from src.sql import sql
-from src.bot.api.keyboards import get_keyboard_menu
-from src.utils import logger
+from src.bot import keyboards
+from src.bot.api.bot_keyboard_master import get_keyboard
+from src.utils import alogger
+
+
+async def delete_message(message: types.Message):
+    try:
+        await message.delete()
+    except:
+        pass
 
 
 async def clear_inline_message(bot, chat_id):
@@ -16,18 +26,29 @@ async def clear_inline_message(bot, chat_id):
             await sql.upd_inline(chat_id, 0, '')
 
 
-async def edit_inline_message(bot, chat_id, text, reply_markup=None, parse_mode=None):
-    inline, _, _ = await sql.get_inline(chat_id)
+async def edit_inline_message(bot: Bot,
+                              chat_id: int,
+                              text: str,
+                              parse_mode: str = None,
+                              reply_markup: typing.Union[types.InlineKeyboardMarkup,
+                                                         types.ReplyKeyboardMarkup,
+                                                         None] = None,
+                              inline: int = None,
+                              disable_web_page_preview: bool = False):
+    if inline is None:
+        inline, _, _ = await sql.get_inline(chat_id)
     if inline:
         try:
-            await bot.edit_message_text(text, chat_id, inline, reply_markup=reply_markup, parse_mode=parse_mode)
+            await bot.edit_message_text(text, chat_id, inline, reply_markup=reply_markup, parse_mode=parse_mode,
+                                        disable_web_page_preview=disable_web_page_preview)
+            await sql.upd_inline(chat_id, inline, text, parse_mode)
         except (MessageNotModified, BadRequest):
-            await sql.upd_inline(chat_id, 0, '')
+            res = await bot.send_message(chat_id, text, parse_mode, disable_web_page_preview=disable_web_page_preview,
+                                         reply_markup=reply_markup)
+            await sql.upd_inline(chat_id, res.message_id, text, parse_mode)
         except Exception as e:
-            logger.warning(e)
+            await alogger.warning(e)
             await sql.upd_inline(chat_id, 0, '')
-        else:
-            await sql.upd_inline(chat_id, inline, text, parse_mode=parse_mode)
     return inline
 
 
@@ -35,32 +56,26 @@ async def update_inline_query(
         bot: Bot,
         query: types.CallbackQuery,
         answer: str,
-        menu: str = None,
-        alert=False,
-        text=None,
-        title=None,
-        keyboard=None,
-        parse_mode=None):
-    if menu:
-        text, keyboard, parse_mode = await get_keyboard_menu(menu, query.message.chat.id, title=title)
+        text: str = None,
+        parse_mode: str = None,
+        title: str = None,
+        alert: bool = False,
+        btn_list: list = None,
+        keyboard: types.InlineKeyboardMarkup = None, ):
+    if btn_list:
+        keyboard = get_keyboard(*btn_list, keyboard_type='inline')
+    text = f'{title}\n\n{text}' if title else text
     try:
-        res = await bot.edit_message_text(text, query.message.chat.id, query.message.message_id, reply_markup=keyboard,
-                                          parse_mode=parse_mode)
+        await bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
+                                    reply_markup=keyboard, parse_mode=parse_mode)
     except (MessageNotModified, BadRequest):
-        pass
+        await delete_message(query.message)
+        await bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=keyboard)
     else:
         await query.answer(answer, show_alert=alert)
-        await sql.upd_inline(query.message.chat.id, res.message_id, res.text, parse_mode=parse_mode)
+        await sql.upd_inline(query.message.chat.id, query.message.message_id, query.message.text, parse_mode=parse_mode)
 
 
-class Menu:
-    def __init__(self):
-        self._loop = get_event_loop()
-        self.main_menu = self._loop.run_until_complete(get_keyboard_menu('main'))
-        self.cancel_menu = self._loop.run_until_complete(get_keyboard_menu('cancel'))
-
-    def get_menus(self):
-        return self.main_menu, self.cancel_menu
-
-
-main_menu, cancel_menu = Menu().get_menus()
+main_menu = get_keyboard(keyboards.main_menu_btn, keyboard_type='reply', one_time_keyboard=True)
+cancel_menu = {'inline': get_keyboard(keyboards.cancel_btn, keyboard_type='inline'),
+               'reply': get_keyboard(keyboards.cancel_btn, keyboard_type='reply', one_time_keyboard=True)}

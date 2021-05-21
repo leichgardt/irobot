@@ -4,7 +4,11 @@ from src.utils import config, request
 
 
 async def yoomoney_pay(agrmnum: str, amount: float):
-    """yandex money яндекс деньги"""
+    """
+    yandex money yookassa яндекс деньги
+
+    https://yookassa.ru/docs/payment-solution/payment-form/basics
+    """
     url = 'https://yoomoney.ru/eshop.xml'
     payload = {
         'shopId': config['yandex']['shop-id'],
@@ -19,7 +23,7 @@ async def yoomoney_pay(agrmnum: str, amount: float):
         'customer': {
             # 'fullName': 'ололошкин хряк тестостеронович',
             # 'phone': '79110000000',
-            'email': config['yandex']['email'],
+            'email': config['yandex']['email'],  # finance department
         },
         'taxSystem': 2,
         'items': [
@@ -36,14 +40,3 @@ async def yoomoney_pay(agrmnum: str, amount: float):
     payload.update({'ym_merchant_receipt': json.dumps(data)})
     res = await request(url, data=payload)
     return str(res.url) if res else res
-
-
-if __name__ == '__main__':
-    import asyncio
-
-    async def main():
-        res = await yoomoney_pay('69420', 100)
-        print(res)
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())

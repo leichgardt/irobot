@@ -1,5 +1,5 @@
 import aiohttp
-from .logger import logger
+from .logger import alogger
 
 
 async def request(*args, **kwargs):
@@ -10,9 +10,9 @@ async def request(*args, **kwargs):
                 if resp.status == 200:
                     res = resp
                 else:
-                    logger.info(f'Bad status [{resp.status}] for {resp.url}')
+                    await alogger.info(f'Bad status [{resp.status}] for {resp.url}')
         except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
-            logger.info(f'Can\'t connect to server "{resp.url}"')
+            await alogger.info(f'Can\'t connect to server "{resp.url}"')
         except Exception as e:
-            logger.warning(f'Connection error: {e}')
+            await alogger.warning(f'Connection error: {e}')
     return res
