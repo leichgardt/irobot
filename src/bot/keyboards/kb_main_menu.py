@@ -24,7 +24,10 @@ help_btn = (
     ),
     (
         {'text': 'Что я умею (youtube)', 'url': 'https://www.youtube.com/watch?v=bxqLsrlakK8'},
+    ),
+    (
         {'text': 'О программе', 'callback_data': 'about'},
+        {'text': 'Назад', 'callback_data': 'main-menu'},
     ),
 )
 review_btn = (
