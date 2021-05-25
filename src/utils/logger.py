@@ -39,3 +39,21 @@ def __aio_logger(name):
 
 logger = __init_logger(project)
 alogger = __aio_logger(project)
+
+
+if __name__ == '__main__':
+    import asyncio
+
+    async def main():
+        logger.info('info')
+        logger.warning('warning')
+        logger.error('error')
+        logger.fatal('fatal')
+        await alogger.info('a info')
+        await alogger.warning('a warning')
+        await alogger.error('a error')
+        await alogger.fatal('a fatal')
+        await asyncio.sleep(1)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
