@@ -15,7 +15,7 @@ def __init_logger(name):
     s_handler.setLevel(logging.INFO)
     s_handler.setFormatter(logging.Formatter(s_format))
     f_handler = logging.FileHandler(logfile)
-    f_handler.setLevel(logging.WARNING)
+    f_handler.setLevel(logging.INFO)
     f_handler.setFormatter(logging.Formatter(f_format))
 
     logger = logging.getLogger(name)
@@ -28,7 +28,7 @@ def __init_logger(name):
 def __aio_logger(name):
     s_handler = AsyncStreamHandler(level=logging.INFO, formatter=Formatter(s_format))
     f_handler = AsyncFileHandler(logfile)
-    f_handler.level = logging.WARNING
+    f_handler.level = logging.INFO
     f_handler.formatter = Formatter(f_format)
     logger = Logger.with_default_handlers(name=name)
     logger.handlers = []

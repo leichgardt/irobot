@@ -2,6 +2,7 @@ from aiogram.utils.executor import start_webhook
 
 from src.bot.layers import bot, dp
 from src.utils import logger, alogger, config
+from src.utils.logger import logfile
 
 CERTIFICATE = ''
 HOST = config['paladin']['userside']  # api.userside.com
@@ -20,16 +21,16 @@ async def on_startup(dp):
 
 
 async def on_shutdown(dp):
-    await alogger.info('Shutting down..')
+    logger.info('Shutting down..')
     await bot.delete_webhook()
     await dp.storage.close()
     await dp.storage.wait_closed()
-    await alogger.info('Bye!')
+    logger.info('Bye!')
     await alogger.shutdown()
 
 
 def run_bot():
-    logger.info('Bot activated')
+    logger.info(f'Bot activated\nSee console output in file "{logfile}"')
     import uvloop
     import asyncio
     loop = uvloop.new_event_loop()

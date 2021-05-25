@@ -12,4 +12,3 @@ storage = MongoStorage(host='localhost', port=27017, db_name='aiogram_fsm')
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot, storage=storage)
 dp.middleware.setup(LoggingMiddleware())
-
