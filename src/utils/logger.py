@@ -5,7 +5,7 @@ from aiologger.handlers.files import AsyncFileHandler
 from aiologger.formatters.base import Formatter
 
 f_format = '[%(asctime)s] %(levelname)s  \t%(filename)s(%(lineno)d) - %(funcName)s: %(message)s'
-s_format = '[%(asctime)s] %(levelname)s: %(message)s'
+s_format = '%(levelname)s: %(message)s'
 logfile = '/var/log/iron/irobot.log'
 project = 'iro-mega-bot'
 

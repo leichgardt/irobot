@@ -30,7 +30,8 @@ async def on_shutdown(dp):
 
 
 def run_bot():
-    logger.info(f'Bot activated\nSee console output in file "{logfile}"')
+    logger.info('Bot activated')
+    logger.info(f'See console output in file "{logfile}"')
     import uvloop
     import asyncio
     loop = uvloop.new_event_loop()
