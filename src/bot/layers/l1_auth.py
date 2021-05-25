@@ -2,7 +2,6 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.utils.emoji import emojize
 
 from src.utils import alogger
 from src.sql import sql
@@ -14,6 +13,14 @@ try:
     from .l0_test import bot, dp
 except ImportError:
     from src.bot.bot_core import bot, dp
+
+
+async def is_cancel(message: types.Message):
+    if message.text[0] == '/' or message.text.lower() in ['cancel', 'back', 'отмена', 'назад']:
+        await bot.send_message(message.chat.id, Texts.auth_cancel, Texts.auth_cancel.parse_mode)
+        await alogger.info(f'Cancelling [{message.chat.id}]')
+        return True
+    return False
 
 
 class AuthFSM(StatesGroup):
@@ -43,15 +50,23 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
 async def fsm_auth_agrm_h(message: types.Message, state: FSMContext):
     await alogger.info(f'Getting agrm [{message.chat.id}]')
     async with state.proxy() as data:
+        if await is_cancel(message):
+            await state.finish()
+            return
         await AuthFSM.next()
         data['agrm'] = message.text
         text = Texts.auth_pwd.format(agrm=data['agrm'])
-        await bot.send_message(message.chat.id, emojize(text), parse_mode=Texts.auth_pwd.parse_mode)
+        res = await bot.send_message(message.chat.id, text, parse_mode=Texts.auth_pwd.parse_mode,
+                                     reply_markup=cancel_menu['inline'])
+        await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.auth_pwd.parse_mode)
 
 
 @dp.message_handler(state=AuthFSM.pwd)
 async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
+        if await is_cancel(message):
+            await state.finish()
+            return
         data['pwd'] = message.text
         await delete_message(message)
         await alogger.info(f'Getting password [{message.chat.id}]')
@@ -60,35 +75,23 @@ async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
             await alogger.info(f'Logged [{message.chat.id}]')
             await sql.subscribe(message.chat.id)
             await sql.add_agrm(message.chat.id, data['agrm'], agrm_id)
-            text = Texts.auth_success.format(agrm=data['agrm'])
             await state.finish()
-            await bot.send_message(message.chat.id, emojize(text), reply_markup=main_menu)
+            text = Texts.auth_success.format(agrm=data['agrm'])
+            await edit_inline_message(bot, message.chat.id, text, Texts.auth_success.parse_mode)
+            await bot.send_message(message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
+            await sql.upd_inline(message.chat.id, 0, '', '')
         elif pwd_check == 0:
             await AuthFSM.agrm.set()
-            await bot.send_message(message.chat.id, Texts.auth_fail)
+            await bot.send_message(message.chat.id, Texts.auth_fail, reply_markup=cancel_menu['inline'])
         else:
             await AuthFSM.agrm.set()
-            await bot.send_message(message.chat.id, Texts.auth_error)
+            await bot.send_message(message.chat.id, Texts.auth_error, reply_markup=cancel_menu['inline'])
         data['pwd'] = ''
-
-
-@dp.message_handler(Text('cancel', ignore_case=True), state=[AuthFSM.pwd, AuthFSM.agrm])
-@dp.message_handler(Text('отмена', ignore_case=True), state=[AuthFSM.pwd, AuthFSM.agrm])
-@dp.message_handler(Text('назад', ignore_case=True), state=[AuthFSM.pwd, AuthFSM.agrm])
-@dp.message_handler(commands='cancel', state=[AuthFSM.pwd, AuthFSM.agrm])
-async def cancel_cmd_h(message: types.Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state is None:
-        return
-    await state.finish()
-    await alogger.info(f'Cancelling [{message.chat.id}]')
-    await bot.send_message(message.chat.id, Texts.auth_cancel)
 
 
 @dp.callback_query_handler(text='cancel', state=[AuthFSM.agrm, AuthFSM.pwd])
 async def inline_cb_h_agrm_settings(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await AuthFSM.agrm.set()
     await update_inline_query(bot, query, *Texts.auth_cancel.full())
 
 # @dp.inline_handler(state=AuthFSM.pwd)
