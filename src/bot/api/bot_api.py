@@ -2,12 +2,22 @@ import typing
 
 from aiogram import Bot, types
 from aiogram.utils.exceptions import MessageNotModified, BadRequest
-from aiogram.utils.emoji import emojize
+from aiogram.dispatcher import FSMContext
 
 from src.sql import sql
 from src.bot import keyboards
+from src.bot.text import Texts
 from src.bot.api.bot_keyboard_master import get_keyboard
 from src.utils import alogger
+
+
+def private_require(func):
+    async def message_handler(message: types.Message, state: FSMContext):
+        if message.chat.type != 'private':
+            await message.reply(Texts.non_private)
+        else:
+            return await func(message, state)
+    return message_handler
 
 
 async def delete_message(message: types.Message):

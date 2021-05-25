@@ -7,7 +7,7 @@ from aiogram.utils.emoji import emojize
 from src.utils import alogger
 from src.sql import sql
 from src.lb import check_account_pass
-from src.bot.api import main_menu, cancel_menu, update_inline_query, delete_message
+from src.bot.api import main_menu, cancel_menu, update_inline_query, delete_message, private_require
 from src.bot.text import Texts
 
 try:
@@ -24,6 +24,7 @@ class AuthFSM(StatesGroup):
 
 @dp.message_handler(Text('старт', ignore_case=True), state='*')
 @dp.message_handler(commands='start', state='*')
+@private_require
 async def start_cmd_h(message: types.Message, state: FSMContext):
     await state.finish()
     if await sql.get_sub(message.from_user.id):

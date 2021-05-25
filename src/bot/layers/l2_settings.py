@@ -6,13 +6,15 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from src.utils import alogger
 from src.sql import sql
 from src.lb import check_account_pass
-from src.bot.api import main_menu, edit_inline_message, cancel_menu, get_keyboard, keyboards, update_inline_query, delete_message
+from src.bot.api import main_menu, edit_inline_message, cancel_menu, get_keyboard, keyboards, update_inline_query, \
+    delete_message, private_require
 from src.bot.text import Texts
 from .l1_auth import bot, dp
 
 
 @dp.message_handler(commands='settings', state='*')
 @dp.message_handler(Text('🔧 Настройки', ignore_case=True), state='*')
+@private_require
 async def message_h_settings(message: types.Message, state: FSMContext):
     await state.finish()
     if await sql.get_sub(message.chat.id):
