@@ -6,7 +6,7 @@ from aiogram.utils.emoji import emojize
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, keyboards, delete_message
+from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, keyboards, delete_message, update_inline_query
 from src.bot.text import Texts
 from .l2_settings import bot, dp
 
@@ -30,6 +30,12 @@ async def help_message_h(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text='about')
 async def about_inline_h(query: types.CallbackQuery):
     await query.answer(Texts.about_answer, show_alert=True)
+
+
+@dp.callback_query_handler(text='cancel')
+async def inline_h_payments_choice(query: types.CallbackQuery):
+    await update_inline_query(bot, query, *Texts.cancel.full())
+    await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
 
 
 @dp.callback_query_handler(text='cancel', state=[ReviewFSM.rating, ReviewFSM.comment])

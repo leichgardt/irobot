@@ -37,7 +37,7 @@ async def inline_h_settings(query: types.CallbackQuery, state: FSMContext):
 async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await query.answer(Texts.settings_done.answer, show_alert=True)
-    await query.message.edit_text(Texts.settings_done, parse_mode=Texts.settings_done.parse_mode)
+    await delete_message(query.message)
     await bot.send_message(query.message.chat.id, Texts.main_menu, parse_mode=Texts.main_menu.parse_mode, reply_markup=main_menu)
     await sql.upd_inline(query.message.chat.id, 0, '')
 
