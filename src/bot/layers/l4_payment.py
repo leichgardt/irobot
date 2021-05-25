@@ -14,7 +14,7 @@ from src.sql import sql
 from src.lb import promise_payment
 from src.payment.yoomoney import yoomoney_pay
 from src.bot.api import main_menu, cancel_menu, edit_inline_message, update_inline_query, get_keyboard, keyboards, \
-    delete_message, private_require
+    delete_message, private_and_login_require
 from src.bot.text import Texts
 
 from .l3_main import bot, dp
@@ -27,7 +27,7 @@ class PaymentFSM(StatesGroup):
 
 
 @dp.message_handler(Text(emojize(':moneybag: Платежи')), state='*')
-@private_require
+@private_and_login_require()
 async def message_h_payments(message: types.Message, state: FSMContext):
     await state.finish()
     await PaymentFSM.oper.set()

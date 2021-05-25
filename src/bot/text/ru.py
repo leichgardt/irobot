@@ -26,6 +26,8 @@ class Texts:
     start.parse_mode = ParseMode.HTML
     non_private = T(
         'Извини, я работаю только в приватном чате.')
+    non_auth = T(
+        'Чтобы использовать бота, тебе надо авторизоваться, отправив команду /start')
     cancel = T(
         'Отменено.')
     cancel.answer = \

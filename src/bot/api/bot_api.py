@@ -11,13 +11,19 @@ from src.bot.api.bot_keyboard_master import get_keyboard
 from src.utils import alogger
 
 
-def private_require(func):
-    async def message_handler(message: types.Message, state: FSMContext):
-        if message.chat.type != 'private':
-            await message.reply(Texts.non_private)
-        else:
-            return await func(message, state)
-    return message_handler
+def private_and_login_require(do_not_check_sub=False):
+    def decorator(func):
+        async def message_handler(message: types.Message, state: FSMContext):
+            if message.chat.type == 'private':
+                if do_not_check_sub:
+                    return await func(message, state)
+                if await sql.get_sub(message.chat.id):
+                    return await func(message, state)
+                await message.reply(Texts.non_auth, Texts.non_auth.parse_mode)
+            else:
+                await message.reply(Texts.non_private, Texts.non_auth.parse_mode)
+        return message_handler
+    return decorator
 
 
 async def delete_message(message: types.Message):

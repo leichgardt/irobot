@@ -7,7 +7,7 @@ from aiogram.utils.emoji import emojize
 from src.utils import alogger
 from src.sql import sql
 from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, keyboards, delete_message,\
-    update_inline_query, private_require
+    update_inline_query, private_and_login_require
 from src.bot.text import Texts
 from .l2_settings import bot, dp
 
@@ -19,7 +19,7 @@ class ReviewFSM(StatesGroup):
 
 @dp.message_handler(Text('⛑ Помощь', ignore_case=True), state='*')
 @dp.message_handler(commands='help', state='*')
-@private_require
+@private_and_login_require(do_not_check_sub=True)
 async def help_message_h(message: types.Message, state: FSMContext):
     if await sql.get_sub(message.chat.id):
         kb = get_keyboard(keyboards.help_btn, keyboard_type='inline', lining=True)
@@ -52,7 +52,7 @@ async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(Text(emojize(':scales: Баланс'), ignore_case=True), state='*')
 @dp.async_task
-@private_require
+@private_and_login_require()
 async def help_message_h(message: types.Message, state: FSMContext):
     await bot.send_chat_action(message.chat.id, 'typing')
     text = await get_agrm_balances(message.chat.id)
@@ -60,7 +60,7 @@ async def help_message_h(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(Text('💩 Оставить отзыв', ignore_case=True), state='*')
-@private_require
+@private_and_login_require()
 async def review_inline_h(message: types.Message, state: FSMContext):
     await state.finish()
     kb = get_keyboard(keyboards.get_review_btn(), keyboards.cancel_btn, keyboard_type='inline', row_size=5)
