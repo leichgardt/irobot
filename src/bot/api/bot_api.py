@@ -48,6 +48,7 @@ async def edit_inline_message(bot: Bot,
                               parse_mode: str = None,
                               reply_markup: typing.Union[types.InlineKeyboardMarkup,
                                                          types.ReplyKeyboardMarkup,
+                                                         types.ReplyKeyboardRemove,
                                                          None] = None,
                               inline: int = None,
                               disable_web_page_preview: bool = False):

@@ -74,8 +74,7 @@ class Texts:
     settings_agrm_pwd = T(emojize(
         'Настройки >> Договоры >> Добавить\n\nНомер договора: {agrm} \nВведи пароль.'))
     settings_agrm_add_success = T(emojize(
-        'Настройки >> Договоры\n\nДоговор {agrm} успешно добавлен :tada:\nДобавь еще договор или удали '
-        'добавленные'))
+        'Договор {agrm} успешно добавлен :tada:'))
     settings_agrm_exist = T(
         'Настройки >> Договоры\n\nДоговор №{agrm} уже добавлен.\nВведи <u>другой</u> договор.')
     settings_agrm_exist.parse_mode = ParseMode.HTML
@@ -93,7 +92,7 @@ class Texts:
     settings_mailing_switch_answer = T(
         'Новости переключены')
     settings_exit = T(emojize(
-        'Уверен, что хочешь выйти? :cry:\n Все твои договоры будут отключены от Бота'))
+        'Уверен, что хочешь выйти? :cry:\nВсе твои договоры будут отключены от Бота'))
     settings_exit.answer = \
         'Выйти?'
     settings_exited = T(emojize(

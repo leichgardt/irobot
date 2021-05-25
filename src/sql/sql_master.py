@@ -75,7 +75,7 @@ class SQLMaster(SQLCore):
                                  'WHERE chat_id=%s', chat_id)
         return res[0] if res else (None, None, {})
 
-    async def upd_inline(self, chat_id, inline, text, parse_mode=None):
+    async def upd_inline(self, chat_id: int, inline: int, text: str, parse_mode: str = None):
         await self.execute('UPDATE irobot.subs SET inline_msg_id= %s, inline_text= %s, inline_parse_mode= %s '
                            'WHERE chat_id=%s', inline, text, parse_mode, chat_id)
 

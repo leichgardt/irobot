@@ -111,7 +111,9 @@ async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
             await state.finish()
             kb = get_keyboard(await keyboards.get_agrms_btn(message.chat.id), keyboards.agrms_settings_btn)
             await edit_inline_message(bot, message.chat.id, Texts.settings_agrm_add_success.format(agrm=data['agrm']),
-                                      Texts.settings_agrm_add_success.parse_mode, reply_markup=kb)
+                                      Texts.settings_agrm_add_success.parse_mode)
+            await bot.send_message(message.chat.id, Texts.settings_agrms, Texts.settings_agrms.parse_mode,
+                                   reply_markup=kb)
             await alogger.info(f'Agrm {data["agrm"]} added [{message.chat.id}]')
         elif pwd_check == 0:
             await edit_inline_message(bot, message.chat.id, Texts.settings_agrm_add_fail,
@@ -147,14 +149,14 @@ async def inline_h_notify_settings(query: types.CallbackQuery):
 @dp.callback_query_handler(text='exit', state='*')
 async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await update_inline_query(bot, query, *Texts.settings_exit.full())
+    await update_inline_query(bot, query, *Texts.settings_exit.full(), btn_list=[keyboards.exit_confirm_btn])
 
 
 @dp.callback_query_handler(text='exit-yes')
 async def inline_h_notify_settings(query: types.CallbackQuery):
     await sql.unsubscribe(query.message.chat.id)
     await query.answer(Texts.settings_exited.answer, show_alert=True)
-    await edit_inline_message(bot, query.message.chat.id, Texts.settings_exited)
+    await edit_inline_message(bot, query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
     agrms = await sql.get_agrms(query.message.chat.id)
     for agrm in agrms:
         await sql.del_agrm(query.message.chat.id, agrm)
