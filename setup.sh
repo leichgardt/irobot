@@ -4,7 +4,7 @@ python3.8 -m venv venv
 . venv/bin/activate
 pip -V
 echo "installing env"
-pip install -U pip setuptools
+pip install -U pip setuptools wheel
 mkdir installations
 cd installations
 git clone https://github.com/carpedm20/emoji.git

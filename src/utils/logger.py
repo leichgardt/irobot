@@ -6,16 +6,15 @@ from aiologger.formatters.base import Formatter
 
 f_format = '[%(asctime)s] %(levelname)s  \t%(filename)s(%(lineno)d) - %(funcName)s: %(message)s'
 s_format = '%(levelname)s: %(message)s'
-logfile = '/var/log/iron/irobot.log'
-project = 'iro-mega-bot'
+logfile = '/var/log/iron/{}.log'
 
 
-def __init_logger(name):
+def __init_logger(name, info_file_level=True):
     s_handler = logging.StreamHandler()
     s_handler.setLevel(logging.INFO)
     s_handler.setFormatter(logging.Formatter(s_format))
-    f_handler = logging.FileHandler(logfile)
-    f_handler.setLevel(logging.INFO)
+    f_handler = logging.FileHandler(logfile.format(name))
+    f_handler.setLevel(logging.INFO if info_file_level else logging.WARNING)
     f_handler.setFormatter(logging.Formatter(f_format))
 
     logger = logging.getLogger(name)
@@ -27,7 +26,7 @@ def __init_logger(name):
 
 def __aio_logger(name):
     s_handler = AsyncStreamHandler(level=logging.INFO, formatter=Formatter(s_format))
-    f_handler = AsyncFileHandler(logfile)
+    f_handler = AsyncFileHandler(logfile.format(name))
     f_handler.level = logging.INFO
     f_handler.formatter = Formatter(f_format)
     logger = Logger.with_default_handlers(name=name)
@@ -37,8 +36,9 @@ def __aio_logger(name):
     return logger
 
 
-logger = __init_logger(project)
-alogger = __aio_logger(project)
+logger = __init_logger('irobot')
+flogger = __init_logger('irobot-web', False)
+alogger = __aio_logger('irobot')
 
 
 if __name__ == '__main__':
