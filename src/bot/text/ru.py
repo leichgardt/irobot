@@ -1,6 +1,8 @@
 from aiogram.types import ParseMode
 from aiogram.utils.emoji import emojize
 
+from src.utils import config
+
 
 BOT_NAME = '@ironnet_bot'
 
@@ -184,3 +186,10 @@ class Texts:
     payments_online_offer = T(
         'Платежи >> Оплата онлайн\n\nДоговор №{agrm}\n\nК оплате: {amount} руб.\nКомиссия: {tax} руб.\n\n'
         'Итого к зачислению: {res} руб.\n\nНажми на кнопку "Оплатить", чтобы перейти к оплате, или введи другую сумму.')
+    payments_online_success = T(
+        'Платёж успешно проведён!')
+    payments_online_fail = T(
+        'Не удалось провести платёж.')
+    payment_error = T(
+        'Ошибка платежа. Попробуй ещё раз или обратись в службу технической поддержки по номеру {}.'.format(
+            config['paladin']['support-phone']))
