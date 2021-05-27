@@ -60,7 +60,6 @@ class LBCore:
 
 
 lb = LBCore()
-lb.login()
 
 
 async def lb_request(*args, **kwargs):

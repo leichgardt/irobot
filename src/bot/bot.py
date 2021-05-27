@@ -1,6 +1,7 @@
 from aiogram.utils.executor import start_webhook
 
 from src.bot.layers import bot, dp
+from src.lb.lb_suds import lb
 from src.utils import logger, alogger, config
 from src.utils.logger import logfile
 
@@ -15,6 +16,7 @@ WEBAPP_PORT = 5421
 
 
 async def on_startup(dp):
+    lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
