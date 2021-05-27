@@ -6,8 +6,9 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from src.utils import alogger
 from src.sql import sql
 from src.lb import check_account_pass
-from src.bot.api import main_menu, edit_inline_message, cancel_menu, get_keyboard, keyboards, update_inline_query, \
+from src.bot.api import main_menu, edit_inline_message, cancel_menu, get_keyboard, update_inline_query, \
     delete_message, private_and_login_require
+from src.bot import keyboards
 from src.bot.text import Texts
 from .l1_auth import bot, dp
 

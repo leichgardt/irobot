@@ -1,9 +1,9 @@
-import json
+import ujson
 
 from src.utils import config, request
 
 
-async def yoomoney_pay(agrmnum: str, amount: float):
+async def yoomoney_pay(agrmnum: str, amount: float, hash_id: str):
     """
     yandex money yookassa яндекс деньги
 
@@ -15,8 +15,8 @@ async def yoomoney_pay(agrmnum: str, amount: float):
         'scid': config['yandex']['sc-id'],
         'sum': amount,
         'customerNumber': agrmnum,
-        'shopSuccesURL': config['yandex']['success-url'],
-        'shopFailURL': config['yandex']['fail-url'],
+        'shopSuccesURL': config['yandex']['success-url'] + hash_id,
+        'shopFailURL': config['yandex']['fail-url'] + hash_id,
         'paymentType': 'AC',
     }
     data = {
@@ -37,6 +37,6 @@ async def yoomoney_pay(agrmnum: str, amount: float):
              }
         ]
     }
-    payload.update({'ym_merchant_receipt': json.dumps(data)})
+    payload.update({'ym_merchant_receipt': ujson.dumps(data)})
     res = await request(url, data=payload)
     return str(res.url) if res else res

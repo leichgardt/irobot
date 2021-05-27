@@ -1,11 +1,6 @@
-import hashlib
-import asyncio
-
-from datetime import datetime
-
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Text, StateFilter, RegexpCommandsFilter, Regexp
+from aiogram.dispatcher.filters import Text, Regexp
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.emoji import emojize
 
@@ -13,8 +8,9 @@ from src.utils import alogger
 from src.sql import sql
 from src.lb import promise_payment
 from src.payment.yoomoney import yoomoney_pay
-from src.bot.api import main_menu, cancel_menu, edit_inline_message, update_inline_query, get_keyboard, keyboards, \
-    delete_message, private_and_login_require
+from src.bot.api import main_menu, cancel_menu, edit_inline_message, update_inline_query, get_keyboard, \
+    delete_message, private_and_login_require, get_payment_hash
+from src.bot import keyboards
 from src.bot.text import Texts
 
 from .l3_main import bot, dp
@@ -94,9 +90,9 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(lambda message: not message.text.isdigit(), state=PaymentFSM.amount)
 async def inline_h_payment(message: types.Message, state: FSMContext):
+    await delete_message(message)
     await edit_inline_message(bot, message.chat.id, Texts.payments_online_amount_is_not_digit,
                               Texts.payments_online_amount_is_not_digit.parse_mode, cancel_menu['inline'])
-    await delete_message(message)
 
 
 @dp.message_handler(lambda message: message.text.isdigit(), state=PaymentFSM.amount)
@@ -106,10 +102,14 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
         data['amount'] = message.text
         text = Texts.payments_online_offer.format(agrm=data['agrm'], amount=float(data['amount']),
                                                   tax=float(data['amount']) * 0.05, res=float(data['amount']) * 0.95)
-        url = await yoomoney_pay(data['agrm'], data['amount'])
-        kb = get_keyboard(keyboards.get_payment_url_btn(url))
-        await edit_inline_message(bot, message.chat.id, text, Texts.payments_online_offer.parse_mode, kb)
+        payment_hash = get_payment_hash(message.chat.id, data['agrm'])
+        url = await yoomoney_pay(data['agrm'], data['amount'], payment_hash)
+        await sql.add_payment(payment_hash, message.chat.id, url)
         await delete_message(message)
+        inline = await edit_inline_message(bot, message.chat.id, text, Texts.payments_online_offer.parse_mode,
+                                           reply_markup=get_keyboard(keyboards.get_payment_url_btn(url)))
+        if inline:
+            await sql.upd_payment(payment_hash, inline)
 
 
 @dp.callback_query_handler(text='no', state=PaymentFSM.amount)

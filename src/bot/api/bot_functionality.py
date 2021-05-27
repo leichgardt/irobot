@@ -1,9 +1,16 @@
 from aiogram.utils.emoji import emojize
+from datetime import datetime
+import hashlib
 
-from src.sql import sql
-from src.lb import get_balance
 from src.bot.text import Texts
+from src.lb import get_balance
+from src.sql import sql
 from src.utils import alogger
+
+
+def get_payment_hash(chat_id, agrmnum):
+    line = f'{datetime.now()}&{chat_id}&{agrmnum}'.encode()
+    return hashlib.md5(line).hexdigest()
 
 
 async def get_agrm_balances(chat_id):

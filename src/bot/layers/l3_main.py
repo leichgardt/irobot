@@ -6,8 +6,9 @@ from aiogram.utils.emoji import emojize
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, keyboards, delete_message,\
+from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, delete_message,\
     update_inline_query, private_and_login_require
+from src.bot import keyboards
 from src.bot.text import Texts
 from .l2_settings import bot, dp
 
