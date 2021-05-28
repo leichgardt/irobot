@@ -1,4 +1,5 @@
 import asyncio
+import uvloop
 from aiogram import Bot
 
 from src.bot.api import get_keyboard
@@ -17,6 +18,9 @@ class TelegramAPI(Bot):
 
     async def _close(self):
         await self.session.close()
+
+    def update_loop(self):
+        asyncio.set_event_loop(uvloop.new_event_loop())
 
 
 telegram_api = TelegramAPI()

@@ -19,7 +19,11 @@ async def handle_payment_response(sql, result, hash_id):
         else:
             logger.error(f'Payment error! Already completed. Id: {payment_id}')
             text, parse = Texts.payment_error, Texts.payment_error.parse_mode
-        await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
+        try:
+            await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
+        except RuntimeError:
+            telegram_api.update_loop()
+            await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
         return 1
     return 0
 
