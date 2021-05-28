@@ -9,7 +9,7 @@ from src.utils import config
 class TelegramAPI(Bot):
     def __init__(self, **kwargs):
         if 'token' not in kwargs:
-            kwargs.update({'token': config['tesseract']['token-test-bot']})
+            kwargs.update({'token': config['tesseract']['token-iro-mega-bot']})
         super().__init__(**kwargs)
 
     def __del__(self):
