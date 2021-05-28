@@ -1,16 +1,16 @@
-from flask import Flask, request, redirect
+__author__ = 'leichgardt'
+
+from flask import Flask, request, redirect, render_template
 from functools import wraps
 from inspect import iscoroutinefunction
 from pprint import pprint
 
 from src.sql import SQLMaster
 from src.utils import flogger as logger, config
-from src.web import telegram_api, edit_message, delete_message
-from src.bot.text import Texts
-from src.bot.api import main_menu
+from src.web import handle_payment_response
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 app.logger = logger
 sql = SQLMaster()
 
@@ -72,25 +72,17 @@ async def get_yoomoney_payment():
             data = request.get_json()
         except:
             data = request.form
-    if data and 'hash' in data and 'res' in data:
-        payment_id, chat_id, _, status, _ = await sql.find_payment(data['hash'])
-        if status == 'new':
-            if data['res'] == 'success':
-                text, parse, res = Texts.payments_online_success, Texts.payments_online_success.parse_mode, 'success'
-            elif data['res'] == 'fail':
-                text, parse, res = Texts.payments_online_fail, Texts.payments_online_fail.parse_mode, 'fail'
-            else:
-                logger.fatal(f'Payment error!!! Id: {payment_id}')
-                text, parse, res = Texts.payment_error, Texts.payment_error.parse_mode, 'error'
-            await sql.upd_payment_status(data['hash'], res)
+    if data and 'res' in data:
+        if 'hash' in data:
+            if not await handle_payment_response(sql, data['res'], data['hash']):
+                return redirect(config['yandex']['fallback-url'] + data['res'])
         else:
-            logger.error(f'Payment error! Already completed. Id: {payment_id}')
-            text, parse = Texts.payment_error, Texts.payment_error.parse_mode
-        await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
+            return redirect(config['yandex']['fallback-url'] + data['res'])
         return '<script>window.close();</script>', 200
     else:
-        logger.warning('Payment bad request from yoomoney')
-        return 'There is no form data', 400
+        logger.warning(f'Payment bad request from {request.remote_addr}')
+        return redirect(config['yandex']['fallback-url'] + 'fail')
+        # return 'There is no form data', 400
 
 
 @app.route('/payment/<path:path>', methods=['GET', 'POST'])
