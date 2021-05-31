@@ -1,4 +1,5 @@
 import aiopg
+import asyncio
 import psycopg2
 from src.utils import alogger, config
 
@@ -13,15 +14,18 @@ class SQLCore:
 
     def __del__(self):
         try:
-            self.close_pool()
+            asyncio.get_event_loop().run_until_complete(self.close_pool())
         except:
             pass
 
     async def init_pool(self):
         self.pool = await aiopg.create_pool(self._dsn, minsize=3, maxsize=20)
 
-    def close_pool(self):
+    async def close_pool(self):
         if self.pool is not None:
+            await self.pool.clear()
+            self.pool.close()
+            await self.pool.wait_closed()
             self.pool.terminate()
 
     async def execute(self, cmd, *args, retrying=False):
