@@ -19,8 +19,8 @@ class TelegramAPI(Bot):
     async def _close(self):
         await self.session.close()
 
-    def update_loop(self):
-        asyncio.set_event_loop(uvloop.new_event_loop())
 
-
+# __loop = asyncio.new_event_loop()
+__loop = uvloop.new_event_loop()
+asyncio.set_event_loop(__loop)
 telegram_api = TelegramAPI()

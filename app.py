@@ -1,94 +1,91 @@
 __author__ = 'leichgardt'
 
-from flask import Flask, request, redirect, render_template
+import uvicorn
+from fastapi import FastAPI, Request
+from starlette.responses import Response, RedirectResponse
 from functools import wraps
-from inspect import iscoroutinefunction
-from pprint import pprint
 
-from src.sql import SQLMaster
+from src.sql import sql
 from src.utils import flogger as logger, config
-from src.web import handle_payment_response
+from src.web import handle_payment_response, telegram_api
 
 
-app = Flask(__name__, static_folder='static')
-app.logger = logger
-sql = SQLMaster()
+app = FastAPI(debug=True)
+
+
+async def get_request_data(request: Request):
+    if request.method == 'GET':
+        data = request.query_params
+    else:
+        try:
+            data = await request.json()
+        except:
+            data = await request.form()
+    return data if data else {}
 
 
 def lan_require(func):
     @wraps(func)
-    async def awrapper(*args, **kwargs):
-        ip = request.remote_addr
+    async def wrapper(request: Request, *args, **kwargs):
+        ip = request.client.host
         if ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip[:8] == '192.168.' or \
                 ip == config['paladin']['ironnet-global']:
-            return await func(*args, **kwargs), 200
+            return await func(request, *args, **kwargs)
         else:
             logger.info(f'Access denied for {ip}')
-            return '', 403
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        ip = request.remote_addr
-        if ip == 'localhost' or ip[:8] == '192.168.' or ip == config['paladin']['ironnet-global']:
-            return func(*args, **kwargs), 200
-        else:
-            return '', 403
-    return awrapper if iscoroutinefunction(func) else wrapper
+            return Response(status_code=403)
+    return wrapper
 
 
-@app.route('/')
+@app.get('/')
 @lan_require
-async def hello():
+async def hello(request: Request):
     return 'Hello, World'
 
 
-@app.route('/new_payment', methods=['GET'])
-async def new_yoomoney_payment():
-    data = request.args
-    if data:
-        if 'hash' in data.keys():
-            res = await sql.find_payment(data['hash'])
-            if res[0]:
-                return redirect(res[2])
-    return 'Backend error', 500
-    # return redirect('test')  # backend error page
-    # return '<script>window.close();</script>', 200
+@app.get('/new_payment')
+async def new_yoomoney_payment(request: Request):
+    data = await get_request_data(request)
+    if data and 'hash' in data:
+        res = await sql.find_payment(data['hash'])
+        if res[0]:
+            return RedirectResponse(res[2])
+        return Response('Backend error', 500)
+    return Response('Hash_code was not given', 400)
 
 
-@app.route('/payment', methods=['GET', 'POST'])
-async def get_yoomoney_payment():
+@app.get('/payment')
+@app.post('/payment')
+async def get_yoomoney_payment(request: Request):
     """
-    Обработчик ответов он yoomoney
+    Обработчик ответов от yoomoney
     В платеже есть параметры success-Url и fail-Url.
     Пример:
     https://market.net/payment?hash=###&res=success
 
     В зависимости от ответа меняется текст ответа пользователю и изменение записи в БД.
     """
-    if request.method == 'GET':
-        data = request.args
-    else:
-        try:
-            data = request.get_json()
-        except:
-            data = request.form
-    if data and 'res' in data:
-        if 'hash' in data:
-            if not await handle_payment_response(sql, data['res'], data['hash']):
-                return redirect(config['yandex']['fallback-url'] + data['res'])
-        else:
-            return redirect(config['yandex']['fallback-url'] + data['res'])
-        return '<script>window.close();</script>', 200
-    else:
-        logger.warning(f'Payment bad request from {request.remote_addr}')
-        return redirect(config['yandex']['fallback-url'] + 'fail')
-        # return 'There is no form data', 400
+    data = await get_request_data(request)
+    if data:
+        if 'res' in data:
+            if 'hash' in data:
+                await handle_payment_response(data['res'], data['hash'])
+                return RedirectResponse(config['yandex']['url'] + 'res=' + data['res'] + '&hash=' + data['hash'])
+            return RedirectResponse(config['yandex']['fallback-url'] + data['res'])
+    logger.warning(f'Payment bad request from {request.client.host}')
+    return RedirectResponse(config['yandex']['fallback-url'] + 'fail')
 
 
-@app.route('/payment/<path:path>', methods=['GET', 'POST'])
-def get_yoomoney_payment_path(path):
-    json_data = request.get_json()
+@app.get('/payment/{path}')
+@app.post('/payment/{path}')
+async def get_yoomoney_payment_path(request: Request, path: str):
+    data = await get_request_data(request)
+    print('\n###### payment path ######')
     print('path:', path)
-    print('payment path')
     print(request.method)
-    pprint(json_data)
+    print(data)
+    return data
+
+
+if __name__ == "__main__":
+    uvicorn.run('main:app', host="0.0.0.0", port=8000, reload=app.debug)
