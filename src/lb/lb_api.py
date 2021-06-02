@@ -55,3 +55,9 @@ async def promise_available(agrm_id):
 
 async def promise_payment(agrm_id, amount):
     return await lb_request('PromisePayment', agrm_id, amount, pass_faults=True)
+
+
+async def get_payments(agrm_id, **kwargs):
+    dtto = datetime.now()
+    dtfrom = dtto - timedelta(**kwargs)
+    return await lb_request('getPayments', {'agrmid': agrm_id, 'dtfrom': get_datetime(dtfrom), 'dtto': get_datetime(dtto)})
