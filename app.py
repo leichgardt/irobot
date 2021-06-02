@@ -29,7 +29,7 @@ async def payment_monitor():
     их и уведомит абонента об успешном платеже."""
     payments = await sql.find_processing_payments()
     if payments:
-        logger.info('Auto-detector of new payments: found', len(payments))
+        logger.info(f'Auto-detector of new payments: found {len(payments)}')
         for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:
             if datetime.now() - upd_date > timedelta(days=1):
                 await sql.upd_payment(hash_code, status='canceled')
