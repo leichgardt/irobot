@@ -93,7 +93,7 @@ class SQLMaster(SQLCore):
                            'canceled', chat_id, inline)
 
     async def find_payment(self, hash_id):
-        res = await self.execute('SELECT id, chat_id, url, status, inline, agrm, amount FROM irobot.payments '
+        res = await self.execute('SELECT id, chat_id, url, status, inline, agrm, amount, notified FROM irobot.payments '
                                  'WHERE hash=%s', hash_id)
         return res[0] if res else res
 

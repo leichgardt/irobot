@@ -41,20 +41,20 @@ def get_query_params(url):
 async def handle_payment_response(result, hash_id):
     data = await sql.find_payment(hash_id)
     if data:
-        payment_id, chat_id, url, status, inline, agrm, amount, balance = data
-        if status in ['processing']:
+        payment_id, chat_id, url, status, inline, agrm, amount, notified = data
+        if status == 'processing':
             if result == 'success':
                 text, parse, res = Texts.payments_online_success, Texts.payments_online_success.parse_mode, 'success'
             elif result == 'fail':
                 text, parse, res = Texts.payments_online_fail, Texts.payments_online_fail.parse_mode, 'fail'
             else:
                 await logger.fatal(f'Payment error!!! Incorrect result. Payment_id: {payment_id}')
-                text, parse, res = Texts.payment_error, Texts.payment_error.parse_mode, 'unknown'
-        else:
-            await logger.error(f'Payment error! Already completed. Payment_id: {payment_id}')
-            text, parse, res = Texts.payment_error, Texts.payment_error.parse_mode, 'error'
-        await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
-        await sql.upd_payment(hash_id, status=res, notified=True)
+                text, parse, res = Texts.payment_error, Texts.payment_error.parse_mode, 'error'
+            if not notified:
+                await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
+                await sql.upd_payment(hash_id, status=res, notified=True)
+            else:
+                await sql.upd_payment(hash_id, status=res)
         return 1  # платёж найден и сообщение в телеграм отправлено
     return 0
 
