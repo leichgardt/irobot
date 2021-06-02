@@ -20,7 +20,4 @@ class TelegramAPI(Bot):
         await self.session.close()
 
 
-# __loop = asyncio.new_event_loop()
-__loop = uvloop.new_event_loop()
-asyncio.set_event_loop(__loop)
 telegram_api = TelegramAPI()

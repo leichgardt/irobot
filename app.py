@@ -1,16 +1,25 @@
 __author__ = 'leichgardt'
 
 import uvicorn
+import uvloop
 from fastapi import FastAPI, Request
 from starlette.responses import Response, RedirectResponse
 from functools import wraps
+from urllib.parse import urlparse, parse_qs
 
 from src.sql import sql
-from src.utils import flogger as logger, config
-from src.web import handle_payment_response, telegram_api
+from src.utils import config, init_logger
+from src.bot.text import BOT_NAME
+from src.web import handle_payment_response
+
+loop = uvloop.new_event_loop()
+app = FastAPI(debug=False)
+logger = init_logger('irobot-web')
 
 
-app = FastAPI(debug=True)
+
+def get_query_params(url):
+    return parse_qs(urlparse(url).query)
 
 
 async def get_request_data(request: Request):
@@ -48,10 +57,11 @@ async def new_yoomoney_payment(request: Request):
     data = await get_request_data(request)
     if data and 'hash' in data:
         res = await sql.find_payment(data['hash'])
-        if res[0]:
-            return RedirectResponse(res[2])
+        if res:
+            await sql.upd_payment(data['hash'], status='processing')
+            return RedirectResponse(res[2], 302)
         return Response('Backend error', 500)
-    return Response('Hash_code was not given', 400)
+    return Response('Hash code not found', 400)
 
 
 @app.get('/payment')
@@ -68,10 +78,18 @@ async def get_yoomoney_payment(request: Request):
     data = await get_request_data(request)
     if data:
         if 'res' in data:
-            if 'hash' in data:
-                await handle_payment_response(data['res'], data['hash'])
-                return RedirectResponse(config['yandex']['url'] + 'res=' + data['res'] + '&hash=' + data['hash'])
-            return RedirectResponse(config['yandex']['fallback-url'] + data['res'])
+            hash_code = None
+            if 'shopSuccesURL' in data or 'shopFailURL' in data:
+                url = data.get('shopSuccesURL') or data.get('shopFailURL') or ''
+                params = get_query_params(url)
+                if 'hash' in params:
+                    hash_code = params['hash'][0]
+            if hash_code:
+                await handle_payment_response(data['res'], hash_code)
+                html = '<script>window.location = "tg://resolve?domain={}";</script>'.format(BOT_NAME[1:])
+                return Response(html, 308)
+            else:
+                return RedirectResponse(config['yandex']['fallback-url'] + data['res'])
     logger.warning(f'Payment bad request from {request.client.host}')
     return RedirectResponse(config['yandex']['fallback-url'] + 'fail')
 
@@ -88,4 +106,4 @@ async def get_yoomoney_payment_path(request: Request, path: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run('main:app', host="0.0.0.0", port=8000, reload=app.debug)
+    uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug)

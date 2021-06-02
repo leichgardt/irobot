@@ -1,7 +1,7 @@
 try:
     from .asql_core import SQLCore
 except ImportError:
-    from asql_core import SQLCore
+    from src.sql.asql_core import SQLCore
 
 import ujson
 
@@ -87,15 +87,18 @@ class SQLMaster(SQLCore):
         res = await self.execute('SELECT chat_id, url, status, inline FROM irobot.payments WHERE hash=%s', hash_id)
         return res[0] if res else None
 
-    async def add_payment(self, hash_id, chat_id, url):
-        await self.execute('INSERT INTO irobot.payments(hash, chat_id, url) VALUES (%s, %s, %s)', hash_id, chat_id, url)
-
-    async def upd_payment(self, hash_id, inline):
-        await self.execute('UPDATE irobot.payments SET inline= %s WHERE hash=%s', inline, hash_id)
+    async def upd_payment(self, hash_id, **kwargs):
+        upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
+        await self.execute(f'UPDATE irobot.payments SET {upd}, datetime=now() WHERE hash=%s', *kwargs.values(), hash_id)
 
     async def cancel_payment(self, chat_id, inline):
         await self.execute('UPDATE irobot.payments SET status= %s WHERE chat_id=%s AND inline=%s',
                            'canceled', chat_id, inline)
+
+    async def find_payment(self, hash_id):
+        res = await self.execute('SELECT id, chat_id, url, status, inline, agrm, amount FROM irobot.payments '
+                                 'WHERE hash=%s', hash_id)
+        return res[0] if res else res
 
 
 sql = SQLMaster()
