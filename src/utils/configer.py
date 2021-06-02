@@ -73,10 +73,12 @@ class Configer:
         config_url = kwargs.get('url', self.url)
         logger.info('Uploading configuration from {}'.format(config_url))
         self.config_list = {}
-        with requests.get(config_url, auth=(self.user, self.__passwd)) as resp:
-            if resp.status_code != 200:
-                logger.warning(f'Server doesn\'t respond.\n{config_url}\nPrevious configurations are not deleted.')
-                return self
+        try:
+            resp = requests.get(config_url, auth=(self.user, self.__passwd), timeout=5)
+        except requests.Timeout:
+            print(f'Server doesn\'t respond: {config_url}')
+            exit()
+        else:
             resp.encoding = resp.apparent_encoding
             text = re.split("([^\n]*\n)", resp.text)[1::2]
             current_module = ''

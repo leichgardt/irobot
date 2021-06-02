@@ -21,16 +21,13 @@ class SQLMaster(SQLCore):
     async def upd_fsm(self, fsm_id: int, stage: int, data: dict):
         await self.execute('UPDATE irobot.fsm SET stage= %s WHERE id=%s', stage, ujson.dumps(data), fsm_id)
 
-    async def get_sub(self, chat_id=None):
+    async def get_sub(self, chat_id):
         data = 'mailing, notify'
-        if chat_id:
-            res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true AND chat_id=%s', chat_id)
-        else:
-            res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true')
-        return res[0] if res and chat_id is not None else res
+        res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true AND chat_id=%s', chat_id)
+        return res[0] if res else res
 
     async def get_subs(self):
-        return await self.get_sub(chat_id=None)
+        return await self.execute(f'SELECT chat_id, mailing, notify FROM irobot.subs WHERE subscribed=true')
 
     async def get_chat(self, chat_id):
         res = await self.execute('SELECT chat_id, subscribed FROM irobot.subs WHERE chat_id=%s', chat_id)
@@ -83,9 +80,9 @@ class SQLMaster(SQLCore):
         await self.execute('INSERT INTO irobot.reviews(chat_id, rating, comment) VALUES (%s, %s, %s)',
                            chat_id, rating, comment)
 
-    async def get_payment(self, hash_id):
-        res = await self.execute('SELECT chat_id, url, status, inline FROM irobot.payments WHERE hash=%s', hash_id)
-        return res[0] if res else None
+    async def add_payment(self, hash_id: str, chat_id: int, url: str, agrm: str, amount: float):
+        await self.execute('INSERT INTO irobot.payments(hash, chat_id, url, agrm, amount) '
+                           'VALUES (%s, %s, %s, %s, %s)', hash_id, chat_id, url, agrm, amount)
 
     async def upd_payment(self, hash_id, **kwargs):
         upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
