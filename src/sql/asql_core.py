@@ -5,12 +5,17 @@ from src.utils import alogger, config
 
 
 class SQLCore:
+    """Ядро асинхронного класса соединения с postgresql. Работает через пул соединений"""
     def __init__(self):
-        host = config['postgres']['dbhost']
-        name = config['postgres']['dbname']
-        user = config['postgres']['dbuser']
-        self._dsn = f'dbname={name} user={user} host={host}'
+        self._dsn = 'dbname={name} user={user} host={host}'.format(name=config['postgres']['dbname'],
+                                                                   user=config['postgres']['dbuser'],
+                                                                   host=config['postgres']['dbhost'])
         self.pool = None
+
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(SQLCore, cls).__new__(cls)
+        return cls.instance
 
     def __del__(self):
         try:
@@ -19,10 +24,13 @@ class SQLCore:
             pass
 
     async def init_pool(self):
+        if self.pool is not None:  # re-init pool
+            await self.close_pool()
         self.pool = await aiopg.create_pool(self._dsn, minsize=3, maxsize=20)
 
     async def close_pool(self):
         if self.pool is not None:
+            await alogger.info('Closing pSQL pool...')
             await self.pool.clear()
             self.pool.close()
             await self.pool.wait_closed()
@@ -34,17 +42,15 @@ class SQLCore:
             await self.init_pool()
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
-                await alogger.debug(f'cmd: {cmd}\t###\targs: {args}')
                 if len(args) == 1 and isinstance(args[0], dict):
                     args = args[0]
                 try:
                     await cur.execute(cmd, args)
                 except Exception as e:
-                    text = f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}'
                     if retrying:
-                        await alogger.warning(text)
+                        await alogger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
                     else:
-                        await alogger.info(text)
+                        await alogger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
                     return res
                 else:
                     res = await get_res(cur)
