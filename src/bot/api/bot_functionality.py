@@ -5,12 +5,16 @@ import hashlib
 from src.bot.text import Texts
 from src.lb import get_balance
 from src.sql import sql
-from src.utils import alogger
+from src.utils import alogger, config
 
 
 def get_payment_hash(chat_id, agrmnum):
     line = f'{datetime.now()}&{chat_id}&{agrmnum}'.encode()
     return hashlib.md5(line).hexdigest()
+
+
+def get_payment_url(hash_code):
+    return 'https://{}/irobot/web/new_payment?hash={}'.format(config['paladin']['userside'], hash_code)
 
 
 async def get_agrm_balances(chat_id):
@@ -29,12 +33,3 @@ async def get_agrm_balances(chat_id):
     else:
         text = Texts.balance_no_agrms,
     return emojize('\n'.join(text))
-
-
-if __name__ == '__main__':
-    async def main():
-        res = await get_agrm_balances(0)
-        print(res)
-    import uvloop, asyncio
-    loop = uvloop.new_event_loop()
-    loop.run_until_complete(main())

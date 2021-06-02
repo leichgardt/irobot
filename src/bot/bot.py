@@ -1,8 +1,10 @@
+import uvloop
+import asyncio
 from aiogram.utils.executor import start_webhook
 
 from src.bot.layers import bot, dp
 from src.lb.lb_suds import lb
-from src.utils import logger, alogger, config
+from src.utils import config, alogger
 from src.utils.logger import logfile
 
 CERTIFICATE = ''
@@ -16,26 +18,24 @@ WEBAPP_PORT = 5421
 
 
 async def on_startup(dp):
-    lb.login()
+    await lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
+    await alogger.info('Bot activated')
+    await alogger.info('See console output in file "{}"'.format(logfile.format(alogger.name)))
 
 
 async def on_shutdown(dp):
-    logger.info('Shutting down..')
+    await alogger.info('Shutting down..')
     await bot.delete_webhook()
     await dp.storage.close()
     await dp.storage.wait_closed()
-    logger.info('Bye!')
+    await alogger.info('Bye!')
     await alogger.shutdown()
 
 
 def run_bot():
-    logger.info('Bot activated')
-    logger.info('See console output in file "{}"'.format(logfile.format(logger.name)))
-    import uvloop
-    import asyncio
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
     start_webhook(

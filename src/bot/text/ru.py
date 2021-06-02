@@ -179,12 +179,13 @@ class Texts:
     payments_online.answer = \
         'Оплата Онлайн'
     payments_online_amount = T(
-        'Платежи >> Оплата Онлайн\n\nДоговор №{agrm}\n\nНа сколько хочешь пополнить счёт?\n\nВведи сумму.')
+        'Платежи >> Оплата Онлайн\n\nДоговор №{agrm}\nБаланс: {balance} руб.\n\nНа сколько хочешь пополнить счёт?\n\n'
+        'Введи сумму.')
     payments_online_amount.answer = payments_promise_offer.answer
     payments_online_amount_is_not_digit = T(
         'Платежи >> Оплата Онлайн\n\nНе могу понять, что ты написал. Введи число.')
     payments_online_offer = T(
-        'Платежи >> Оплата онлайн\n\nДоговор №{agrm}\n\nК оплате: {amount} руб.\nКомиссия: {tax} руб.\n\n'
+        'Платежи >> Оплата онлайн\n\nДоговор №{agrm}\nБаланс: {balance} руб.\n\nК оплате: {amount} руб.\nКомиссия: {tax} руб.\n\n'
         'Итого к зачислению: {res} руб.\n\nНажми на кнопку "Оплатить", чтобы перейти к оплате, или введи другую сумму.')
     payments_online_success = T(
         'Платёж успешно проведён!')

@@ -2,6 +2,12 @@ from datetime import datetime
 import re
 
 
+def map_format(text: str, **kwargs):
+    for key, value in kwargs.items():
+        text = text.replace('{%s}' % key, str(value))
+    return text
+
+
 def get_datetime(date_str):
     if isinstance(date_str, datetime):
         return date_str.strftime('%Y-%m-%d %H:%M:%S')

@@ -13,7 +13,6 @@ def get_payment_url_btn(url):
     return (
         (
             {'text': 'Оплатить', 'url': url},
-            {'text': 'Отмена', 'callback_data': 'cancel'},
         ),
     )
 
