@@ -4,46 +4,51 @@ import uvicorn
 import uvloop
 from fastapi import FastAPI, Request
 from starlette.responses import Response, RedirectResponse
-from functools import wraps
-from urllib.parse import urlparse, parse_qs
+from datetime import datetime, timedelta
+from fastapi_utils.tasks import repeat_every
 
+from src.bot.text import Texts, BOT_NAME
+from src.lb import get_payments
 from src.sql import sql
 from src.utils import config, init_logger
-from src.bot.text import BOT_NAME
-from src.web import handle_payment_response
+from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api
 
 loop = uvloop.new_event_loop()
 app = FastAPI(debug=False)
 logger = init_logger('irobot-web')
 
 
+@app.on_event('startup')
+@repeat_every(seconds=50)
+async def payment_monitor():
+    """
+    Поиск незавершенных платежей.
 
-def get_query_params(url):
-    return parse_qs(urlparse(url).query)
-
-
-async def get_request_data(request: Request):
-    if request.method == 'GET':
-        data = request.query_params
-    else:
-        try:
-            data = await request.json()
-        except:
-            data = await request.form()
-    return data if data else {}
-
-
-def lan_require(func):
-    @wraps(func)
-    async def wrapper(request: Request, *args, **kwargs):
-        ip = request.client.host
-        if ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip[:8] == '192.168.' or \
-                ip == config['paladin']['ironnet-global']:
-            return await func(request, *args, **kwargs)
-        else:
-            logger.info(f'Access denied for {ip}')
-            return Response(status_code=403)
-    return wrapper
+    Чтобы завершить платёж, пользователь должен нажать на кнопку "Вернуться в магазин", на странице оплаты.
+    Если он этого не сделает, эта функция автоматически найдет платёж в БД и в Биллинге, сопоставит
+    их и уведомит абонента об успешном платеже."""
+    payments = await sql.find_processing_payments()
+    if payments:
+        logger.info('Auto-detector of new payments: found', len(payments))
+        for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:
+            if datetime.now() - upd_date > timedelta(days=1):
+                await sql.upd_payment(hash_code, status='canceled')
+            else:
+                agrm_id = await sql.get_agrm_id(chat_id, agrm)
+                payments = await get_payments(agrm_id, minutes=230)
+                for payment in payments:
+                    if not await sql.find_payments_by_record_id(payment.pay.recordid):
+                        koef = (float(payment.amountcurr) / float(amount)) - 1
+                        if abs(koef) < 0.01:
+                            text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
+                            if not notified:
+                                await telegram_api.send_message(chat_id, text, parse)
+                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid,
+                                                      notified=True)
+                            else:
+                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid)
+                            logger.info(f'Payment finished [{pay_id}]')
+                            break
 
 
 @app.get('/')

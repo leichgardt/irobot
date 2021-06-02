@@ -97,15 +97,12 @@ class SQLMaster(SQLCore):
                                  'WHERE hash=%s', hash_id)
         return res[0] if res else res
 
+    async def find_processing_payments(self):
+        return await self.execute('SELECT id, hash, chat_id, datetime, agrm, amount, notified FROM irobot.payments '
+                                  'WHERE status=%s OR status=%s', 'processing', 'success')
+
+    async def find_payments_by_record_id(self, record_id):
+        return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
+
 
 sql = SQLMaster()
-
-if __name__ == '__main__':
-    import asyncio
-
-    async def main():
-        res = await sql.get_payment('')
-        print(res)
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
