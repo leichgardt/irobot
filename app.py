@@ -73,13 +73,18 @@ async def get_yoomoney_payment(request: Request):
     data = await get_request_data(request)
     if data:
         if 'res' in data:
-            if 'shopSuccessURL' in data or 'shopFailURL' in data:
+            hash_code = None
+            if 'hash' in data:
+                hash_code = data['hash']
+            elif 'shopSuccessURL' in data or 'shopFailURL' in data:
                 url = data.get('shopSuccessURL') or data.get('shopFailURL') or ''
                 params = get_query_params(url)
                 if 'hash' in params:
-                    await handle_payment_response(data['res'], params['hash'][0])
-                    await asyncio.sleep(0.5)
-                    return Response(back_url, 301)
+                    hash_code = params['hash']
+            if hash_code:
+                await handle_payment_response(data['res'], params['hash'][0])
+                await asyncio.sleep(0.5)
+                return Response(back_url, 301)
             return RedirectResponse(config['yandex']['fallback-url'] + data['res'], 301)
     logger.warning(f'Payment bad request from {request.client.host}')
     return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
