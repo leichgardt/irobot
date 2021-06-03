@@ -169,9 +169,9 @@ class Texts:
         'Ошибка! Не удалось подключить обещанный платёж. Попробуй еще раз или обратитесь в тех.поддержку.')
     payments_promise_fail.answer = \
         'Не удалось подключить обещанный платёж.'
-    payments_already_have = T(
+    payments_promise_already_have = T(
         'На договоре №{agrm} уже подключен обещанный платёж. Погаси долг, чтобы взять следующий обещанный платёж.')
-    payments_already_have.answer = \
+    payments_promise_already_have.answer = \
         'Уже подключен на договоре №{agrm}'
 
     payments_online = T(
@@ -194,3 +194,8 @@ class Texts:
     payment_error = T(
         'Ошибка платежа. Попробуй ещё раз или обратись в службу технической поддержки по номеру {}.'.format(
             config['paladin']['support-phone']))
+    payments_online_already_have = T(
+        'Этот платёж уже выполнен, так что создай новый.')
+
+    back_end_error = T(
+        'Непредвиденная ошибка!')

@@ -54,7 +54,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
                     kb = get_keyboard(keyboards.confirm_btn)
                     await PaymentFSM.amount.set()
                 else:
-                    answer, text, parse = Texts.payments_already_have.full()
+                    answer, text, parse = Texts.payments_promise_already_have.full()
                     kb = main_menu
                     await state.finish()
             else:
