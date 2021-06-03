@@ -185,8 +185,10 @@ class Texts:
     payments_online_amount_is_not_digit = T(
         'Платежи >> Оплата Онлайн\n\nНе могу понять, что ты написал. Введи число.')
     payments_online_offer = T(
-        'Платежи >> Оплата онлайн\n\nДоговор №{agrm}\nБаланс: {balance} руб.\n\nК оплате: {amount} руб.\nКомиссия: {tax} руб.\n\n'
-        'Итого к зачислению: {res} руб.\n\nНажми на кнопку "Оплатить", чтобы перейти к оплате, или введи другую сумму.')
+        'Платежи >> Оплата онлайн\n\nДоговор №{agrm}\nБаланс: {balance} руб.\n\nК оплате: {amount} руб.\nКомиссия: '
+        '{tax} руб.\n\nИтого к зачислению: <u>{res} руб.</u>\n\nНажми на кнопку "Оплатить", чтобы перейти к оплате, '
+        'или введи другую сумму.')
+    payments_online_offer.parse_mode = ParseMode.HTML
     payments_online_success = T(
         'Платёж успешно проведён!')
     payments_online_fail = T(
