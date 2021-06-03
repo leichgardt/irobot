@@ -15,6 +15,8 @@ chardet==4.0.0
 click==7.1.2
 emoji==1.2.1
 fastapi==0.65.1
+fastapi-utils==0.2.1
+greenlet==1.1.0
 h11==0.12.0
 idna==2.10
 motor==2.4.0
@@ -26,6 +28,7 @@ pydantic==1.8.2
 pymongo==3.11.4
 pytz==2021.1
 requests==2.25.1
+SQLAlchemy==1.4.17
 starlette==0.14.2
 suds-community==0.8.4
 typing-extensions==3.10.0.0

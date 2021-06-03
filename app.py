@@ -92,31 +92,16 @@ async def get_yoomoney_payment(request: Request):
     data = await get_request_data(request)
     if data:
         if 'res' in data:
-            hash_code = None
             if 'shopSuccesURL' in data or 'shopFailURL' in data:
                 url = data.get('shopSuccesURL') or data.get('shopFailURL') or ''
                 params = get_query_params(url)
                 if 'hash' in params:
-                    hash_code = params['hash'][0]
-            if hash_code:
-                await handle_payment_response(data['res'], hash_code)
-                html = '<script>window.location = "tg://resolve?domain={}";</script>'.format(BOT_NAME[1:])
-                return Response(html, 308)
-            else:
-                return RedirectResponse(config['yandex']['fallback-url'] + data['res'])
+                    await handle_payment_response(data['res'], params['hash'][0])
+                    html = '<script>window.location = "tg://resolve?domain={}";</script>'.format(bot_name)
+                    return Response(html, 308)
+            return RedirectResponse(config['yandex']['fallback-url'] + data['res'])
     logger.warning(f'Payment bad request from {request.client.host}')
     return RedirectResponse(config['yandex']['fallback-url'] + 'fail')
-
-
-@app.get('/payment/{path}')
-@app.post('/payment/{path}')
-async def get_yoomoney_payment_path(request: Request, path: str):
-    data = await get_request_data(request)
-    print('\n###### payment path ######')
-    print('path:', path)
-    print(request.method)
-    print(data)
-    return data
 
 
 if __name__ == "__main__":
