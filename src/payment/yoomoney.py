@@ -15,7 +15,7 @@ async def yoomoney_pay(agrmnum: str, amount: float, hash_id: str):
         'scid': config['yandex']['sc-id'],
         'sum': amount,
         'customerNumber': agrmnum,
-        'shopSuccesURL': config['yandex']['success-url'] + hash_id,
+        'shopSuccessUrl': config['yandex']['success-url'] + hash_id,
         'shopFailURL': config['yandex']['fail-url'] + hash_id,
         'paymentType': 'AC',
     }

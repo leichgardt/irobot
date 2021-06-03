@@ -106,13 +106,13 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
 async def inline_h_payment(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['amount'] = message.text
-        summ = round(float(data['amount']) * 0.965, 2)
-        tax = round(float(data['amount']) * 0.035, 2)
+        tax = round(float(data['amount']) * 0.03626943005181345792, 2)  # комиссия "3.5%"
+        summ = round(float(data['amount']), 2) + tax
         text = Texts.payments_online_offer.format(agrm=data['agrm'], amount=float(data['amount']),
                                                   balance=data['balance'], tax=tax, res=summ)
         payment_hash = get_payment_hash(message.chat.id, data['agrm'])
-        url = await yoomoney_pay(data['agrm'], data['amount'], payment_hash)
-        await sql.add_payment(payment_hash, message.chat.id, url, data['agrm'], summ)
+        url = await yoomoney_pay(data['agrm'], summ, payment_hash)
+        await sql.add_payment(payment_hash, message.chat.id, url, data['agrm'], round(float(data['amount']), 3))
         url = get_payment_url(payment_hash)
         inline = await edit_inline_message(bot, message.chat.id, text, Texts.payments_online_offer.parse_mode,
                                            reply_markup=get_keyboard(keyboards.get_payment_url_btn(url)))

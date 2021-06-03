@@ -67,14 +67,14 @@ async def get_yoomoney_payment(request: Request):
     """
     Обработчик ответов от yoomoney
 
-    В платеже есть параметры shopSuccesURL и shopFailURL.
+    В платеже есть параметры shopSuccessURL и shopFailURL.
     В зависимости от ответа меняется текст ответа пользователю и запись в БД.
     """
     data = await get_request_data(request)
     if data:
         if 'res' in data:
-            if 'shopSuccesURL' in data or 'shopFailURL' in data:
-                url = data.get('shopSuccesURL') or data.get('shopFailURL') or ''
+            if 'shopSuccessURL' in data or 'shopFailURL' in data:
+                url = data.get('shopSuccessURL') or data.get('shopFailURL') or ''
                 params = get_query_params(url)
                 if 'hash' in params:
                     await handle_payment_response(data['res'], params['hash'][0])

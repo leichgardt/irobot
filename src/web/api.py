@@ -46,7 +46,7 @@ async def handle_payment_response(result, hash_id):
         payment_id, chat_id, url, status, inline, agrm, amount, notified = data
         if status == 'processing':
             if result == 'success':
-                text, parse, res = Texts.payments_online_success, Texts.payments_online_success.parse_mode, 'success'
+                text, parse, res = Texts.payments_online_success, Texts.payments_online_success.parse_mode, 'finished'
             elif result == 'fail':
                 text, parse, res = Texts.payments_online_fail, Texts.payments_online_fail.parse_mode, 'fail'
             else:
