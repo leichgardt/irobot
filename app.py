@@ -4,15 +4,13 @@ import uvicorn
 import uvloop
 from fastapi import FastAPI, Request
 from starlette.responses import Response, RedirectResponse
-from datetime import datetime, timedelta
 from fastapi_utils.tasks import repeat_every
 
 from src.bot.api import main_menu
 from src.bot.text import Texts
-from src.lb import get_payments
 from src.sql import sql
 from src.utils import config, init_logger
-from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api
+from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, auto_payment_monitor
 
 loop = uvloop.new_event_loop()
 logger = init_logger('irobot-web')
@@ -23,7 +21,7 @@ app = FastAPI(debug=False)
 
 @app.on_event('startup')
 async def update_params():
-    """загрузить и обновить параметры"""
+    """Загрузить и обновить параметры"""
     global bot_name, back_url
     bot_name = await telegram_api.get_username()
     back_url = back_url.format(bot_name)
@@ -39,26 +37,7 @@ async def payment_monitor():
     Чтобы завершить платёж, пользователь должен нажать на кнопку "Вернуться в магазин", на странице оплаты.
     Если он этого не сделает, эта функция автоматически найдет платёж в БД и в Биллинге, сопоставит
     их и уведомит абонента об успешном платеже."""
-    payments = await sql.find_processing_payments()
-    if payments:
-        for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:
-            if datetime.now() - upd_date > timedelta(hours=12):
-                await sql.upd_payment(hash_code, status='canceled')
-                logger.info(f'Payment monitor: canceled [{pay_id}]')
-            else:
-                agrm_id = await sql.get_agrm_id(chat_id, agrm)
-                for payment in await get_payments(agrm_id, minutes=230):
-                    if not await sql.find_payments_by_record_id(payment.pay.recordid):
-                        if abs((float(payment.amountcurr) / float(amount)) - 1) < 0.01:
-                            text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
-                            if not notified:
-                                await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
-                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid,
-                                                      notified=True)
-                            else:
-                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid)
-                            logger.info(f'Payment monitor: finished [{pay_id}]')
-                            break
+    await auto_payment_monitor()
 
 
 @app.get('/')
@@ -69,6 +48,7 @@ async def hello(request: Request):
 
 @app.get('/new_payment')
 async def new_yoomoney_payment(request: Request):
+    """Перевести платёж в состояние "processing" для отслеживания монитором payment_monitor"""
     data = await get_request_data(request)
     if data and 'hash' in data:
         res = await sql.find_payment(data['hash'])
@@ -90,11 +70,9 @@ async def new_yoomoney_payment(request: Request):
 async def get_yoomoney_payment(request: Request):
     """
     Обработчик ответов от yoomoney
-    В платеже есть параметры success-Url и fail-Url.
-    Пример:
-    https://market.net/payment?hash=###&res=success
 
-    В зависимости от ответа меняется текст ответа пользователю и изменение записи в БД.
+    В платеже есть параметры shopSuccesURL и shopFailURL.
+    В зависимости от ответа меняется текст ответа пользователю и запись в БД.
     """
     data = await get_request_data(request)
     if data:

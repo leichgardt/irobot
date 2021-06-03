@@ -2,6 +2,8 @@ from urllib.parse import urlparse, parse_qs
 from fastapi import Request
 from starlette.responses import Response
 from functools import wraps
+from datetime import datetime, timedelta
+from src.lb import get_payments
 
 from .telegram_api import telegram_api
 from src.bot.text import Texts
@@ -57,3 +59,26 @@ async def handle_payment_response(result, hash_id):
                 await sql.upd_payment(hash_id, status=res)
         return 1  # платёж найден и сообщение в телеграм отправлено
     return 0
+
+
+async def auto_payment_monitor():
+    payments = await sql.find_processing_payments()
+    if payments:
+        for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:
+            if datetime.now() - upd_date > timedelta(hours=12):
+                await sql.upd_payment(hash_code, status='canceled')
+                logger.info(f'Payment monitor: canceled [{pay_id}]')
+            else:
+                agrm_id = await sql.get_agrm_id(chat_id, agrm)
+                for payment in await get_payments(agrm_id, minutes=230):
+                    if not await sql.find_payments_by_record_id(payment.pay.recordid):
+                        if abs((float(payment.amountcurr) / float(amount)) - 1) < 0.01:
+                            text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
+                            if not notified:
+                                await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
+                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid,
+                                                      notified=True)
+                            else:
+                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid)
+                            logger.info(f'Payment monitor: finished [{pay_id}]')
+                            break
