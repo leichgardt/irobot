@@ -7,6 +7,7 @@ from starlette.responses import Response, RedirectResponse
 from datetime import datetime, timedelta
 from fastapi_utils.tasks import repeat_every
 
+from src.bot.api import main_menu
 from src.bot.text import Texts
 from src.lb import get_payments
 from src.sql import sql
@@ -16,14 +17,16 @@ from src.web import handle_payment_response, get_query_params, get_request_data,
 loop = uvloop.new_event_loop()
 logger = init_logger('irobot-web')
 bot_name = ''
+back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 app = FastAPI(debug=False)
 
 
 @app.on_event('startup')
-async def update_data():
+async def update_params():
     """загрузить и обновить параметры"""
-    global bot_name
+    global bot_name, back_url
     bot_name = await telegram_api.get_username()
+    back_url = back_url.format(bot_name)
     logger.info(f'Bot API is available. "{bot_name}" greetings!')
 
 
@@ -72,8 +75,14 @@ async def new_yoomoney_payment(request: Request):
     if data and 'hash' in data:
         res = await sql.find_payment(data['hash'])
         if res:
-            await sql.upd_payment(data['hash'], status='processing')
-            return RedirectResponse(res[2], 302)
+            if res[3] in ['new', 'processing']:
+                if res[3] == 'new':
+                    await sql.upd_payment(data['hash'], status='processing')
+                return RedirectResponse(res[2], 302)
+            else:
+                await telegram_api.send_message(res[1], Texts.payment_error, Texts.payment_error.parse_mode,
+                                                reply_markup=main_menu)
+                return Response(back_url, 301)
         return Response('Backend error', 500)
     return Response('Hash code not found', 400)
 
@@ -97,11 +106,10 @@ async def get_yoomoney_payment(request: Request):
                 params = get_query_params(url)
                 if 'hash' in params:
                     await handle_payment_response(data['res'], params['hash'][0])
-                    html = '<script>window.location = "tg://resolve?domain={}";</script>'.format(bot_name)
-                    return Response(html, 308)
-            return RedirectResponse(config['yandex']['fallback-url'] + data['res'])
+                    return Response(back_url, 301)
+            return RedirectResponse(config['yandex']['fallback-url'] + data['res'], 301)
     logger.warning(f'Payment bad request from {request.client.host}')
-    return RedirectResponse(config['yandex']['fallback-url'] + 'fail')
+    return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
 
 
 if __name__ == "__main__":
