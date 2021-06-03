@@ -13,6 +13,7 @@ def get_payment_url_btn(url):
     return (
         (
             {'text': 'Оплатить', 'url': url},
+            {'text': 'Изменить сумму', 'callback_data': 'payments-online-another-amount'},
         ),
     )
 

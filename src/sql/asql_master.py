@@ -80,9 +80,9 @@ class SQLMaster(SQLCore):
         await self.execute('INSERT INTO irobot.reviews(chat_id, rating, comment) VALUES (%s, %s, %s)',
                            chat_id, rating, comment)
 
-    async def add_payment(self, hash_id: str, chat_id: int, url: str, agrm: str, amount: float):
-        await self.execute('INSERT INTO irobot.payments(hash, chat_id, url, agrm, amount) '
-                           'VALUES (%s, %s, %s, %s, %s)', hash_id, chat_id, url, agrm, amount)
+    async def add_payment(self, hash_id: str, chat_id: int, url: str, agrm: str, amount: float, inline: int = None):
+        await self.execute('INSERT INTO irobot.payments(hash, chat_id, url, agrm, amount, inline) '
+                           'VALUES (%s, %s, %s, %s, %s, %s)', hash_id, chat_id, url, agrm, amount, inline)
 
     async def upd_payment(self, hash_id, **kwargs):
         upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])

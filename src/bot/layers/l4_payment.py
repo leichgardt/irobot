@@ -21,6 +21,8 @@ class PaymentFSM(StatesGroup):
     agrm = State()
     balance = State()
     amount = State()
+    payment = State()
+    hash = State()
 
 
 @dp.message_handler(Text(emojize(':moneybag: Платежи')), state='*')
@@ -73,7 +75,6 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
                 answer, text, parse = Texts.payments_online.full()
                 kb = get_keyboard(await keyboards.get_agrms_btn(agrms=agrms), keyboards.back_to_main)
         await update_inline_query(bot, query, answer, text, parse, keyboard=kb)
-        await alogger.info(f'Start payment [{query.message.chat.id}]')
 
 
 @dp.callback_query_handler(Regexp(regexp=r'agrm-([^\s]*)'), state=PaymentFSM.agrm)
@@ -105,20 +106,38 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
 @dp.message_handler(lambda message: message.text.isdigit(), state=PaymentFSM.amount)
 async def inline_h_payment(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['amount'] = message.text
-        tax = round(float(data['amount']) * 0.03626943005181345792, 2)  # комиссия "3.5%"
-        summ = round(float(data['amount']), 2) + tax
-        text = Texts.payments_online_offer.format(agrm=data['agrm'], amount=float(data['amount']),
-                                                  balance=data['balance'], tax=tax, res=summ)
-        payment_hash = get_payment_hash(message.chat.id, data['agrm'])
-        url = await yoomoney_pay(data['agrm'], summ, payment_hash)
-        await sql.add_payment(payment_hash, message.chat.id, url, data['agrm'], round(float(data['amount']), 3))
+        data['amount'] = round(float(message.text), 2)
+        tax = round(data['amount'] * 0.03626943005181345792, 2)  # комиссия "3.5%"
+        summ = round(data['amount'], 2) + tax
+        text = Texts.payments_online_offer.format(agrm=data['agrm'], amount=data['amount'], balance=data['balance'],
+                                                  tax=tax, res=summ)
+        if 'hash' not in data.keys():
+            payment_hash = get_payment_hash(message.chat.id, data['agrm'])
+            data['hash'] = payment_hash
+        else:
+            payment_hash = data['hash']
+        # ссылка на оплату yoomoney выдается в ResponseRedirect в app.py
+        yoomoney_url = await yoomoney_pay(data['agrm'], summ, payment_hash)
         url = get_payment_url(payment_hash)
+        await PaymentFSM.next()
         inline = await edit_inline_message(bot, message.chat.id, text, Texts.payments_online_offer.parse_mode,
                                            reply_markup=get_keyboard(keyboards.get_payment_url_btn(url)))
         await delete_message(message)
-        if inline:
-            await sql.upd_payment(payment_hash, inline=inline)
+        if 'payment' not in data.keys():
+            await sql.add_payment(payment_hash, message.chat.id, yoomoney_url, data['agrm'], data['amount'], inline)
+            await alogger.info(f'New payment [{message.chat.id}]')
+        else:
+            await sql.upd_payment(payment_hash, url=yoomoney_url, amount=data['amount'], inline=inline)
+
+
+@dp.callback_query_handler(text='payments-online-another-amount', state=PaymentFSM.payment)
+async def inline_h_payment_another_amount(query: types.CallbackQuery, state: FSMContext):
+    async with state.proxy() as data:
+        data['payment'] = True
+        await PaymentFSM.amount.set()
+        answer, text, parse = Texts.payments_online_amount.full()
+        answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'], balance=data['balance'])
+        await update_inline_query(bot, query, answer, text, parse, keyboard=cancel_menu['inline'])
 
 
 @dp.callback_query_handler(text='no', state=PaymentFSM.amount)
