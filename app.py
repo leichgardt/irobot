@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from starlette.responses import Response, RedirectResponse
 from fastapi_utils.tasks import repeat_every
 
+from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
     auto_payment_monitor, handle_new_payment_request
@@ -50,9 +51,10 @@ async def new_yoomoney_payment(request: Request):
     """Перевести платёж в состояние "processing" для отслеживания монитором payment_monitor"""
     data = await get_request_data(request)
     if data and 'hash' in data:
-        res = await handle_new_payment_request(data['hash'])
+        sql_data = await sql.find_payment(data['hash'])
+        res = await handle_new_payment_request(data['hash'], sql_data)
         if res == 1:  # это новый платёж - перенаправить на страницу оплаты
-            return RedirectResponse(res[2], 302)
+            return RedirectResponse(sql_data[2], 302)
         elif res == 0:  # это старый платёж - вернуться к телеграм боту
             await asyncio.sleep(0.8)
             return Response(back_url, 301)

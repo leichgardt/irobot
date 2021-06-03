@@ -61,18 +61,17 @@ async def handle_payment_response(result, hash_id):
     return 0
 
 
-async def handle_new_payment_request(hash_code):
-    res = await sql.find_payment(hash_code)
-    if res:
-        if res[3] in ['new', 'processing']:
-            if res[3] == 'new':
+async def handle_new_payment_request(hash_code, sql_data):
+    if sql_data:
+        if sql_data[3] in ['new', 'processing']:
+            if sql_data[3] == 'new':
                 await sql.upd_payment(hash_code, status='processing')
             return 1
-        elif res[3] == 'finished':
+        elif sql_data[3] == 'finished':
             text, parse = Texts.payments_online_already_have, Texts.payments_online_already_have.parse_mode
         else:
             text, parse = Texts.payment_error, Texts.payment_error.parse_mode
-        await telegram_api.send_message(res[1], text, parse, reply_markup=main_menu)
+        await telegram_api.send_message(sql_data[1], text, parse, reply_markup=main_menu)
         return 0
     return -1
 
