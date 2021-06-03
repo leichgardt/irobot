@@ -70,7 +70,7 @@ async def auto_payment_monitor():
                 logger.info(f'Payment monitor: canceled [{pay_id}]')
             else:
                 agrm_id = await sql.get_agrm_id(chat_id, agrm)
-                for payment in await get_payments(agrm_id, minutes=230):
+                for payment in await get_payments(agrm_id, minutes=30):
                     if not await sql.find_payments_by_record_id(payment.pay.recordid):
                         if abs((float(payment.amountcurr) / float(amount)) - 1) < 0.01:
                             text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
