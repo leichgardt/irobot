@@ -8,15 +8,18 @@ BOT_NAME = '@ironnet_bot'
 
 
 class T(str):
-    def __init__(self,
-                 value='',
-                 parse_mode: str = None,
-                 answer: str = None):
-        # super(T, self).__init__()
+    def __init__(self, value=''):
         self.__str__ = value
-        self.answer = answer
-        self.parse_mode = parse_mode
-    
+        self.answer = None
+        self.parse_mode = None
+
+    def __call__(self, new_str: str):
+        """обновить значение переменной T"""
+        new_t = T(new_str)
+        new_t.parse_mode = self.parse_mode
+        new_t.answer = self.answer
+        return new_t
+
     def full(self):
         return self.answer, self.__str__, self.parse_mode
 
