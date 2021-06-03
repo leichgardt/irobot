@@ -5,6 +5,7 @@ from aiogram.utils.exceptions import MessageNotModified, BadRequest
 from aiogram.dispatcher import FSMContext
 
 from src.sql import sql
+from src.bot.bot_core import bot
 from src.bot import keyboards
 from src.bot.text import Texts
 from src.bot.api.bot_keyboard_master import get_keyboard
@@ -26,9 +27,21 @@ def private_and_login_require(do_not_check_sub=False):
     return decorator
 
 
-async def delete_message(message: types.Message):
+async def delete_message(message: typing.Union[types.Message,
+                                               tuple,
+                                               list,
+                                               dict]):
     try:
-        await message.delete()
+        if isinstance(message, (tuple, list, dict)):
+            if isinstance(message, (tuple, list)):
+                chat_id = message[0]
+                message_id = message[1]
+            else:
+                chat_id = message['chat_id']
+                message_id = message['message_id']
+            await bot.delete_message(chat_id, message_id)
+        else:
+            await message.delete()
     except:
         pass
 
@@ -62,6 +75,7 @@ async def edit_inline_message(bot: Bot,
         except (MessageNotModified, BadRequest):
             res = await bot.send_message(chat_id, text, parse_mode, disable_web_page_preview=disable_web_page_preview,
                                          reply_markup=reply_markup)
+            await delete_message((chat_id, inline))
             await sql.upd_inline(chat_id, res.message_id, text, parse_mode)
         except Exception as e:
             await alogger.warning(e)
