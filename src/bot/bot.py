@@ -2,6 +2,7 @@ import uvloop
 import asyncio
 from aiogram.utils.executor import start_webhook
 
+from src.bot.text import Texts
 from src.bot.layers import bot, dp
 from src.lb.lb_suds import lb
 from src.utils import config, alogger
@@ -17,7 +18,15 @@ WEBAPP_HOST = '0.0.0.0'  # or ip
 WEBAPP_PORT = 5421
 
 
+async def upd_main_menu():
+    me = await bot.get_me()
+    new = Texts.main_menu.format(f'@{me["username"]}')
+    Texts.main_menu = Texts.main_menu(new)
+    print(Texts.main_menu)
+
+
 async def on_startup(dp):
+    await upd_main_menu()
     await lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,

@@ -19,5 +19,9 @@ class TelegramAPI(Bot):
     async def _close(self):
         await self.session.close()
 
+    async def get_username(self):
+        me = await self.get_me()
+        return me['username']
+
 
 telegram_api = TelegramAPI()

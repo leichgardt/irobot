@@ -1,1 +1,1 @@
-from .ru import Texts, BOT_NAME
+from .ru import Texts

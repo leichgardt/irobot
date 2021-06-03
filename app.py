@@ -7,15 +7,24 @@ from starlette.responses import Response, RedirectResponse
 from datetime import datetime, timedelta
 from fastapi_utils.tasks import repeat_every
 
-from src.bot.text import Texts, BOT_NAME
+from src.bot.text import Texts
 from src.lb import get_payments
 from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api
 
 loop = uvloop.new_event_loop()
-app = FastAPI(debug=False)
 logger = init_logger('irobot-web')
+bot_name = ''
+app = FastAPI(debug=False)
+
+
+@app.on_event('startup')
+async def update_data():
+    """загрузить и обновить параметры"""
+    global bot_name
+    bot_name = await telegram_api.get_username()
+    logger.info(f'Bot API is available. "{bot_name}" greetings!')
 
 
 @app.on_event('startup')

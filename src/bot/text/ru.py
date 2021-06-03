@@ -4,9 +4,6 @@ from aiogram.utils.emoji import emojize
 from src.utils import config
 
 
-BOT_NAME = '@ironnet_bot'
-
-
 class T(str):
     def __init__(self, value=''):
         self.__str__ = value
@@ -106,7 +103,7 @@ class Texts:
         'Успешный выход'
 
     main_menu = T(
-        f'{BOT_NAME} Главное меню')
+        '{} Главное меню')
     main_menu.answer = \
         'Главное меню'
 
