@@ -41,25 +41,23 @@ async def payment_monitor():
     их и уведомит абонента об успешном платеже."""
     payments = await sql.find_processing_payments()
     if payments:
-        logger.info(f'Auto-detector of new payments: found {len(payments)}')
         for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:
-            if datetime.now() - upd_date > timedelta(days=1):
+            if datetime.now() - upd_date > timedelta(hours=12):
                 await sql.upd_payment(hash_code, status='canceled')
+                logger.info(f'Payment monitor: canceled [{pay_id}]')
             else:
                 agrm_id = await sql.get_agrm_id(chat_id, agrm)
-                payments = await get_payments(agrm_id, minutes=230)
-                for payment in payments:
+                for payment in await get_payments(agrm_id, minutes=230):
                     if not await sql.find_payments_by_record_id(payment.pay.recordid):
-                        koef = (float(payment.amountcurr) / float(amount)) - 1
-                        if abs(koef) < 0.01:
+                        if abs((float(payment.amountcurr) / float(amount)) - 1) < 0.01:
                             text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
                             if not notified:
-                                await telegram_api.send_message(chat_id, text, parse)
+                                await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
                                 await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid,
                                                       notified=True)
                             else:
                                 await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid)
-                            logger.info(f'Payment finished [{pay_id}]')
+                            logger.info(f'Payment monitor: finished [{pay_id}]')
                             break
 
 
