@@ -97,15 +97,14 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(lambda message: not message.text.isdigit(), state=PaymentFSM.amount)
 async def inline_h_payment(message: types.Message, state: FSMContext):
-    await delete_message(message)
     await edit_inline_message(bot, message.chat.id, Texts.payments_online_amount_is_not_digit,
                               Texts.payments_online_amount_is_not_digit.parse_mode, cancel_menu['inline'])
+    await delete_message(message)
 
 
 @dp.message_handler(lambda message: message.text.isdigit(), state=PaymentFSM.amount)
 async def inline_h_payment(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        await state.finish()
         data['amount'] = message.text
         summ = round(float(data['amount']) * 0.965, 2)
         tax = round(float(data['amount']) * 0.035, 2)
@@ -115,9 +114,9 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
         url = await yoomoney_pay(data['agrm'], data['amount'], payment_hash)
         await sql.add_payment(payment_hash, message.chat.id, url, data['agrm'], summ)
         url = get_payment_url(payment_hash)
-        await delete_message(message)
         inline = await edit_inline_message(bot, message.chat.id, text, Texts.payments_online_offer.parse_mode,
                                            reply_markup=get_keyboard(keyboards.get_payment_url_btn(url)))
+        await delete_message(message)
         if inline:
             await sql.upd_payment(payment_hash, inline=inline)
 

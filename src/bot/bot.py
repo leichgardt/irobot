@@ -22,7 +22,6 @@ async def upd_main_menu():
     me = await bot.get_me()
     new = Texts.main_menu.format(f'@{me["username"]}')
     Texts.main_menu = Texts.main_menu(new)
-    print(Texts.main_menu)
 
 
 async def on_startup(dp):
