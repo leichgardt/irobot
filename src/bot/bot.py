@@ -56,6 +56,7 @@ def run_bot():
         port=WEBAPP_PORT,
         loop=loop
     )
+    return loop
 
 
 if __name__ == '__main__':
