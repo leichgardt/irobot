@@ -5,7 +5,7 @@ from aiologger.handlers.files import AsyncFileHandler
 from aiologger.formatters.base import Formatter
 
 f_format = '[%(asctime)s] %(levelname)-8s %(filename)s(%(lineno)d) - %(funcName)s: %(message)s'
-s_format = '%(levelname)-9s %(message)s'
+s_format = '%(levelname)-9s %(asctime)s: %(message)s'
 logfile = '/var/log/iron/{}.log'
 
 
