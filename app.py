@@ -74,7 +74,7 @@ async def get_yoomoney_payment(request: Request):
     """
     data = await get_request_data(request)
     if data:
-        if 'res' in data:
+        if 'res' in data and data['res'] in ['success', 'fail']:
             hash_code = None
             if 'hash' in data:
                 hash_code = data['hash']
@@ -87,7 +87,7 @@ async def get_yoomoney_payment(request: Request):
                 await handle_payment_response(data['res'], hash_code)
                 return Response(back_url, 301)
             return RedirectResponse(config['yandex']['fallback-url'] + data['res'], 301)
-    logger.warning(f'Payment bad request from {request.client.host}')
+    logger.warning(f'Bad payment request from {request.client.host}')
     return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
 
 
