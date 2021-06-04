@@ -76,7 +76,7 @@ class Configer:
         try:
             resp = requests.get(config_url, auth=(self.user, self.__passwd), timeout=5)
         except requests.Timeout:
-            print(f'Server doesn\'t respond: {config_url}')
+            logger.info(f'Server doesn\'t respond: {config_url}')
             exit()
         else:
             resp.encoding = resp.apparent_encoding
