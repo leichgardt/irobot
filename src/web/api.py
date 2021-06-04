@@ -14,7 +14,7 @@ from src.sql import sql
 
 async def get_request_data(request: Request):
     if request.method == 'GET':
-        data = request.query_params
+        data = dict(request.query_params)
     else:
         try:
             data = await request.json()
