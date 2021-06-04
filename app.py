@@ -25,7 +25,7 @@ async def update_params():
     global bot_name, back_url
     bot_name = await telegram_api.get_username()
     back_url = back_url.format(bot_name)
-    logger.info(f'Bot API is available. "{bot_name}" greetings!')
+    logger.info(f'Bot API is available. "{bot_name}" are greetings you!')
 
 
 @app.on_event('startup')
