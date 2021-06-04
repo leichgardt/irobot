@@ -77,6 +77,7 @@ async def handle_new_payment_request(hash_code, sql_data):
 
 
 async def auto_payment_monitor():
+    await sql.cancel_old_new_payments()
     payments = await sql.find_processing_payments()
     if payments:
         for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:

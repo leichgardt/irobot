@@ -101,6 +101,10 @@ class SQLMaster(SQLCore):
         return await self.execute('SELECT id, hash, chat_id, datetime, agrm, amount, notified FROM irobot.payments '
                                   'WHERE status=%s OR status=%s', 'processing', 'success')
 
+    async def cancel_old_new_payments(self):
+        return await self.execute('UPDATE irobot.payments SET status= %s WHERE status=%s AND '
+                                  'datetime - current_date > interval \'1 day\'', 'canceled', 'new')
+
     async def find_payments_by_record_id(self, record_id):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
 
