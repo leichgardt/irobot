@@ -52,7 +52,6 @@ class LBCore:
                 res = self.func(func, *args)
                 if res[0] != 200:
                     if pass_faults:
-                        await alogger.info(res[1])
                         return []
                     else:
                         await alogger.error(res[1])
