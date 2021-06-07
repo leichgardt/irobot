@@ -5,7 +5,8 @@ from aiogram.utils.executor import start_webhook
 from src.bot.text import Texts
 from src.bot.layers import bot, dp
 from src.lb.lb_suds import lb
-from src.utils import config, alogger
+from src.sql import sql
+from src.utils import config, logger
 from src.utils.logger import logfile
 
 CERTIFICATE = ''
@@ -26,26 +27,28 @@ async def upd_main_menu():
 
 async def on_startup(dp):
     await upd_main_menu()
-    await lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
-    await alogger.info('Bot activated')
-    await alogger.info('See console output in file "{}"'.format(logfile.format(alogger.name)))
+    logger.info('Bot activated')
+    logger.info('See console output in file "{}"'.format(logfile.format(logger.name)))
 
 
 async def on_shutdown(dp):
-    await alogger.info('Shutting down..')
-    await bot.delete_webhook()
+    logger.info('Shutting down..')
     await dp.storage.close()
+    await bot.delete_webhook()
+    await sql.close_pool()
     await dp.storage.wait_closed()
-    await alogger.info('Bye!')
-    await alogger.shutdown()
+    logger.info('Bye!')
+    logger.shutdown()
 
 
 def run_bot():
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
+    lb.login()
+    lb.loop = loop
     start_webhook(
         dispatcher=dp,
         webhook_path=WEBHOOK_PATH,

@@ -1,7 +1,7 @@
 import aiopg
 import asyncio
 import psycopg2
-from src.utils import alogger, config
+from src.utils import logger, alogger, config
 
 
 class SQLCore:
@@ -30,11 +30,11 @@ class SQLCore:
 
     async def close_pool(self):
         if self.pool is not None:
-            await alogger.info('Closing pSQL pool...')
             await self.pool.clear()
             self.pool.close()
             await self.pool.wait_closed()
             self.pool.terminate()
+            logger.info('PSQL pool closed')
 
     async def execute(self, cmd, *args, retrying=False):
         res = []
