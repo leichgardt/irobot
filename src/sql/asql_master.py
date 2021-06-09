@@ -108,5 +108,18 @@ class SQLMaster(SQLCore):
     async def find_payments_by_record_id(self, record_id):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
 
+    async def add_pid(self, pid: int):
+        await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid)
+
+    async def get_pids(self):
+        res = await self.execute('SELECT pid FROM irobot.pids')
+        return [line[0] for line in res] if res else res
+
+    async def del_pid(self, pid):
+        await self.execute('DELETE FROM irobot.pids WHERE pid=%s', pid)
+
+    async def del_pids(self):
+        await self.execute('DELETE FROM irobot.pids')
+
 
 sql = SQLMaster()

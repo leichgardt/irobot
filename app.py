@@ -10,13 +10,14 @@ from fastapi_utils.tasks import repeat_every
 from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
-    auto_payment_monitor, handle_new_payment_request
+    auto_payment_monitor, handle_new_payment_request, SoloWorker
 
 loop = uvloop.new_event_loop()
 logger = init_logger('irobot-web')
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 app = FastAPI(debug=False)
+sw = SoloWorker()
 
 
 @app.on_event('startup')
@@ -26,10 +27,12 @@ async def update_params():
     bot_name = await telegram_api.get_username()
     back_url = back_url.format(bot_name)
     logger.info(f'Bot API is available. "{bot_name}" are greetings you!')
+    await sw.clean_old_pids()
 
 
 @app.on_event('startup')
-@repeat_every(seconds=50)
+@repeat_every(seconds=5)
+@sw.solo_worker(name='monitor')
 async def payment_monitor():
     """
     Поиск незавершенных платежей.
@@ -92,4 +95,4 @@ async def get_yoomoney_payment(request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug)
+    uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug, workers=4)
