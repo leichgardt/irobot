@@ -74,6 +74,19 @@ async def get_res(cur):
         ret = [list(line) for line in ret]
         for i in range(len(ret)):
             for y in range(len(ret[i])):
-                if isinstance(ret[i][y], str):
-                    ret[i][y] = ret[i][y].strip()
+                ret[i][y] = strip_res(ret[i][y])
         return [tuple(line) for line in ret]
+
+
+def strip_res(val):
+    if isinstance(val, str):
+        return val.strip()
+    elif isinstance(val, (list, set, tuple)):
+        val = [strip_res(v) for v in val]
+        return val
+    elif isinstance(val, dict):
+        tmp = {}
+        for k, v in val.items():
+            tmp.update({k: strip_res(v)})
+        return val
+    return val
