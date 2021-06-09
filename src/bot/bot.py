@@ -6,7 +6,7 @@ from src.bot.text import Texts
 from src.bot.layers import bot, dp
 from src.lb.lb_suds import lb
 from src.sql import sql
-from src.utils import config, logger
+from src.utils import config, logger, alogger
 from src.utils.logger import logfile
 
 CERTIFICATE = ''
@@ -40,8 +40,8 @@ async def on_shutdown(dp):
     await bot.delete_webhook()
     await sql.close_pool()
     await dp.storage.wait_closed()
+    await alogger.shutdown()
     logger.info('Bye!')
-    logger.shutdown()
 
 
 def run_bot():
