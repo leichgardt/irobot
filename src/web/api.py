@@ -1,5 +1,3 @@
-import os
-import asyncio
 from urllib.parse import urlparse, parse_qs
 from fastapi import Request
 from starlette.responses import Response
@@ -12,40 +10,6 @@ from src.bot.text import Texts
 from src.bot.api import main_menu
 from src.utils import alogger as logger, config
 from src.sql import sql
-
-
-class SoloWorker:
-    def __init__(self):
-        self.permission = {}
-        self.announcement = set()
-
-    async def clean_old_pids(self):
-        await sql.del_pids()
-
-    async def get_permission(self):
-        await asyncio.sleep(2)
-        pid = os.getpid()
-        await sql.add_pid(pid)
-        await asyncio.sleep(5)
-        pids = await sql.get_pids()
-        if pids:
-            pids.sort()
-            if pids[0] == pid:
-                return True
-        return False
-
-    def solo_worker(self, *, name: str):
-        def decorator(func):
-            async def wrapper(*args, **kwargs):
-                if self.permission.get(name) is None:
-                    self.permission.update({name: await self.get_permission()})
-                if self.permission.get(name):
-                    if name not in self.announcement:
-                        await logger.info(f'Solo worker "{name}" starts in [{os.getpid()}]')
-                        self.announcement.add(name)
-                    return await func(*args, **kwargs)
-            return wrapper
-        return decorator
 
 
 async def get_request_data(request: Request):

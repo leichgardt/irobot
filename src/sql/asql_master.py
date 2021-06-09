@@ -111,15 +111,22 @@ class SQLMaster(SQLCore):
     async def add_pid(self, pid: int):
         await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid)
 
-    async def get_pids(self):
-        res = await self.execute('SELECT pid FROM irobot.pids')
-        return [line[0] for line in res] if res else res
+    async def get_pid_list(self):
+        res = await self.execute('SELECT pid, tasks FROM irobot.pids')
+        return res
+        # return ([line[0] for line in res], [line[1] for line in res]) if res else res
 
     async def del_pid(self, pid):
         await self.execute('DELETE FROM irobot.pids WHERE pid=%s', pid)
 
-    async def del_pids(self):
+    async def del_pid_list(self):
         await self.execute('DELETE FROM irobot.pids')
+
+    async def upd_pid(self, pid: int, tasks: list):
+        res = await self.execute('SELECT tasks FROM irobot.pids WHERE pid=%s', pid)
+        if res:
+            tasks = res[0][0] + tasks
+            await self.execute('UPDATE irobot.pids SET tasks= %s WHERE pid=%s', tasks, pid)
 
 
 sql = SQLMaster()
