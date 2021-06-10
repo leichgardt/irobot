@@ -34,12 +34,11 @@ class SoloWorker:
         self.clean_params()
 
     async def get_permission(self, task):
-        await self.update()
-        if self.pid not in self.pid_list:
-            await sql.add_pid(self.pid)
         while len(self.pid_list) < workers:
-            await asyncio.sleep(5)
             await self.update()
+            if self.pid not in self.pid_list:
+                await sql.add_pid(self.pid)
+            await asyncio.sleep(1)
         if self.pid_list:
             for tasks in self.pid_list.values():
                 if task in tasks:
