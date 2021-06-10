@@ -43,6 +43,12 @@ async def payment_monitor():
     await auto_payment_monitor()
 
 
+@app.on_event('shutdown')
+async def close_connections():
+    await sql.close_pool()
+    await telegram_api.close()
+
+
 @app.get('/')
 @lan_require
 async def hello(request: Request):
