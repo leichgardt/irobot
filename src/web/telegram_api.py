@@ -12,11 +12,11 @@ class TelegramAPI(Bot):
 
     def __del__(self):
         try:
-            asyncio.create_task(self._close())
+            asyncio.run(self.close())
         except RuntimeError:
             pass
 
-    async def _close(self):
+    async def close(self):
         await self.session.close()
 
     async def get_username(self):

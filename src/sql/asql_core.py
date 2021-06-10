@@ -21,7 +21,7 @@ class SQLCore:
 
     def __del__(self):
         try:
-            asyncio.get_event_loop().run_until_complete(self.close_pool())
+            asyncio.run(self.close_pool())
         except:
             pass
 
