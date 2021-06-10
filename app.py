@@ -102,5 +102,16 @@ async def get_yoomoney_payment(request: Request):
     return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
 
 
+@app.post('/api_status')
+async def api_status(request: Request):
+    res = await sql.get_pid_list()
+    if not res:
+        return {'response': 0}
+    res = await telegram_api.get_me()
+    if not res:
+        return {'response': 0}
+    return {'response': 1}
+
+
 if __name__ == "__main__":
     uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug, workers=4)
