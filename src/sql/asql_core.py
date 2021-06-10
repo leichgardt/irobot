@@ -11,6 +11,8 @@ class SQLCore:
                                                                    user=config['postgres']['dbuser'],
                                                                    host=config['postgres']['dbhost'])
         self.pool = None
+        self.pool_min_size = 3
+        self.pool_max_size = 20
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
@@ -26,7 +28,7 @@ class SQLCore:
     async def init_pool(self):
         if self.pool is not None:  # re-init pool
             await self.close_pool()
-        self.pool = await aiopg.create_pool(self._dsn, minsize=3, maxsize=20)
+        self.pool = await aiopg.create_pool(self._dsn, minsize=self.pool_min_size, maxsize=self.pool_max_size)
 
     async def close_pool(self):
         if self.pool is not None:
