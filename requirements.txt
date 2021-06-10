@@ -17,7 +17,9 @@ click==7.1.2
 fastapi==0.65.1
 fastapi-utils==0.2.1
 greenlet==1.1.0
+gunicorn==20.1.0
 h11==0.12.0
+httptools==0.2.0
 idna==2.10
 motor==2.4.0
 multidict==5.1.0
@@ -37,4 +39,5 @@ ujson==4.0.2
 urllib3==1.26.4
 uvicorn==0.13.4
 uvloop==0.15.2
+websockets==9.1
 yarl==1.6.3

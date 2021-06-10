@@ -8,8 +8,11 @@
 * python3-pip
 
 ### configuration
-добавить параметр в `/etc/sysctl.conf`:
+Добавьте параметр в `/etc/sysctl.conf` для корректной работы сервера:
 > net.core.somaxconn=65535
 
 ## installing
-run `setup.sh` after installing libs
+Для установки среды и пакетов запустите `setup.sh` после установки библиотек.
+
+## running
+> gunicorn -k main.IrobotWebUvicornWorker -c guni.py app:app
