@@ -16,6 +16,7 @@ class SoloWorker:
     async def update(self):
         res = await sql.get_pid_list()
         if res:
+            self.pid_list = {}
             for pid, tasks in res:
                 self.pid_list.update({pid: tasks})
             self.pid_list = dict(sorted(self.pid_list.items(), key=lambda item: len(item[1])))
