@@ -24,6 +24,8 @@ sw = SoloWorker()
 async def update_params():
     """Загрузить и обновить параметры"""
     global bot_name, back_url
+    sql.pool_min_size = 2
+    sql.pool_max_size = 5
     bot_name = await telegram_api.get_username()
     back_url = back_url.format(bot_name)
     logger.info(f'Bot API is available. "{bot_name}" are greetings you!')
