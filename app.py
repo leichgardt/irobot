@@ -17,7 +17,7 @@ logger = init_logger('irobot-web')
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 app = FastAPI(debug=False)
-sw = SoloWorker()
+sw = SoloWorker(logger=logger)
 
 
 @app.on_event('startup')
@@ -42,7 +42,7 @@ async def payment_monitor():
     Чтобы завершить платёж, пользователь должен нажать на кнопку "Вернуться в магазин"  на странице оплаты.
     Если он этого не сделает, то эта функция автоматически найдет платёж в БД и в Биллинге, сопоставит
     их и уведомит абонента об успешной платеже."""
-    await auto_payment_monitor()
+    await auto_payment_monitor(logger)
 
 
 @app.on_event('shutdown')
@@ -95,7 +95,7 @@ async def get_yoomoney_payment(request: Request):
                 if 'hash' in params:
                     hash_code = params['hash'][0]
             if hash_code:
-                await handle_payment_response(data['res'], hash_code)
+                await handle_payment_response(logger, data['res'], hash_code)
                 return Response(back_url, 301)
             return RedirectResponse(config['yandex']['fallback-url'] + data['res'], 301)
     logger.warning(f'Bad payment request from {request.client.host}')

@@ -8,7 +8,7 @@ from src.lb import get_payments
 from .telegram_api import telegram_api
 from src.bot.text import Texts
 from src.bot.api import main_menu
-from src.utils import alogger as logger, config
+from src.utils import config
 from src.sql import sql
 
 
@@ -31,7 +31,6 @@ def lan_require(func):
                 ip == config['paladin']['ironnet-global']:
             return await func(request, *args, **kwargs)
         else:
-            logger.info(f'Access denied for {ip}')
             return Response(status_code=403)
     return wrapper
 
@@ -40,7 +39,7 @@ def get_query_params(url):
     return parse_qs(urlparse(url).query)
 
 
-async def handle_payment_response(result, hash_id):
+async def handle_payment_response(logger, result, hash_id):
     data = await sql.find_payment(hash_id)
     if data:
         payment_id, chat_id, url, status, inline, agrm, amount, notified = data
@@ -50,7 +49,7 @@ async def handle_payment_response(result, hash_id):
             elif result == 'fail':
                 text, parse, res = Texts.payments_online_fail, Texts.payments_online_fail.parse_mode, 'fail'
             else:
-                await logger.fatal(f'Payment error!!! Incorrect result. Payment_id: {payment_id}')
+                logger.fatal(f'Payment error!!! Incorrect result. Payment_id: {payment_id}')
                 text, parse, res = Texts.payment_error, Texts.payment_error.parse_mode, 'error'
             if not notified:
                 await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
@@ -76,7 +75,7 @@ async def handle_new_payment_request(hash_code, sql_data):
     return -1
 
 
-async def auto_payment_monitor():
+async def auto_payment_monitor(logger):
     await sql.cancel_old_new_payments()
     payments = await sql.find_processing_payments()
     if payments:

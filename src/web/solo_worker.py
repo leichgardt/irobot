@@ -3,12 +3,12 @@ import asyncio
 import psutil
 
 from src.sql import sql
-from src.utils import alogger as logger
 from guni import workers
 
 
 class SoloWorker:
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
         self.pid = os.getpid()
         self.pid_list = {}
         self.permission = {}
@@ -67,7 +67,7 @@ class SoloWorker:
                     self.permission.update({name: await self.get_permission(name)})
                 if self.permission.get(name):
                     if name not in self.announcement:
-                        await logger.info(f'Solo worker "{name}" starts in [{os.getpid()}]')
+                        self.logger.info(f'Solo worker "{name}" starts in [{os.getpid()}]')
                         self.announcement.add(name)
                         await sql.upd_pid(self.pid, [name])
                     return await func(*args, **kwargs)
