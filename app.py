@@ -13,7 +13,7 @@ from src.web import handle_payment_response, get_query_params, get_request_data,
     auto_payment_monitor, handle_new_payment_request, SoloWorker
 
 loop = uvloop.new_event_loop()
-logger = init_logger('irobot-web')
+logger = init_logger('irobot-web', new_formatter=True)
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 app = FastAPI(debug=False)
