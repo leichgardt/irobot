@@ -19,14 +19,16 @@ WEBAPP_HOST = '0.0.0.0'  # or ip
 WEBAPP_PORT = 5421
 
 
-async def upd_main_menu():
+async def upd_texts():
     me = await bot.get_me()
     new = Texts.main_menu.format(f'@{me["username"]}')
     Texts.main_menu = Texts.main_menu(new)
+    new = Texts.about_answer.format(f'@{me["username"]}')
+    Texts.about_answer = Texts.about_answer(new)
 
 
 async def on_startup(dp):
-    await upd_main_menu()
+    await upd_texts()
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)

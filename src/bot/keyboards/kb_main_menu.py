@@ -20,13 +20,14 @@ main_menu_btn = (
 )
 help_btn = (
     (
-        {'text': 'Обратиться в тех.поддержку', 'callback_data': 'support'},
+        # {'text': 'Обратиться в тех.поддержку', 'callback_data': 'support'},
+        {'text': 'Обратиться в тех.поддержку', 'url': 'tg://resolve?domain={}'},
     ),
+    # (
+    #     {'text': 'Что я умею (youtube)', 'url': 'https://www.youtube.com/watch?v=bxqLsrlakK8'},
+    # ),
     (
-        {'text': 'Что я умею (youtube)', 'url': 'https://www.youtube.com/watch?v=bxqLsrlakK8'},
-    ),
-    (
-        {'text': 'О программе', 'callback_data': 'about'},
+        {'text': 'О нас', 'callback_data': 'about'},
         {'text': 'Назад', 'callback_data': 'main-menu'},
     ),
 )
@@ -36,6 +37,15 @@ review_btn = (
         {'text': 'Отмена', 'callback_data': 'cancel'},
     ),
 )
+
+
+def __update():
+    from src.utils import config
+    global help_btn
+    help_btn[0][0]['url'] = help_btn[0][0]['url'].format(config['irobot']['chatbot'])
+
+
+__update()
 
 
 def get_review_btn(rating=0):
