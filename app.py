@@ -11,13 +11,14 @@ from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
     auto_payment_monitor, handle_new_payment_request, SoloWorker
+from guni import workers
 
 loop = uvloop.new_event_loop()
 logger = init_logger('irobot-web', new_formatter=True)
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 app = FastAPI(debug=False)
-sw = SoloWorker(logger=logger)
+sw = SoloWorker(logger=logger, workers=workers)
 
 
 @app.on_event('startup')
@@ -34,7 +35,7 @@ async def update_params():
 
 @app.on_event('startup')
 @repeat_every(seconds=50)
-@sw.solo_worker(name='monitor')
+@sw.solo_worker(task='monitor')
 async def payment_monitor():
     """
     Поиск незавершенных платежей.
