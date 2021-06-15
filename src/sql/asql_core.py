@@ -38,7 +38,7 @@ class SQLCore:
             self.pool.terminate()
             logger.info('PSQL pool closed')
 
-    async def execute(self, cmd, *args, retrying=False):
+    async def execute(self, cmd, *args, retrying=False, faults=True):
         res = []
         if self.pool is None:
             await self.init_pool()
@@ -49,10 +49,11 @@ class SQLCore:
                 try:
                     await cur.execute(cmd, args)
                 except Exception as e:
-                    if retrying:
-                        await alogger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
-                    else:
-                        await alogger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                    if faults:
+                        if retrying:
+                            await alogger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                        else:
+                            await alogger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
                     return res
                 else:
                     res = await get_res(cur)
