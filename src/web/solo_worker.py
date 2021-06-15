@@ -1,74 +1,56 @@
 import os
-import asyncio
-import psutil
 
 from src.sql import sql
-from guni import workers
 
 
 class SoloWorker:
-    def __init__(self, logger):
+    """
+    Класс для распределения задач между процессами. Web-приложение Irobot-web работает в несколько рабочих (workers), и,
+    чтобы, например, функцию мониторинга платежей выполнял только один процесс, используйте декоратор:
+    >>> sw = SoloWorker()
+    >>> @repeat_every(seconds=5)
+    >>> @sw.solo_worker(name='monitor')
+    >>> async def monitor():
+    >>>     print('monitoring every 5 seconds on the one process')
+    """
+    def __init__(self, logger, workers):
+        self.workers = workers
         self.logger = logger
         self.pid = os.getpid()
-        self.pid_list = {}
-        self.permission = {}
+        self.pid_list = []
+        self.task_list = []
         self.announcement = set()
 
     async def update(self):
         res = await sql.get_pid_list()
-        if res:
-            self.pid_list = {}
-            for pid, tasks in res:
-                self.pid_list.update({pid: tasks})
-            self.pid_list = dict(sorted(self.pid_list.items(), key=lambda item: len(item[1])))
-        else:
-            self.clean_params()
-
-    def clean_params(self):
-        self.pid_list = {}
-        self.permission = {}
-        self.announcement = set()
+        self.pid_list = [row[0] for row in res] if res else res
+        if self.pid not in self.pid_list:
+            await sql.add_pid(self.pid)
 
     async def clean_old_pid_list(self):
         await sql.del_pid_list()
-        self.clean_params()
+        self.pid_list = []
+        self.task_list = []
+        self.announcement = set()
 
-    async def get_permission(self, task):
-        while len(self.pid_list) < workers:
-            await self.update()
-            if self.pid not in self.pid_list:
-                await sql.add_pid(self.pid)
-            await asyncio.sleep(1)
-        if self.pid_list:
-            for tasks in self.pid_list.values():
-                if task in tasks:
-                    return False
-            if list(self.pid_list.keys())[0] == self.pid:
-                return True
+    def _is_my_task(self, my_task):
+        for i, pid in enumerate(self.pid_list):
+            if pid == self.pid:
+                for j, task in enumerate(self.task_list):
+                    if task == my_task and j % self.workers == i:
+                        return True
         return False
 
-    async def check_pid_list(self):
-        await self.update()
-        if self.pid not in self.pid_list:
-            self.clean_params()
-            return
-        zombie = [data.info['pid'] for data in psutil.process_iter(['pid', 'status'])
-                  if data.info['pid'] in self.pid_list and data.info['status'] == 'zombie']
-        if zombie and set(zombie) & set(self.pid_list):
-            await sql.del_pid(zombie[0])
-            self.clean_params()
-
-    def solo_worker(self, *, name: str):
+    def solo_worker(self, *, task: str):
         def decorator(func):
             async def wrapper(*args, **kwargs):
-                await self.check_pid_list()
-                if self.permission.get(name) is None:
-                    self.permission.update({name: await self.get_permission(name)})
-                if self.permission.get(name):
-                    if name not in self.announcement:
-                        self.logger.info(f'Solo worker "{name}" starts in [{os.getpid()}]')
-                        self.announcement.add(name)
-                        await sql.upd_pid(self.pid, [name])
+                if task not in self.task_list:
+                    self.task_list.append(task)
+                await self.update()
+                if self._is_my_task(task):
+                    if task not in self.announcement:
+                        self.logger.info(f'Solo worker "{task}" starts in [{self.pid}]')
+                        self.announcement.add(task)
                     return await func(*args, **kwargs)
             return wrapper
         return decorator
