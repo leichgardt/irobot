@@ -18,5 +18,6 @@ limit_request_field_size = 32768
 # logging
 syslog = True
 syslog_prefix = 'irobot-web'
-errorlog = '/var/log/iron/irobot-web.log'
+accesslog = '/var/log/iron/irobot-web.access.log'
+errorlog = '/var/log/iron/irobot-web.errors.log'
 disable_redirect_access_to_syslog = False
