@@ -25,14 +25,9 @@ class LBCore:
         self.client = Client(url=self._api_url, location=self._api_location, faults=False)
 
     def login(self):
-        start = datetime.now()
-        logger.info('API logging...')
         if self.client is None:
             self.connect_api()
-        if self.client.service.Login(self.user, self.__password)[0] == 200:
-            end = datetime.now() - start
-            logger.info(f'API login success in {end}')
-        else:
+        if self.client.service.Login(self.user, self.__password)[0] != 200:
             logger.warning('API logging error')
 
     def func(self, func, *args):
