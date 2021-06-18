@@ -32,7 +32,7 @@ async def help_message_h(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text='about')
 async def about_inline_h(query: types.CallbackQuery):
-    await query.answer(Texts.about_answer, show_alert=True)
+    await update_inline_query(bot, query, *Texts.about_us.full(), reply_markup=main_menu)
 
 
 @dp.callback_query_handler(text='cancel')
