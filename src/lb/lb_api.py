@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
-from src.lb.lb_suds import lb_request
+# from src.lb.lb_suds import lb_request
+from src.lb.lb_zeep import lb_request
 from src.utils import alogger, get_datetime
 
 

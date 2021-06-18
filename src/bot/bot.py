@@ -4,7 +4,7 @@ from aiogram.utils.executor import start_webhook
 
 from src.bot.text import Texts
 from src.bot.layers import bot, dp
-from src.lb.lb_suds import lb
+from src.lb import lb
 from src.sql import sql
 from src.utils import config, logger, alogger
 from src.utils.logger import logfile
@@ -29,6 +29,7 @@ async def upd_texts():
 
 async def on_startup(dp):
     await upd_texts()
+    await lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
@@ -49,7 +50,6 @@ async def on_shutdown(dp):
 def run_bot():
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
-    lb.login()
     lb.loop = loop
     start_webhook(
         dispatcher=dp,
