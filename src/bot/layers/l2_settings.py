@@ -84,7 +84,7 @@ async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(text='agrm-add', state=AgrmSettingsFSM.agrm)
 async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
     await state.update_data(agrm='')
-    await update_inline_query(bot, query, *Texts.settings_agrm_add.full(), keyboard=cancel_menu['inline'])
+    await update_inline_query(bot, query, *Texts.settings_agrm_add.full(), reply_markup=cancel_menu['inline'])
     await alogger.info(f'Agrm adding [{query.message.chat.id}]')
 
 

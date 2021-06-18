@@ -92,16 +92,16 @@ async def update_inline_query(
         title: str = None,
         alert: bool = False,
         btn_list: list = None,
-        keyboard: types.InlineKeyboardMarkup = None, ):
+        reply_markup: types.InlineKeyboardMarkup = None, ):
     if btn_list:
-        keyboard = get_keyboard(*btn_list, keyboard_type='inline')
+        reply_markup = get_keyboard(*btn_list, keyboard_type='inline')
     text = f'{title}\n\n{text}' if title else text
     try:
         await bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
-                                    reply_markup=keyboard, parse_mode=parse_mode)
+                                    reply_markup=reply_markup, parse_mode=parse_mode)
     except (MessageNotModified, BadRequest):
         await delete_message(query.message)
-        await bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=keyboard)
+        await bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=reply_markup)
     else:
         await query.answer(answer, show_alert=alert)
         await sql.upd_inline(query.message.chat.id, query.message.message_id, query.message.text, parse_mode=parse_mode)

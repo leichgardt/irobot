@@ -8,5 +8,6 @@ try:
     loop = run_bot()
     loop.run_forever()
 except Exception as e:
+    print(e)
     with open('/tmp/bot.log', 'w') as f:
         f.write(f'Exception: {e}\n\n{traceback.format_exc()}\n{"#" * 40}\n')

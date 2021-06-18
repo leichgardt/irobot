@@ -74,7 +74,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
             else:
                 answer, text, parse = Texts.payments_online.full()
                 kb = get_keyboard(await keyboards.get_agrms_btn(agrms=agrms), keyboards.back_to_main)
-        await update_inline_query(bot, query, answer, text, parse, keyboard=kb)
+        await update_inline_query(bot, query, answer, text, parse, reply_markup=kb)
 
 
 @dp.callback_query_handler(Regexp(regexp=r'agrm-([^\s]*)'), state=PaymentFSM.agrm)
@@ -93,7 +93,7 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
             text = map_format(text, balance=data['balance'])
             kb = cancel_menu['inline']
         answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'])
-        await update_inline_query(bot, query, answer, text, parse, keyboard=kb)
+        await update_inline_query(bot, query, answer, text, parse, reply_markup=kb)
 
 
 @dp.message_handler(lambda message: not message.text.isdigit(), state=PaymentFSM.amount)
@@ -137,7 +137,7 @@ async def inline_h_payment_another_amount(query: types.CallbackQuery, state: FSM
         await PaymentFSM.amount.set()
         answer, text, parse = Texts.payments_online_amount.full()
         answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'], balance=data['balance'])
-        await update_inline_query(bot, query, answer, text, parse, keyboard=cancel_menu['inline'])
+        await update_inline_query(bot, query, answer, text, parse, reply_markup=cancel_menu['inline'])
 
 
 @dp.callback_query_handler(text='no', state=PaymentFSM.amount)
