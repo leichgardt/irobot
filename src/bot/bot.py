@@ -23,8 +23,8 @@ async def upd_texts():
     me = await bot.get_me()
     new = Texts.main_menu.format(f'@{me["username"]}')
     Texts.main_menu = Texts.main_menu(new)
-    new = Texts.about_answer.format(f'@{me["username"]}')
-    Texts.about_answer = Texts.about_answer(new)
+    new = Texts.about_us.format(f'@{me["username"]}')
+    Texts.about_us = Texts.about_us(new)
 
 
 async def on_startup(dp):
