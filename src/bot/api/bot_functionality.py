@@ -1,4 +1,3 @@
-from aiogram.utils.emoji import emojize
 from datetime import datetime
 import hashlib
 
@@ -32,4 +31,4 @@ async def get_agrm_balances(chat_id):
                                                             date=bal["credit"]["date"].split(' ')[0])
     else:
         text = Texts.balance_no_agrms,
-    return emojize('\n'.join(text))
+    return '\n'.join(text)
