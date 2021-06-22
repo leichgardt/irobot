@@ -5,7 +5,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 from src.lb import get_payments
 
-from .telegram_api import telegram_api
+from .telegram_api import telegram_api, send_feedback
 from src.bot.text import Texts
 from src.bot.api import main_menu
 from src.utils import config
@@ -97,3 +97,17 @@ async def auto_payment_monitor(logger):
                                 await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid)
                             logger.info(f'Payment monitor: finished [{pay_id}]')
                             break
+
+
+async def auto_feedback_monitor(logger):
+    res = await sql.get_feedback('new', '1 hour')  # new - sent - rated - complete - commented
+    if res:
+        for fb_id, task_id, chat_id in res:
+            if await send_feedback(chat_id, task_id):
+                await sql.upd_feedback(task_id, status='sent')
+                logger.info('Feedback sent')
+    res = await sql.get_feedback('rated', '1 hour')
+    if res:
+        for fb_id, task_id, chat_id in res:
+                await sql.upd_feedback(task_id, status='complete')
+                logger.info('Rated feedback complete')

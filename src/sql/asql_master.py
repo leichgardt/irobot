@@ -108,6 +108,15 @@ class SQLMaster(SQLCore):
     async def find_payments_by_record_id(self, record_id):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
 
+    async def get_feedback(self, status, interval):
+        return await self.execute('SELECT id, task_id, chat_id FROM irobot.feedback WHERE status=%s '
+                                  'AND now() - datetime > interval %s', status, interval)
+
+    async def upd_feedback(self, task_id, **kwargs):
+        upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
+        await self.execute(f'UPDATE irobot.feedback SET update_datetime=now(), {upd} WHERE task_id=%s',
+                           *kwargs.values(), task_id)
+
     async def add_pid(self, pid: int):
         await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid, faults=False)
 

@@ -202,3 +202,18 @@ class Texts:
 
     backend_error = T(
         'Непредвиденная ошибка!')
+
+    new_feedback = T(
+        'Ты поможешь стать нам лучше, если оценишь работу наших сотрудников (от 1 до 5), выполнивших твою заявку!')
+    best_feedback = T(emojize(
+        'Спасибо! Мы очень стараемся! :blush:'))
+    best_feedback.answer = emojize(
+        'Превосходно! 5 из 5! :party:')
+    why_feedback = T(
+        'Можешь написать, чего не хватило до пятёрки?')
+    why_feedback.answer = emojize(
+        'Что не так? :disappointed:')
+    got_feedback = T(emojize(
+        'Обязательно передам это моим руководителям! Спасибо, что уделил время :relaxed: Ты помогаешь нам стать лучше!'))
+    end_feedback_answer = \
+        'Спасибо за оценку!'

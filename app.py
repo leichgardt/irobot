@@ -10,7 +10,7 @@ from fastapi_utils.tasks import repeat_every
 from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
-    auto_payment_monitor, handle_new_payment_request, SoloWorker
+    auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor
 from guni import workers
 
 loop = uvloop.new_event_loop()
@@ -44,6 +44,17 @@ async def payment_monitor():
     Если он этого не сделает, то эта функция автоматически найдет платёж в БД и в Биллинге, сопоставит
     их и уведомит абонента об успешной платеже."""
     await auto_payment_monitor(logger)
+
+
+@app.on_event('startup')
+@repeat_every(seconds=10)
+@sw.solo_worker(task='feedback')
+async def monitor1():
+    """
+    Поиск новых feedback сообщений для рассылки.
+    Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
+    """
+    await auto_feedback_monitor(logger)
 
 
 @app.on_event('shutdown')
@@ -118,5 +129,5 @@ async def api_status(request: Request):
 
 
 if __name__ == "__main__":
-    app.debug = True
+    app.debug = False
     uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug, workers=4)
