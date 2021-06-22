@@ -1,9 +1,11 @@
 #!/bin/sh
-echo "Checking requirement libs: python3.8 python3-pip python3-venv mongodb"
-for lib in python3.8 python3-pip python3-venv mongodb
+libs='python3.8 python3-pip python3-venv mongodb'
+echo "Checking requirement libs: $libs"
+for lib in $libs
 do
 if dpkg -s $lib >> /dev/null 2>&1
 then
+  echo "$lib package satisfied"
   continue
 else
   echo "Error. Please, install lib $lib"
