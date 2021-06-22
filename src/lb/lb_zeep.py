@@ -83,7 +83,7 @@ class LBZeepCore:
 
     def __del__(self):
         try:
-            if self.loop.is_running():
+            if self.loop is not None and self.loop.is_running():
                 self.loop.run_until_complete(self.close_connections())
             else:
                 asyncio.run(self.close_connections())
