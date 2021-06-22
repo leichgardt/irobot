@@ -105,13 +105,16 @@ async def get_yoomoney_payment(request: Request):
 
 @app.post('/api_status')
 async def api_status(request: Request):
-    res = await sql.get_pid_list()
-    if not res:
+    try:
+        res1 = await sql.get_pid_list()
+        res2 = await telegram_api.get_me()
+    except Exception as e:
+        logger.warning(e)
         return {'response': 0}
-    res = await telegram_api.get_me()
-    if not res:
-        return {'response': 0}
-    return {'response': 1}
+    else:
+        if not res1 or not res2:
+            return {'response': 0}
+        return {'response': 1}
 
 
 if __name__ == "__main__":
