@@ -5,13 +5,15 @@ from src.sql import sql
 
 class SoloWorker:
     """
-    Класс для распределения задач между процессами. Web-приложение Irobot-web работает в несколько рабочих (workers), и,
-    чтобы, например, функцию мониторинга платежей выполнял только один процесс, используйте декоратор:
+    Класс для распределения задач между процессами/воркерами. Web-приложение Irobot-web работает в несколько воркерах,
+    и, например, чтобы функцию мониторинга платежей выполнял только один процесс, используйте декоратор:
     >>> sw = SoloWorker()
+    >>> @app.on_event('start')
     >>> @repeat_every(seconds=5)
     >>> @sw.solo_worker(name='monitor')
     >>> async def monitor():
-    >>>     print('monitoring every 5 seconds on the one process')
+    >>>     print('monitoring every 5 seconds at only one process of uvicorn processes')
+    Данные о процессах сохраняются в БД "irobot.pids"
     """
     def __init__(self, logger, workers):
         self.workers = workers
