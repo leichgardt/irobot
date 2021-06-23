@@ -22,6 +22,10 @@ async def feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     _, rating, task = query.data.split('-')
     rating, task = int(rating), int(task)
+    task = await sql.find_feedback_id(task, 'sent')
+    if not task:
+        await query.answer(Texts.backend_error)
+        return
     if rating == 5:
         ans, txt, prs = Texts.best_feedback.full()
         kb = None

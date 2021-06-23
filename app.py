@@ -47,7 +47,7 @@ async def payment_monitor():
 
 
 @app.on_event('startup')
-@repeat_every(seconds=10)
+@repeat_every(seconds=50)
 @sw.solo_worker(task='feedback')
 async def monitor1():
     """

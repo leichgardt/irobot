@@ -104,10 +104,10 @@ async def auto_feedback_monitor(logger):
     if res:
         for fb_id, task_id, chat_id in res:
             if await send_feedback(chat_id, task_id):
-                await sql.upd_feedback(task_id, status='sent')
-                logger.info('Feedback sent')
+                await sql.upd_feedback(fb_id, status='sent')
+                logger.info(f'Feedback sent [{chat_id}]')
     res = await sql.get_feedback('rated', '1 hour')
     if res:
         for fb_id, task_id, chat_id in res:
-                await sql.upd_feedback(task_id, status='complete')
-                logger.info('Rated feedback complete')
+            await sql.upd_feedback(fb_id, status='complete')
+            logger.info(f'Rated feedback completed due to Timeout [{chat_id}]')

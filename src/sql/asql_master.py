@@ -109,13 +109,23 @@ class SQLMaster(SQLCore):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
 
     async def get_feedback(self, status, interval):
-        return await self.execute('SELECT id, task_id, chat_id FROM irobot.feedback WHERE status=%s '
-                                  'AND now() - datetime > interval %s', status, interval)
+        # селект фидбеков у которых либо нету upd_dt и СОЗДАНЫ они более interval времени,
+        # либо у них есть upd_dt и они ОБНОВЛЕНЫ более interval времени
+        return await self.execute(
+            'SELECT id, task_id, chat_id FROM irobot.feedback WHERE '
+            '(feedback.update_datetime IS null AND status=%(status)s AND now() - datetime > interval %(interval)s) OR '
+            '(feedback.update_datetime IS NOT null AND status=%(status)s AND now() - update_datetime > '
+            'interval %(interval)s) ORDER BY id', {'status': status, 'interval': interval})
 
-    async def upd_feedback(self, task_id, **kwargs):
+    async def upd_feedback(self, fb_id, **kwargs):
         upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
-        await self.execute(f'UPDATE irobot.feedback SET update_datetime=now(), {upd} WHERE task_id=%s',
-                           *kwargs.values(), task_id)
+        await self.execute(f'UPDATE irobot.feedback SET update_datetime=now(), {upd} WHERE id=%s',
+                           *kwargs.values(), fb_id)
+
+    async def find_feedback_id(self, task_id, status):
+        res = await self.execute('SELECT id FROM irobot.feedback WHERE task_id=%s AND status=%s ORDER BY id DESC '
+                                 'LIMIT 1', task_id, status)
+        return res[0][0] if res else 0
 
     async def add_pid(self, pid: int):
         await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid, faults=False)
