@@ -48,12 +48,12 @@ async def get_notify_settings_btn(chat_id):
     row = []
     data = await sql.get_sub(chat_id)
     if data:
-        if data[1]:
-            text = 'Выкл. уведомления'
-        else:
-            text = 'Вкл. уведомления'
-        params = {'text': text, 'callback_data': 'settings-switch-notify'}
-        row.append(params)
+        # if data[1]:
+        #     text = 'Выкл. уведомления'
+        # else:
+        #     text = 'Вкл. уведомления'
+        # params = {'text': text, 'callback_data': 'settings-switch-notify'}
+        # row.append(params)
         if data[0]:
             text = 'Выкл. рассылку'
         else:

@@ -129,7 +129,7 @@ async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
 async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id), keyboards.back_to_settings]
-    await update_inline_query(bot, query, *Texts.settings_notify.full(), btn_list=btn_list)
+    await update_inline_query(bot, query, *Texts.settings_notify.full(), reply_markup=get_keyboard(btn_list, lining=False))
 
 
 @dp.callback_query_handler(text='settings-switch-notify')
@@ -142,8 +142,8 @@ async def inline_h_notify_settings(query: types.CallbackQuery):
         await sql.switch_sub(query.message.chat.id, 'mailing')
         answer = Texts.settings_mailing_switch_answer
     btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id), keyboards.back_to_settings]
-    await update_inline_query(bot, query, answer, Texts.settings_notify,
-                              Texts.settings_notify.parse_mode, btn_list=btn_list)
+    await update_inline_query(bot, query, answer, Texts.settings_notify, Texts.settings_notify.parse_mode,
+                              reply_markup=get_keyboard(btn_list, lining=False))
     await alogger.info(f'Switching notify settings [{query.message.chat.id}]')
 
 
