@@ -96,7 +96,7 @@ class Texts:
     settings_mailing_switch_answer = T(
         'Новости переключены')
     settings_exit = T(emojize(
-        'Уверен, что хочешь выйти? :cry:\nВсе твои договоры будут отключены от Бота'))
+        'Уверен, что хочешь выйти? :cry:'))
     settings_exit.answer = \
         'Выйти?'
     settings_exited = T(emojize(

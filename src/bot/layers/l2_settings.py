@@ -158,7 +158,7 @@ async def inline_h_notify_settings(query: types.CallbackQuery):
     await sql.unsubscribe(query.message.chat.id)
     await query.answer(Texts.settings_exited.answer, show_alert=True)
     await edit_inline_message(bot, query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
-    agrms = await sql.get_agrms(query.message.chat.id)
-    for agrm in agrms:
-        await sql.del_agrm(query.message.chat.id, agrm)
+    # agrms = await sql.get_agrms(query.message.chat.id)
+    # for agrm in agrms:
+    #     await sql.del_agrm(query.message.chat.id, agrm)
     await alogger.info(f'Exited [{query.message.chat.id}]')
