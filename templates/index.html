@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block imports %}
+    <script type="text/javascript"
+            src="{{ url_for('static', path='js/index.js') }}"></script>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='css/index.css') }}">
+    <link rel="shortcut icon"
+          href="{{ url_for('static', path='favicon.ico') }}">
+{% endblock %}
+{% block style %}
+<style>
+{#* { border: 1px solid #cfcece }#}
+html {
+    background: #00141E url({{ url_for('static', path='img/jpg/wallpaper.jpg') }}) center center no-repeat fixed;
+    -webkit-background-size:cover;
+    -moz-background-size:cover;
+    -o-background-size:cover;
+    background-size:cover;
+}
+.table {
+    background: #ffffff;
+}
+.table-sm {
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="justify-content-center text-center p-3">
+        <h4>{{ title }}</h4>
+    </div>
+    <div class="justify-content-center p-1">
+        <div class="row">
+            <div class="col-3">
+                <div class="row">
+                    <div class="col-12 text-center"><label>Subs</label></div>
+                    <div class="col-12">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                            <tr>
+                                <th>chat_id</th>
+                                <th>mailing</th>
+                                <th>agrms</th>
+                            </tr>
+                            </thead>
+                            <tbody id="table">{{ tables.subs|safe }}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-9">
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <label for="input-text">Text</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <textarea id="input-text" class="form-control form-control-sm" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 btn-group btn-group-sm pt-1">
+                        <button id="send-notify" class="btn btn-outline-danger">Send notify</button>
+                        <button id="send-mailing" class="btn btn-outline-primary">Send mailing</button>
+                        <button id="update-history" class="btn btn-outline-info">Update history</button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 pt-2 text-center">
+                        <label for="input-text">History</label>
+                    </div>
+                    <div class="col-12">
+                        <table class="table table-sm">
+                            <thead>
+                            <tr>
+                                <th>id</th>
+                                <th>datetime</th>
+                                <th>type</th>
+                                <th>text</th>
+                            </tr>
+                            </thead>
+                            <tbody id="history-table">{{ tables.history|safe }}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

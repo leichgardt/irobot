@@ -1,3 +1,5 @@
+import asyncio
+from logging import Logger
 from urllib.parse import urlparse, parse_qs
 from fastapi import Request
 from starlette.responses import Response
@@ -5,7 +7,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 from src.lb import get_payments
 
-from .telegram_api import telegram_api, send_feedback
+from src.web.telegram_api import telegram_api, send_feedback, send_message
 from src.bot.text import Texts
 from src.bot.api import main_menu
 from src.utils import config
@@ -111,3 +113,25 @@ async def auto_feedback_monitor(logger):
         for fb_id, task_id, chat_id in res:
             await sql.upd_feedback(fb_id, status='complete')
             logger.info(f'Rated feedback completed due to Timeout [{chat_id}]')
+
+
+async def broadcast(logger: Logger):
+    count = 0
+    res = await sql.execute("SELECT id, type, text FROM irobot.mailing WHERE status='new'")
+    if res:
+        for m_id, mail_type, text in res:
+            if mail_type == 'notify':
+                targets = await sql.get_subs()
+            elif mail_type == 'mailing':
+                targets = await sql.get_subs(mailing=True)
+            else:
+                logger.warning(f'Wrong mail_type ID: {m_id}')
+                continue
+            if targets:
+                await sql.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', 'process', m_id)
+                for chat_id, _, _ in targets:
+                    if await send_message(chat_id, text):
+                        count += 1
+                    await asyncio.sleep(.05)
+                await sql.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', 'complete', m_id)
+    return count

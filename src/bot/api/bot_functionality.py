@@ -13,7 +13,7 @@ def get_payment_hash(chat_id, agrmnum):
 
 
 def get_payment_url(hash_code):
-    return 'https://{}/irobot/web/new_payment?hash={}'.format(config['paladin']['userside'], hash_code)
+    return 'https://{}/irobot/web/api/new_payment?hash={}'.format(config['paladin']['userside'], hash_code)
 
 
 async def get_agrm_balances(chat_id):

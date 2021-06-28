@@ -2,22 +2,30 @@ __author__ = 'leichgardt'
 
 import asyncio
 import uvicorn
-import uvloop
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from starlette.responses import Response, RedirectResponse
 from fastapi_utils.tasks import repeat_every
 
 from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
-    auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor
+    auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor, Table, broadcast
 from guni import workers
 
-loop = uvloop.new_event_loop()
+VERSION = '0.3.1'
+ABOUT = """Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @ironnet_bot,
+а так же для обработки запросов платежей от системы Yoomoney.
+Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении завершенного 
+платежа сервис уведомляет пользователя через бота об успешной оплате."""
+
 logger = init_logger('irobot-web', new_formatter=True)
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
+templates = Jinja2Templates(directory='templates')
 app = FastAPI(debug=False)
+app.mount('/static', StaticFiles(directory='static', html=True), name='static')
 sw = SoloWorker(logger=logger, workers=workers)
 
 
@@ -49,7 +57,7 @@ async def payment_monitor():
 @app.on_event('startup')
 @repeat_every(seconds=50)
 @sw.solo_worker(task='feedback')
-async def monitor1():
+async def feedback_monitor():
     """
     Поиск новых feedback сообщений для рассылки.
     Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
@@ -65,11 +73,71 @@ async def close_connections():
 
 @app.get('/')
 @lan_require
-async def hello(request: Request):
-    return 'Hello, World'
+async def index(request: Request):
+    t_subs, t_history = '', ''
+    res = await sql.execute('SELECT s.chat_id, a.agrm, s.mailing FROM irobot.subs s '
+                            'JOIN irobot.agrms a ON s.chat_id=a.chat_id WHERE s.subscribed=true ORDER BY s.chat_id')
+    if res:
+        data = {}
+        for chat_id, agrm, mailing in res:
+            if chat_id not in data:
+                data.update({chat_id: {'agrms': str(agrm), 'mailing': mailing}})
+            else:
+                data[chat_id]['agrms'] = data[chat_id]['agrms'] + '<br/>' + str(agrm)
+        res = []
+        for key, value in data.items():
+            res.append([key, value['mailing'], value['agrms']])
+        t_subs = Table(res)
+        for line in t_subs:
+            if not line[1].value:
+                line[1].style = 'background-color: red;'
+            else:
+                line[1].style = 'background-color: green; color: white;'
+        t_subs = t_subs.get_html()
+    res = await sql.execute('SELECT id, datetime, type, text FROM irobot.mailing ORDER BY id DESC LIMIT 10')
+    if res:
+        t_history = Table(res).get_html()
+    return templates.TemplateResponse('index.html', {'request': request,
+                                                     'title': 'IroBot',
+                                                     'about': ABOUT,
+                                                     'version': VERSION,
+                                                     'domain': config['paladin']['domain'],
+                                                     'tables': {'subs': t_subs, 'history': t_history},
+                                                     })
 
 
-@app.get('/new_payment')
+@app.get('/api/get_history')
+@lan_require
+async def history(request: Request):
+    res = await sql.execute('SELECT id, datetime, type, text FROM irobot.mailing ORDER BY id DESC LIMIT 10')
+    if res:
+        table = Table(res)
+        return {'response': 1, 'table': table.get_html()}
+    return {'response': 0}
+
+
+@app.post('/api/send_mail')
+@lan_require
+async def send_mailing(request: Request, response: Response, background_tasks: BackgroundTasks):
+    data = await get_request_data(request)
+    if data['mail_type'] in ('notify', 'mailing'):
+        res = await sql.execute('INSERT INTO irobot.mailing (type, text) VALUES (%s, %s) RETURNING id',
+                                data['mail_type'], data['text'])
+        if res:
+            background_tasks.add_task(broadcast, logger)
+            logger.info(f'New mailing added [{res[0][0]}]')
+            response.status_code = 202
+            return {'response': 1, 'id': res[0][0]}
+        else:
+            response.status_code = 500
+            logger.error(f'Error of New mailing. Data: {data}')
+            return {'response': 0, 'error': 'backand error'}
+    else:
+        response.status_code = 400
+        return {'response': 0, 'error': 'wrong mail_type'}
+
+
+@app.get('/api/new_payment')
 async def new_yoomoney_payment(request: Request):
     """Перевести платёж в состояние "processing" для отслеживания монитором payment_monitor"""
     data = await get_request_data(request)
@@ -86,8 +154,8 @@ async def new_yoomoney_payment(request: Request):
     return Response('Hash code not found', 400)
 
 
-@app.get('/payment')
-@app.post('/payment')
+@app.get('/api/payment')
+@app.post('/api/payment')
 async def get_yoomoney_payment(request: Request):
     """
     Обработчик ответов от yoomoney
@@ -114,10 +182,10 @@ async def get_yoomoney_payment(request: Request):
     return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
 
 
-@app.post('/api_status')
+@app.post('/api/status')
 async def api_status(request: Request):
     try:
-        res1 = await sql.get_pid_list()
+        res1 = await sql.get_subs()
         res2 = await telegram_api.get_me()
     except Exception as e:
         logger.warning(e)

@@ -26,8 +26,9 @@ class SQLMaster(SQLCore):
         res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true AND chat_id=%s', chat_id)
         return res[0] if res else res
 
-    async def get_subs(self):
-        return await self.execute(f'SELECT chat_id, mailing, notify FROM irobot.subs WHERE subscribed=true')
+    async def get_subs(self, mailing=False):
+        flt = 'AND mailing=true' if mailing else ''
+        return await self.execute(f'SELECT chat_id, mailing, notify FROM irobot.subs WHERE subscribed=true {flt}')
 
     async def get_chat(self, chat_id):
         res = await self.execute('SELECT chat_id, subscribed FROM irobot.subs WHERE chat_id=%s', chat_id)
