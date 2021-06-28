@@ -1,5 +1,4 @@
 import aiopg
-import asyncio
 import psycopg2
 from src.utils import logger, alogger, config
 

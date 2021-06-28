@@ -63,7 +63,7 @@ class SQLMaster(SQLCore):
 
     async def add_agrm(self, chat_id, agrm, agrm_id):
         await self.execute('INSERT INTO irobot.agrms(chat_id, agrm, agrm_id) VALUES (%s, %s, %s)',
-                           chat_id, agrm, agrm_id)
+                           chat_id, agrm, agrm_id, faults=False)
 
     async def del_agrm(self, chat_id, agrm):
         await self.execute('DELETE FROM irobot.agrms WHERE chat_id=%s AND agrm=%s', chat_id, agrm)

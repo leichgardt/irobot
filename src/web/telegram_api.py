@@ -25,10 +25,6 @@ class TelegramAPI(Bot):
     async def close(self):
         await self.session.close()
 
-    async def get_username(self):
-        me = await self.get_me()
-        return me['username']
-
 
 async def send_message(chat_id: int, text: str, *args, **kwargs):
     log = logging.getLogger('irobot-web')
