@@ -6,7 +6,7 @@ from zeep.wsdl import Document
 from zeep.transports import AsyncTransport
 import uvloop
 
-from src.utils import config, logger, alogger, get_datetime, get_phone_number
+from src.utils import config, alogger, get_datetime, get_phone_number
 
 
 # import logging.config
@@ -110,7 +110,7 @@ class LBZeepCore:
         try:
             await self.client.service.Login(self.user, self.__password)
         except Exception as e:
-            logger.warning(e)
+            await alogger.warning(e)
             return False
         else:
             return True

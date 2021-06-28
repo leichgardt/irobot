@@ -1,6 +1,6 @@
 import aiopg
 import psycopg2
-from src.utils import logger, alogger, config
+from src.utils import config
 
 
 class SQLCore:
@@ -12,6 +12,8 @@ class SQLCore:
         self.pool = None
         self.pool_min_size = 3
         self.pool_max_size = 20
+        # логгер инициализируется в app.py и в src/bot/bot.py отдельно для irobot-web и irobot соответственно
+        self.logger = None
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
@@ -35,7 +37,10 @@ class SQLCore:
             self.pool.close()
             await self.pool.wait_closed()
             self.pool.terminate()
-            logger.info('PSQL pool closed')
+            try:
+                await self.logger.info('PSQL pool closed')
+            except:
+                self.logger.info('PSQL pool closed')
 
     async def execute(self, cmd, *args, retrying=False, faults=True):
         res = []
@@ -49,10 +54,16 @@ class SQLCore:
                     await cur.execute(cmd, args)
                 except Exception as e:
                     if faults:
-                        if retrying:
-                            await alogger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
-                        else:
-                            await alogger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                        try:
+                            if retrying:
+                                await self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                            else:
+                                await self.logger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                        except:
+                            if retrying:
+                                self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                            else:
+                                self.logger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
                     return res
                 else:
                     res = await get_res(cur)
@@ -70,7 +81,6 @@ async def get_res(cur):
         if 'no results to fetch' in str(e):
             return None
         else:
-            await alogger.error(f'Fetching error: {e}')
             return None
     else:
         ret = [list(line) for line in ret]

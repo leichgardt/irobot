@@ -2,8 +2,6 @@ import os
 import requests
 import re
 
-from .logger import logger
-
 
 class Configer:
 
@@ -71,12 +69,12 @@ class Configer:
     def load(self, **kwargs):
         self.config_params()
         config_url = kwargs.get('url', self.url)
-        logger.info('Uploading configuration from {}'.format(config_url))
+        print('Uploading configuration from {}'.format(config_url))
         self.config_list = {}
         try:
             resp = requests.get(config_url, auth=(self.user, self.__passwd), timeout=5)
         except requests.Timeout:
-            logger.info(f'Server doesn\'t respond: {config_url}')
+            print(f'Server doesn\'t respond: {config_url}')
             exit()
         else:
             resp.encoding = resp.apparent_encoding

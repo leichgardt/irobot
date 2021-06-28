@@ -28,6 +28,7 @@ async def upd_texts():
 
 
 async def on_startup(dp):
+    sql.logger = alogger
     await upd_texts()
     await lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,

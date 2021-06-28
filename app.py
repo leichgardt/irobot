@@ -21,6 +21,7 @@ ABOUT = """Веб-приложение IroBot-web предназначено д�
 платежа сервис уведомляет пользователя через бота об успешной оплате."""
 
 logger = init_logger('irobot-web', new_formatter=True)
+sql.logger = logger
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 templates = Jinja2Templates(directory='templates')
