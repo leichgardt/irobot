@@ -128,6 +128,22 @@ class SQLMaster(SQLCore):
                                  'LIMIT 1', task_id, status)
         return res[0][0] if res else 0
 
+    async def get_sub_agrms(self):
+        return await self.execute('SELECT s.chat_id, a.agrm, s.mailing FROM irobot.subs s JOIN irobot.agrms a '
+                                  'ON s.chat_id=a.chat_id WHERE s.subscribed=true ORDER BY s.chat_id')
+
+    async def get_mailings(self):
+        return self.execute('SELECT id, datetime, type, text FROM irobot.mailing ORDER BY id DESC LIMIT 10')
+
+    async def add_mailing(self, mail_type, text):
+        return self.execute('INSERT INTO irobot.mailing (type, text) VALUES (%s, %s) RETURNING id', mail_type, text)
+
+    async def get_new_mailings(self):
+        return self.execute("SELECT id, type, text FROM irobot.mailing WHERE status='new'")
+
+    async def upd_mailing_status(self, mail_id, status):
+        return self.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', status, mail_id)
+
     async def add_pid(self, pid: int):
         await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid, faults=False)
 

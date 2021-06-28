@@ -75,8 +75,7 @@ async def close_connections():
 @lan_require
 async def index(request: Request):
     t_subs, t_history = '', ''
-    res = await sql.execute('SELECT s.chat_id, a.agrm, s.mailing FROM irobot.subs s '
-                            'JOIN irobot.agrms a ON s.chat_id=a.chat_id WHERE s.subscribed=true ORDER BY s.chat_id')
+    res = await sql.get_sub_agrms()
     if res:
         data = {}
         for chat_id, agrm, mailing in res:
@@ -94,7 +93,7 @@ async def index(request: Request):
             else:
                 line[1].style = 'background-color: green; color: white;'
         t_subs = t_subs.get_html()
-    res = await sql.execute('SELECT id, datetime, type, text FROM irobot.mailing ORDER BY id DESC LIMIT 10')
+    res = await sql.get_mailings()
     if res:
         t_history = Table(res).get_html()
     return templates.TemplateResponse('index.html', {'request': request,
@@ -109,7 +108,7 @@ async def index(request: Request):
 @app.get('/api/get_history')
 @lan_require
 async def history(request: Request):
-    res = await sql.execute('SELECT id, datetime, type, text FROM irobot.mailing ORDER BY id DESC LIMIT 10')
+    res = await sql.get_mailings()
     if res:
         table = Table(res)
         return {'response': 1, 'table': table.get_html()}
@@ -121,8 +120,7 @@ async def history(request: Request):
 async def send_mailing(request: Request, response: Response, background_tasks: BackgroundTasks):
     data = await get_request_data(request)
     if data['mail_type'] in ('notify', 'mailing'):
-        res = await sql.execute('INSERT INTO irobot.mailing (type, text) VALUES (%s, %s) RETURNING id',
-                                data['mail_type'], data['text'])
+        res = await sql.add_mailing(data['mail_type'], data['text'])
         if res:
             background_tasks.add_task(broadcast, logger)
             logger.info(f'New mailing added [{res[0][0]}]')

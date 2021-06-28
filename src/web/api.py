@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from logging import Logger
 from urllib.parse import urlparse, parse_qs
 from fastapi import Request
@@ -117,21 +118,26 @@ async def auto_feedback_monitor(logger):
 
 async def broadcast(logger: Logger):
     count = 0
-    res = await sql.execute("SELECT id, type, text FROM irobot.mailing WHERE status='new'")
+    res = await sql.get_new_mailings()
     if res:
         for m_id, mail_type, text in res:
-            if mail_type == 'notify':
-                targets = await sql.get_subs()
-            elif mail_type == 'mailing':
-                targets = await sql.get_subs(mailing=True)
+            await sql.upd_mailing_status(m_id, 'processing')
+            try:
+                if mail_type == 'notify':
+                    targets = await sql.get_subs()
+                elif mail_type == 'mailing':
+                    targets = await sql.get_subs(mailing=True)
+                else:
+                    logger.warning(f'Wrong mail_type ID: {m_id}')
+                    continue
+                if targets:
+                    for chat_id, _, _ in targets:
+                        if await send_message(chat_id, text):
+                            count += 1
+                        await asyncio.sleep(.05)
+            except Exception as e:
+                logger.error(f'Broadcast error: {e}\nMailing ID: [{m_id}]\n{traceback.format_exc()}')
+                await sql.upd_mailing_status(m_id, 'error')
             else:
-                logger.warning(f'Wrong mail_type ID: {m_id}')
-                continue
-            if targets:
-                await sql.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', 'process', m_id)
-                for chat_id, _, _ in targets:
-                    if await send_message(chat_id, text):
-                        count += 1
-                    await asyncio.sleep(.05)
-                await sql.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', 'complete', m_id)
+                await sql.upd_mailing_status(m_id, 'complete')
     return count
