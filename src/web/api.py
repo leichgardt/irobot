@@ -30,8 +30,8 @@ def lan_require(func):
     @wraps(func)
     async def wrapper(request: Request, *args, **kwargs):
         ip = request.client.host
-        if ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip[:8] == '192.168.' or \
-                ip == config['paladin']['ironnet-global']:
+        if (ip is None or (ip and (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or
+                                   ip[:8] == '192.168.' or ip == config['paladin']['ironnet-global']))):
             return await func(request, *args, **kwargs)
         else:
             return Response(status_code=403)
