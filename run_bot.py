@@ -1,7 +1,7 @@
 __author__ = 'leichgardt'
 
 import traceback
-
+from datetime import datetime
 from src.bot import run_bot
 
 try:
@@ -9,5 +9,6 @@ try:
     loop.run_forever()
 except Exception as e:
     print(e)
-    with open('/tmp/bot.log', 'w') as f:
-        f.write(f'Exception: {e}\n\n{traceback.format_exc()}\n{"#" * 40}\n')
+    with open('/tmp/bot.log', 'a') as f:
+        date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        f.write(f'[{date}] Exception: {e}\n\n{traceback.format_exc()}\n{"#" * 40}\n')
