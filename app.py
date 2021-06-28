@@ -108,6 +108,7 @@ async def index(request: Request):
 @app.get('/api/get_history')
 @lan_require
 async def history(request: Request):
+    """Получить таблицу с последними 10 рассылками"""
     res = await sql.get_mailings()
     if res:
         table = Table(res)
@@ -118,6 +119,7 @@ async def history(request: Request):
 @app.post('/api/send_mail')
 @lan_require
 async def send_mailing(request: Request, response: Response, background_tasks: BackgroundTasks):
+    """Добавить новую рассылку"""
     data = await get_request_data(request)
     if data['mail_type'] in ('notify', 'mailing'):
         res = await sql.add_mailing(data['mail_type'], data['text'])
@@ -129,7 +131,7 @@ async def send_mailing(request: Request, response: Response, background_tasks: B
         else:
             response.status_code = 500
             logger.error(f'Error of New mailing. Data: {data}')
-            return {'response': 0, 'error': 'backand error'}
+            return {'response': -1, 'error': 'backand error'}
     else:
         response.status_code = 400
         return {'response': 0, 'error': 'wrong mail_type'}

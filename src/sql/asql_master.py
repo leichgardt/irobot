@@ -3,24 +3,8 @@ try:
 except ImportError:
     from src.sql.asql_core import SQLCore
 
-import ujson
-
 
 class SQLMaster(SQLCore):
-    async def get_fsm(self, chat_id):
-        data = 'id, operation, stage, data'
-        res = await self.execute(f'SELECT {data} FROM irobot.fsm WHERE chat_id=%s AND stage>0 '
-                                 f'ORDER BY id DESC LIMIT 1', chat_id)
-        return res[0] if res else (None for _ in data.split(', '))
-
-    async def add_fsm(self, chat_id, operation):
-        res = await self.execute('INSERT INTO irobot.fsm(chat_id, operation, stage, data) VALUES (%s, %s, 1, %s) '
-                                 'RETURNING id', chat_id, operation, {})
-        return res[0][0] if res else None
-
-    async def upd_fsm(self, fsm_id: int, stage: int, data: dict):
-        await self.execute('UPDATE irobot.fsm SET stage= %s WHERE id=%s', stage, ujson.dumps(data), fsm_id)
-
     async def get_sub(self, chat_id):
         data = 'mailing, notify'
         res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true AND chat_id=%s', chat_id)
@@ -110,8 +94,10 @@ class SQLMaster(SQLCore):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
 
     async def get_feedback(self, status, interval):
-        # селект фидбеков у которых либо нету upd_dt и СОЗДАНЫ они более interval времени,
-        # либо у них есть upd_dt и они ОБНОВЛЕНЫ более interval времени
+        """
+        селект фидбеков у которых либо нету upd_dt и СОЗДАНЫ они более interval времени,
+        либо у них есть upd_dt и они ОБНОВЛЕНЫ более interval времени
+        """
         return await self.execute(
             'SELECT id, task_id, chat_id FROM irobot.feedback WHERE '
             '(feedback.update_datetime IS null AND status=%(status)s AND now() - datetime > interval %(interval)s) OR '
