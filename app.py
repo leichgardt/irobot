@@ -36,7 +36,8 @@ async def update_params():
     global bot_name, back_url
     sql.pool_min_size = 2
     sql.pool_max_size = 5
-    bot_name = await telegram_api.get_me()['username']
+    bot_name = await telegram_api.get_me()
+    bot_name = bot_name['username']
     back_url = back_url.format(bot_name)
     logger.info(f'Bot API is available. "{bot_name}" are greetings you!')
     await sw.clean_old_pid_list()
