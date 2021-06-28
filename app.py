@@ -25,7 +25,7 @@ sql.logger = logger
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 templates = Jinja2Templates(directory='templates')
-app = FastAPI(debug=False)
+app = FastAPI(debug=False, root_path='/irobot/web')
 app.mount('/static', StaticFiles(directory='static', html=True), name='static')
 sw = SoloWorker(logger=logger, workers=workers)
 
