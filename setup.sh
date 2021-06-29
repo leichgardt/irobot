@@ -1,5 +1,5 @@
 #!/bin/sh
-libs='python3.8 python3-pip python3-venv mongodb'
+libs='python3.8 python3-pip python3-venv'
 echo "Checking requirement libs: $libs"
 for lib in $libs
 do
