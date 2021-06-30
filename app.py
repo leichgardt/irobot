@@ -44,7 +44,7 @@ async def update_params():
 
 
 @app.on_event('startup')
-@repeat_every(seconds=50)
+@repeat_every(seconds=30)
 @sw.solo_worker(task='monitor')
 async def payment_monitor():
     """
@@ -57,7 +57,7 @@ async def payment_monitor():
 
 
 @app.on_event('startup')
-@repeat_every(seconds=50)
+@repeat_every(seconds=60)
 @sw.solo_worker(task='feedback')
 async def feedback_monitor():
     """

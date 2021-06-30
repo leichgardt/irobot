@@ -28,6 +28,11 @@ async def upd_texts():
 
 
 async def on_startup(dp):
+    try:
+        # проверим БД конечного автомата
+        await dp.storage.get_data(chat=config['irobot']['me'])
+    except Exception:
+        raise ConnectionError(f'Can\'t connect to MongoDB: {dp.storage.__dict__["_host"]}')
     sql.logger = alogger
     await upd_texts()
     await lb.login()
