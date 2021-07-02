@@ -6,8 +6,8 @@ from fastapi import Request
 from starlette.responses import Response
 from functools import wraps
 from datetime import datetime, timedelta
-from src.lb import get_payments
 
+from src.lb import get_payments
 from src.web.telegram_api import telegram_api, send_feedback, send_message
 from src.bot.text import Texts
 from src.bot.api import main_menu
