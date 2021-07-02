@@ -32,7 +32,6 @@ class SoloWorker:
     async def clean_old_pid_list(self):
         await sql.del_pid_list()
         self.pid_list = []
-        self.task_list = []
         self.announcement = set()
 
     def _is_my_task(self, my_task):
@@ -43,11 +42,11 @@ class SoloWorker:
                         return True
         return False
 
-    def solo_worker(self, *, task: str):
+    def solo_worker(self, *, task: str):  # decorator's factory
+        self.task_list.append(task)
+
         def decorator(func):
             async def wrapper(*args, **kwargs):
-                if task not in self.task_list:
-                    self.task_list.append(task)
                 await self.update()
                 if self._is_my_task(task):
                     if task not in self.announcement:
