@@ -5,11 +5,11 @@
     <title>
         {{ title }}
     </title>
-    <script src="{{ domain }}/static/js/fontawesome.js"></script>
-    <script src="{{ domain }}/static/js/jquery-3.4.1.js"></script>
-    <script src="{{ domain }}/static/js/popper.min.js"></script>
-    <script src="{{ domain }}/static/js/bootstrap.min.4.4.1.js"></script>
-    <link rel="stylesheet" href="{{ domain }}/static/css/bootstrap_4.4.1.css">
+    <script src="{{ url_for('static', path='js/fontawesome.js') }}"></script>
+    <script src="{{ url_for('static', path='js/jquery-3.4.1.js') }}"></script>
+    <script src="{{ url_for('static', path='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', path='js/bootstrap.min.4.4.1.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap_4.4.1.css') }}">
 
     <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
 {% block imports %}{% endblock %}
@@ -31,7 +31,7 @@
         border-style:hidden;
         width:155px;
         height:33px;
-        background: url({{ domain }}/static/png/Ironnet_logo.png) 0 50%;
+        background: url({{ url_for('static', path='png/Ironnet_logo.png) 0 50%;
         background-size: 100%;
         opacity:1;
     }
