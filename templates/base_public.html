@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {{ title }}
+    </title>
+    <script src="{{ domain }}/static/js/fontawesome.js"></script>
+    <script src="{{ domain }}/static/js/jquery-3.4.1.js"></script>
+    <script src="{{ domain }}/static/js/popper.min.js"></script>
+    <script src="{{ domain }}/static/js/bootstrap.min.4.4.1.js"></script>
+    <link rel="stylesheet" href="{{ domain }}/static/css/bootstrap_4.4.1.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
+    {% block import %}{% endblock %}
+</head>
+<style>
+    body { background-color: rgba(0, 0, 0, 0); }
+    html {
+        background: #00141E url({{ url_for('static', path='img/jpg/wallpaper.jpg') }}) center center no-repeat fixed;
+    }
+    body > .container {
+        background-color: rgba(255, 255, 255, .9);
+        border-radius: 0 0 10px 10px;
+    }
+    .navbar { background-color: #00141E; }
+    #ironnet-img {
+        border-style: hidden;
+        width: 155px;
+        height: 33px;
+        background: url({{ domain }}/static/png/Ironnet_logo.png) 0 50%;
+        background-size: 100%;
+        opacity: 1;
+    }
+    {% block style %}{% endblock %}
+</style>
+<header>
+    <nav class="navbar sticky-top navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="http://ironnet.info/">
+                <div id="ironnet-img"></div>
+            </a>
+            <a class="navbar-brand" href="https://t.me/{{ bot_name }}">
+                IroBot
+            </a>
+        </div>
+    </nav>
+</header>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

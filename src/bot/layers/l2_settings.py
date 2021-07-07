@@ -5,9 +5,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from src.utils import alogger
 from src.sql import sql
-from src.lb import check_account_pass
-from src.bot.api import main_menu, edit_inline_message, cancel_menu, get_keyboard, update_inline_query, \
-    delete_message, private_and_login_require
+from src.bot.api import main_menu, edit_inline_message, get_keyboard, update_inline_query, delete_message, \
+    private_and_login_require, get_hash, get_login_url
 from src.bot import keyboards
 from src.bot.text import Texts
 from .l1_auth import bot, dp
@@ -54,14 +53,13 @@ class AgrmSettingsFSM(StatesGroup):
 @dp.callback_query_handler(text='settings-my-agrms', state='*')
 async def inline_h_agrm_settings(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await AgrmSettingsFSM.agrm.set()
     btn_list = [await keyboards.get_agrms_btn(query.message.chat.id), keyboards.agrms_settings_btn]
     await update_inline_query(bot, query, *Texts.settings_agrms.full(), btn_list=btn_list)
 
 
-@dp.callback_query_handler(Regexp(regexp=r'agrm-(?!del)(?!del-yes)(?!del-no)(?!add)([^\s]*)'),
-                           state=AgrmSettingsFSM.agrm)
+@dp.callback_query_handler(Regexp(regexp=r'agrm-(?!del)(?!del-yes)(?!del-no)(?!add)([^\s]*)'), state='*')
 async def inline_h_agrm_control(query: types.CallbackQuery, state: FSMContext):
+    await AgrmSettingsFSM.agrm.set()
     async with state.proxy() as data:
         data['agrm'] = query.data[5:]
         await update_inline_query(bot, query, Texts.settings_agrm.answer.format(agrm=data['agrm']),
@@ -81,48 +79,13 @@ async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
         await alogger.info(f'Agrm {data["agrm"]} deleted [{query.message.chat.id}]')
 
 
-@dp.callback_query_handler(text='agrm-add', state=AgrmSettingsFSM.agrm)
+@dp.callback_query_handler(text='agrm-add', state='*')
 async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
-    await state.update_data(agrm='')
-    await update_inline_query(bot, query, *Texts.settings_agrm_add.full(), reply_markup=cancel_menu['inline'])
+    hash_code = get_hash(query.message.chat.id)
+    url = get_login_url(hash_code)
+    await update_inline_query(bot, query, *Texts.settings_agrm_add.full(), btn_list=[keyboards.get_login_btn(url)])
+    await sql.upd_hash(query.message.chat.id, hash_code)
     await alogger.info(f'Agrm adding [{query.message.chat.id}]')
-
-
-@dp.message_handler(state=AgrmSettingsFSM.agrm)
-async def fsm_auth_agrm_h(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['agrm'] = message.text
-        await delete_message(message)
-        if data['agrm'] in await sql.get_agrms(message.chat.id):
-            await edit_inline_message(bot, message.chat.id, Texts.settings_agrm_exist.format(agrm=data['agrm']),
-                                      Texts.settings_agrm_exist.parse_mode, reply_markup=cancel_menu['inline'])
-        else:
-            await AgrmSettingsFSM.next()
-            await edit_inline_message(bot, message.chat.id, Texts.settings_agrm_pwd.format(agrm=data['agrm']),
-                                      Texts.settings_agrm_pwd.parse_mode, reply_markup=cancel_menu['inline'])
-
-
-@dp.message_handler(state=AgrmSettingsFSM.pwd)
-async def fsm_auth_pwd_h(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        await delete_message(message)
-        pwd_check, agrm_id = await check_account_pass(data['agrm'], message.text)
-        if pwd_check == 1:
-            await sql.add_agrm(message.chat.id, data['agrm'], agrm_id)
-            await state.finish()
-            kb = get_keyboard(await keyboards.get_agrms_btn(message.chat.id), keyboards.agrms_settings_btn)
-            await edit_inline_message(bot, message.chat.id, Texts.settings_agrm_add_success.format(agrm=data['agrm']),
-                                      Texts.settings_agrm_add_success.parse_mode)
-            await bot.send_message(message.chat.id, Texts.settings_agrms, Texts.settings_agrms.parse_mode,
-                                   reply_markup=kb)
-            await alogger.info(f'Agrm {data["agrm"]} added [{message.chat.id}]')
-        elif pwd_check == 0:
-            await edit_inline_message(bot, message.chat.id, Texts.settings_agrm_add_fail,
-                                      Texts.settings_agrm_add_fail.parse_mode, reply_markup=cancel_menu['inline'])
-        else:
-            await edit_inline_message(bot, message.chat.id, Texts.settings_agrm_add_error,
-                                      Texts.settings_agrm_add_error.parse_mode, reply_markup=cancel_menu['inline'])
-        await AgrmSettingsFSM.agrm.set()
 
 
 @dp.callback_query_handler(text='settings-notify', state='*')
@@ -155,10 +118,11 @@ async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext
 
 @dp.callback_query_handler(text='exit-yes')
 async def inline_h_notify_settings(query: types.CallbackQuery):
-    await sql.unsubscribe(query.message.chat.id)
     await query.answer(Texts.settings_exited.answer, show_alert=True)
     await edit_inline_message(bot, query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
-    # agrms = await sql.get_agrms(query.message.chat.id)
-    # for agrm in agrms:
-    #     await sql.del_agrm(query.message.chat.id, agrm)
-    await alogger.info(f'Exited [{query.message.chat.id}]')
+    await alogger.info(f'Exiting [{query.message.chat.id}]')
+    await sql.unsubscribe(query.message.chat.id)
+    agrms = await sql.get_agrms(query.message.chat.id)
+    if agrms:
+        for agrm in agrms:
+            await sql.deactivate_agrm(query.message.chat.id, agrm)

@@ -8,11 +8,21 @@ from functools import wraps
 from datetime import datetime, timedelta
 
 from src.lb import get_payments
-from src.web.telegram_api import telegram_api, send_feedback, send_message
+from src.web.telegram_api import telegram_api, send_feedback, send_message, edit_inline_message
 from src.bot.text import Texts
-from src.bot.api import main_menu
+from src.bot.api import main_menu, get_keyboard
+from src.bot import keyboards
 from src.utils import config
 from src.sql import sql
+
+
+class Context(dict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def __call__(self, **kwargs):
+        self.update(kwargs)
+        return self
 
 
 async def get_request_data(request: Request):
@@ -40,6 +50,19 @@ def lan_require(func):
 
 def get_query_params(url):
     return parse_qs(urlparse(url).query)
+
+
+async def login(chat_id, agrm, agrm_id):
+    await sql.add_agrm(chat_id, agrm, agrm_id)
+    if not await sql.get_sub(chat_id):
+        await sql.subscribe(chat_id)
+        text, parse = Texts.auth_success.format(agrm=agrm), Texts.auth_success.parse_mode
+        await send_message(chat_id, text, parse, reply_markup=main_menu)
+    else:
+        text, parse = Texts.settings_agrm_add_success.format(agrm=agrm), Texts.settings_agrm_add_success.parse_mode
+        await edit_inline_message(chat_id, text, parse)
+        kb = get_keyboard(await keyboards.get_agrms_btn(chat_id), keyboards.agrms_settings_btn)
+        await send_message(chat_id, Texts.settings_agrms, Texts.settings_agrms.parse_mode, reply_markup=kb)
 
 
 async def handle_payment_response(logger, result, hash_id):

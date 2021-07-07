@@ -7,13 +7,20 @@ from src.sql import sql
 from src.utils import alogger, config
 
 
+def get_hash(text):
+    return hashlib.md5(f'{datetime.now()}&{text}'.encode()).hexdigest()
+
+
 def get_payment_hash(chat_id, agrmnum):
-    line = f'{datetime.now()}&{chat_id}&{agrmnum}'.encode()
-    return hashlib.md5(line).hexdigest()
+    return get_hash(f'{chat_id}&{agrmnum}')
 
 
 def get_payment_url(hash_code):
     return '{}/irobot_web/api/new_payment?hash={}'.format(config['paladin']['main-domain'], hash_code)
+
+
+def get_login_url(hash_code):
+    return '{}/irobot_web/login?hash={}'.format(config['paladin']['main-domain'], hash_code)
 
 
 async def get_agrm_balances(chat_id):

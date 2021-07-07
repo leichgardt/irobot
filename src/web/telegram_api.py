@@ -55,4 +55,35 @@ async def send_feedback(chat_id, task_id):
     return res
 
 
+async def delete_message(chat_id, message_id):
+    try:
+        await telegram_api.delete_message(chat_id, message_id)
+    except:
+        pass
+
+
+async def edit_message_text(text, chat_id, message_id, *args, **kwargs):
+    log = logging.getLogger('irobot-web')
+    res = False
+    try:
+        res = await telegram_api.edit_message_text(text, chat_id, message_id, *args, **kwargs)
+    except exceptions.RetryAfter as e:
+        log.error(f'Target [ID:{chat_id}]: Flood limit is exceeded. Sleep {e.timeout} seconds.')
+        await asyncio.sleep(e.timeout)
+        return await send_message(chat_id, text, *args, **kwargs)  # Recursive call
+    except:
+        await delete_message(chat_id, message_id)
+        res = await send_message(chat_id, text, *args, **kwargs)
+    finally:
+        return res
+
+
+async def edit_inline_message(chat_id, text, *args, **kwargs):
+    inline_msg_id, _, _ = await sql.get_inline(chat_id)
+    if inline_msg_id:
+        await edit_message_text(text, chat_id, inline_msg_id, *args, **kwargs)
+    else:
+        await send_message(chat_id, text, *args, **kwargs)
+
+
 telegram_api = TelegramAPI()

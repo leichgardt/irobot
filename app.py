@@ -11,7 +11,9 @@ from fastapi_utils.tasks import repeat_every
 from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
-    auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor, Table, broadcast
+    auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor, Table, broadcast, login, \
+    Context
+from src.lb import check_account_pass
 from guni import workers
 
 VERSION = '0.3.1'
@@ -98,13 +100,65 @@ async def index(request: Request):
     res = await sql.get_mailings()
     if res:
         t_history = Table(res).get_html()
-    return templates.TemplateResponse('index.html', {'request': request,
-                                                     'title': 'IroBot',
-                                                     'about': ABOUT,
-                                                     'version': VERSION,
-                                                     'domain': config['paladin']['domain'],
-                                                     'tables': {'subs': t_subs, 'history': t_history},
-                                                     })
+    return templates.TemplateResponse('index.html',
+                                      Context(request=request,
+                                              title='IroBot',
+                                              domain=config['paladin']['domain'],
+                                              about=ABOUT,
+                                              version=VERSION,
+                                              tables={'subs': t_subs, 'history': t_history},
+                                              ))
+
+
+@app.get('/login')
+async def login_page(request: Request):
+    data = await get_request_data(request)
+    context = Context(request=request,
+                      title='Авторизация',
+                      domain=config['paladin']['domain'],
+                      bot_name=bot_name,
+                      support_bot_name=config['irobot']['chatbot'],
+                      )
+    if data and 'hash' in data and await sql.find_chat_by_hash(data['hash']):
+        return templates.TemplateResponse('login.html', context(hash_code=data['hash']))
+    return templates.TemplateResponse('login_error.html', context)
+
+
+@app.post('/api/login')
+async def login_try(request: Request, response: Response, background_tasks: BackgroundTasks):
+    data = await get_request_data(request)
+    res, agrm_id = await check_account_pass(data['agrm'], data['pwd'])
+    if res == 1:
+        chat_id = await sql.find_chat_by_hash(data['hash'])
+        if chat_id:
+            if data['agrm'] in await sql.get_agrms(chat_id):
+                logger.info(f'Agrm already added [{chat_id}]')
+                return {'response': 2}
+            logger.info(f'Logging [{chat_id}]')
+            background_tasks.add_task(login, chat_id, data['agrm'], agrm_id)
+            response.status_code = 202
+            return {'response': 1}
+        else:
+            logger.info(f'Login: chat_id not found [{chat_id}]')
+            return {'response': -1}
+    elif res == 0:
+        logger.info('Login: incorrect agrm or pwd [{}]'.format(data['agrm']))
+        return {'response': 0}
+    else:
+        logger.info('Login error [{}]'.format(data['agrm']))
+        return {'response': -1}
+
+
+@app.get('/login_success')
+async def login_page(request: Request):
+    data = await get_request_data(request)
+    context = Context(request=request,
+                      title='Авторизация',
+                      domain=config['paladin']['domain'],
+                      bot_name=bot_name)
+    if data and 'hash' in data and await sql.find_chat_by_hash(data['hash']):
+        return templates.TemplateResponse('login_success.html', context)
+    return templates.TemplateResponse('login_error.html', context)
 
 
 @app.get('/api/get_history')

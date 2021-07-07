@@ -24,8 +24,7 @@ class T(str):
 class Texts:
     start = T(
         'Привет, {name}!\nС помощью этого бота ты сможешь проверять и пополнять баланс, пополнять счёт и ещё многое '
-        'другое!\nНо сначала давай авторизуемся!\n\n<u>Напиши номер договора</u>.')
-    start.parse_mode = ParseMode.HTML
+        'другое!\nНо сначала давай авторизуемся!')
     non_private = T(
         'Извини, я работаю только в приватном чате.')
     non_auth = T(
@@ -35,19 +34,8 @@ class Texts:
     cancel.answer = \
         'Отмена'
 
-    auth_pwd = T(emojize(
-        'Договор: {agrm}\n<u>Введи пароль</u>. Не волнуйся, сообщение сразу же удалится из истории чата :sunglasses:'))
-    auth_pwd.parse_mode = ParseMode.HTML
     auth_success = T(emojize(
         'Ты успешно авторизовался под договором {agrm} :tada:\nДобро пожаловать! :smile:'))
-    auth_fail = T(
-        'Неправильный номер договора или пароль. Попробуй еще раз!\n\nВведи номер договора.')
-    auth_error = T(
-        'Ошибка! Договор не найден.\nПопробуй ввести номер другого договора.')
-    auth_cancel = T(
-        'Отменено. Отправь /start чтобы начать.')
-    auth_cancel.answer = \
-        'Начало'
 
     settings = T(
         'Настройки\n\nВыбери пункт настроек.')
@@ -70,18 +58,11 @@ class Texts:
     settings_agrm_del_answer = T(
         'Договор {agrm} удалён')
     settings_agrm_add = T(
-        'Настройки >> Договоры >> Добавить\n\nВведи номер договора.')
+        'Настройки >> Договоры >> Добавить\n\nЧтобы добавить ещё один договор, нажми на кнопку "Авторизоваться".')
     settings_agrm_add.answer = \
         'Добавить новый договор'
-    settings_agrm_pwd = T(emojize(
-        'Настройки >> Договоры >> Добавить\n\nНомер договора: {agrm} \nВведи пароль.'))
     settings_agrm_add_success = T(emojize(
         'Договор {agrm} успешно добавлен :tada:'))
-    settings_agrm_exist = T(
-        'Настройки >> Договоры\n\nДоговор №{agrm} уже добавлен.\nВведи <u>другой</u> договор.')
-    settings_agrm_exist.parse_mode = ParseMode.HTML
-    settings_agrm_add_fail = auth_fail
-    settings_agrm_add_error = auth_error
     settings_notify = T(emojize(
         'Настройки >> Уведомления\n\nВ рассылках я буду рассказывать тебе об акциях, скидках и о '
         'других интересных вещах, которые происходят у нас в Айроннет! :blush:\nВыключи, если не хочешь получать '

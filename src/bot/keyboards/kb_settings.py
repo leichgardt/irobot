@@ -61,3 +61,11 @@ async def get_notify_settings_btn(chat_id):
         params = {'text': text, 'callback_data': 'settings-switch-mailing'}
         row.append(params)
     return (row,)
+
+
+def get_login_btn(url):
+    return (
+        (
+            {'text': 'Авторизоваться', 'url': url},
+        ),
+    )

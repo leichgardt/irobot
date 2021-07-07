@@ -1,0 +1,13 @@
+{% extends 'base_public.html' %}
+{% block content %}
+<div class="container pb-3">
+    <div id="access-granted-form" class="row">
+        <div class="col-12 text-center my-3">
+            <h3>Успешная авторизация!</h3>
+        </div>
+        <div class="col-12 text-center">
+            <a href="https://t.me/{{ bot_name }}">Вернуться к телеграм-боту @{{ bot_name }}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
