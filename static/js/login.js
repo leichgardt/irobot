@@ -17,9 +17,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
         if (!on_loading) {
             let one = valid(input_pwd, pwd_form),
                 two = valid(input_agrm, agrm_form);
-            if (one && two)
+            if (one && two) {
                 on_loading = true;
                 login();
+            }
         }
     }
 
@@ -60,7 +61,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
         btn_status(btn_login, 'loading');
         let hash = document.getElementById('hash-code').value;
         let data = {'agrm': input_agrm.value, 'pwd': input_pwd.value, 'hash': hash};
-        console.log(data);
         let url = 'api/login'
         fetch(url, {
             method: 'POST',

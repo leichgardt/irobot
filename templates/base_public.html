@@ -2,6 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>
         {{ title }}
     </title>
@@ -11,41 +13,65 @@
     <script src="{{ url_for('static', path='js/bootstrap.min.4.4.1.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap_4.4.1.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Kaushan+Script">
     {% block import %}{% endblock %}
 </head>
 <style>
-    body { background-color: rgba(0, 0, 0, 0); }
+    body {
+        padding-bottom: 4.2rem;
+    }
     html {
-        background: #00141E url({{ url_for('static', path='img/jpg/wallpaper.jpg') }}) center center no-repeat fixed;
+        background: url({{ url_for('static', path='img/jpg/wallpaper.jpg') }}) center top #00141E;
     }
-    body > .container {
-        background-color: rgba(255, 255, 255, .9);
-        border-radius: 0 0 10px 10px;
+    .navbar {
+        background-color: #00141E;
     }
-    .navbar { background-color: #00141E; }
     #ironnet-img {
         border-style: hidden;
-        width: 155px;
-        height: 33px;
-        background: url({{ domain }}/static/png/Ironnet_logo.png) 0 50%;
+        width: 190px;
+        height: 43px;
+        background: url({{ url_for('static', path='img/png/Ironnet_logo.png') }}) 0 50%;
         background-size: 100%;
         opacity: 1;
+    }
+    a {
+        text-decoration: none !important;
+    }
+    h1, h2, h3 {
+        font-family: 'Kaushan Script', cursive;
+    }
+    .form {
+        position: relative;
+        display: -ms-flexbox;
+        display: flex;
+        padding: 1rem;
+        -ms-flex-direction: column;
+        flex-direction: column;
+        width: 100%;
+        pointer-events: auto;
+        background-color: #fff;
+        background-clip: padding-box;
+        border-radius: 1.1rem;
+        outline: 0;
+        max-width: 500px;
+    }
+    .btn {
+        border-radius: 50px;
     }
     {% block style %}{% endblock %}
 </style>
 <header>
     <nav class="navbar sticky-top navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="http://ironnet.info/">
+        <div class="container-fluid justify-content-center">
+            <a href="http://ironnet.info/">
                 <div id="ironnet-img"></div>
-            </a>
-            <a class="navbar-brand" href="https://t.me/{{ bot_name }}">
-                IronnetBot
             </a>
         </div>
     </nav>
 </header>
 <body>
-{% block content %}{% endblock %}
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
 </body>
 </html>

@@ -4,44 +4,43 @@
             src="{{ url_for('static', path='js/login.js') }}"></script>
 {% endblock %}
 {% block content %}
-    <div class="container pb-3">
-        <div class="row">
-            <div class="col-12 my-2 text-center">
-                <h5>Авторизация</h5>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="col-12">
+    <div class="row">
+        <div class="col-md-5 mx-auto">
+            <div class="form">
+                <div class="logo mb-3">
+                    <div class="col-md-12 text-center">
+                        <h1>IroBot</h1>
+                    </div>
+                </div>
                 <form novalidate>
                     <div class="form-group sr-only">
                         <label for="hash-code"></label>
                         <input type="text" class="form-control" id="hash-code" value="{{ hash_code }}">
                     </div>
-                    <div id="agrm-form" class="form-group row">
-                        <label for="agrm-input" class="col-sm-2 col-form-label">Договор</label>
-                        <div class="col-sm-10">
-                            <input type="text" class="form-control" id="agrm-input" placeholder="Номер договора"
-                                   required>
-                            <div class="invalid-feedback">
-                                Пожалуйста, введи номер договора.
-                            </div>
+                    <div class="form-group" id="agrm-form">
+                        <label for="agrm-input">Договор</label>
+                        <input type="text" class="form-control" id="agrm-input" placeholder="Введите номер договора" required>
+                        <div class="invalid-feedback">
+                            Пожалуйста, введи номер договора.
                         </div>
                     </div>
-                    <div id="pwd-form" class="form-group row">
-                        <label for="password-input" class="col-sm-2 col-form-label">Пароль</label>
-                        <div class="col-sm-10">
-                            <input type="password" class="form-control" id="password-input" placeholder="Пароль"
-                                   required>
-                            <div class="invalid-feedback">
-                                Пожалуйста, введи пароль.
-                            </div>
+                    <div class="form-group" id="pwd-form">
+                        <label for="password-input">Пароль</label>
+                        <input type="password" id="password-input" class="form-control" placeholder="Введите пароль" required>
+                        <div class="invalid-feedback">
+                            Пожалуйста, введи пароль.
                         </div>
                     </div>
-                    <div class="text-center">
-                        <button id="login-btn" type="button" class="btn btn-primary">
+                    <div class="col-md-12 text-center">
+                        <button id="login-btn" type="button" class="btn btn-block btn-primary tx-tfm">
                             <span id="login-btn-spinner" class="spinner-border spinner-border-sm m-1 collapse" role="status"></span>
-                            <span id="login-btn-text" class="collapse show">Войти</span>
+                            <span id="login-btn-text" class="collapse show">Авторизоваться</span>
                         </button>
+                    </div>
+                    <div class="form-group pt-4">
+                        <p class="text-center">
+                            Чтобы получить помощь, напиши в <a href="https://t.me/{{ support_bot_name }}">поддержку</a>
+                        </p>
                     </div>
                 </form>
             </div>
