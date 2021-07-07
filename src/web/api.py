@@ -78,7 +78,7 @@ async def handle_payment_response(logger, result, hash_id):
                 logger.fatal(f'Payment error!!! Incorrect result. Payment_id: {payment_id}')
                 text, parse, res = Texts.payment_error, Texts.payment_error.parse_mode, 'error'
             if not notified:
-                await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
+                await send_message(chat_id, text, parse, reply_markup=main_menu)
                 await sql.upd_payment(hash_id, status=res, notified=True)
             else:
                 await sql.upd_payment(hash_id, status=res)
@@ -96,7 +96,7 @@ async def handle_new_payment_request(hash_code, sql_data):
             text, parse = Texts.payments_online_already_have, Texts.payments_online_already_have.parse_mode
         else:
             text, parse = Texts.payment_error, Texts.payment_error.parse_mode
-        await telegram_api.send_message(sql_data[1], text, parse, reply_markup=main_menu)
+        await send_message(sql_data[1], text, parse, reply_markup=main_menu)
         return 0
     return -1
 
@@ -116,7 +116,7 @@ async def auto_payment_monitor(logger):
                         if abs((float(payment.amountcurr) / float(amount)) - 1) < 0.01:
                             text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
                             if not notified:
-                                await telegram_api.send_message(chat_id, text, parse, reply_markup=main_menu)
+                                await send_message(chat_id, text, parse, reply_markup=main_menu)
                                 await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid,
                                                       notified=True)
                             else:

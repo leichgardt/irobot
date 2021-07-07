@@ -241,7 +241,7 @@ async def get_yoomoney_payment(request: Request):
 @app.post('/api/status')
 async def api_status(request: Request):
     try:
-        res1 = await sql.get_subs()
+        res1 = await sql.get_sub(config['irobot']['me'])
         res2 = await telegram_api.get_me()
     except Exception as e:
         logger.warning(e)
