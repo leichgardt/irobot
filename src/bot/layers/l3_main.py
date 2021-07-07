@@ -51,6 +51,7 @@ async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
+@dp.message_handler(commands='balance', state='*')
 @dp.message_handler(Text(emojize(':scales: Баланс'), ignore_case=True), state='*')
 @dp.async_task
 @private_and_login_require()
