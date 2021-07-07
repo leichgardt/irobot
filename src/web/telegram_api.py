@@ -1,4 +1,3 @@
-import asyncio
 from aiogram import Bot
 from aiogram.utils import exceptions
 import logging
