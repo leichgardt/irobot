@@ -37,8 +37,8 @@ async def about_inline_h(query: types.CallbackQuery):
 
 @dp.callback_query_handler(text='cancel')
 async def inline_h_payments_choice(query: types.CallbackQuery):
-    await update_inline_query(bot, query, *Texts.cancel.full())
-    await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
+    await update_inline_query(bot, query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode,
+                              reply_markup=main_menu)
 
 
 @dp.callback_query_handler(text='cancel', state=[ReviewFSM.rating, ReviewFSM.comment])
@@ -46,8 +46,8 @@ async def inline_h_payments_choice(query: types.CallbackQuery):
 async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await delete_message(query.message)
-    await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
     await query.answer(Texts.cancel.answer)
+    await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
@@ -109,7 +109,10 @@ async def review_send_inline_h(query: types.CallbackQuery, state: FSMContext):
         text = query.message.text.rsplit('\n\n', 1)[0]
         await edit_inline_message(bot, query.message.chat.id, text)
         await query.answer(Texts.review_done.answer)
-        await bot.send_message(query.message.chat.id, Texts.review_done, Texts.review_done.parse_mode,
-                               reply_markup=main_menu)
+        if rating and rating == 5:
+            text, parse = Texts.review_done_best, Texts.review_done_best.parse_mode
+        else:
+            text, parse = Texts.review_done, Texts.review_done.parse_mode
+        await bot.send_message(query.message.chat.id, text, parse, reply_markup=main_menu)
         await alogger.info(f'New review saved [{query.message.chat.id}]')
         await sql.upd_inline(query.message.chat.id, 0, '')

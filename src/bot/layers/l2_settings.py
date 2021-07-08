@@ -12,6 +12,11 @@ from src.bot.text import Texts
 from .l1_auth import bot, dp
 
 
+class AgrmSettingsFSM(StatesGroup):
+    agrms = State()
+    agrm = State()
+
+
 @dp.message_handler(commands='settings', state='*')
 @dp.message_handler(Text('🔧 Настройки', ignore_case=True), state='*')
 @private_and_login_require(do_not_check_sub=True)
@@ -20,6 +25,8 @@ async def message_h_settings(message: types.Message, state: FSMContext):
     if await sql.get_sub(message.chat.id):
         kb = get_keyboard(keyboards.settings_menu_btn, keyboard_type='inline')
         _, text, parse = Texts.settings.full()
+        await AgrmSettingsFSM.agrm.set()
+        await state.update_data(agrms=await sql.get_agrms(message.chat.id))
     else:
         kb = None
         _, text, parse = Texts.settings_non_auth.full()
@@ -27,15 +34,12 @@ async def message_h_settings(message: types.Message, state: FSMContext):
     await sql.upd_inline(message.chat.id, res.message_id, text, parse)
 
 
-@dp.callback_query_handler(text='settings', state='*')
+@dp.callback_query_handler(text='settings', state=AgrmSettingsFSM.agrm)
 async def inline_h_settings(query: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    await update_inline_query(bot, query, Texts.settings.answer, Texts.settings, parse_mode=Texts.settings.parse_mode,
-                              btn_list=[keyboards.settings_menu_btn])
-    await AgrmSettingsFSM.agrm.set()
+    await update_inline_query(bot, query, *Texts.settings.full(), btn_list=[keyboards.settings_menu_btn])
 
 
-@dp.callback_query_handler(text='settings-done', state='*')
+@dp.callback_query_handler(text='settings-done', state=AgrmSettingsFSM.agrm)
 async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await query.answer(Texts.settings_done.answer, show_alert=True)
@@ -44,22 +48,18 @@ async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
-class AgrmSettingsFSM(StatesGroup):
-    agrm = State()
-    pwd = State()
-
-
-@dp.callback_query_handler(text='cancel', state=[AgrmSettingsFSM.agrm, AgrmSettingsFSM.pwd])
-@dp.callback_query_handler(text='settings-my-agrms', state='*')
+@dp.callback_query_handler(text='cancel', state=[AgrmSettingsFSM.agrms, AgrmSettingsFSM.agrm])
+@dp.callback_query_handler(text='settings-my-agrms', state=AgrmSettingsFSM.agrm)
 async def inline_h_agrm_settings(query: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    btn_list = [await keyboards.get_agrms_btn(query.message.chat.id), keyboards.agrms_settings_btn]
-    await update_inline_query(bot, query, *Texts.settings_agrms.full(), btn_list=btn_list)
+    async with state.proxy() as data:
+        if 'agrms' not in data.keys():
+            data['agrms'] = await sql.get_agrms(query.message.chat.id)
+        btn_list = [await keyboards.get_agrms_btn(agrms=data['agrms']), keyboards.agrms_settings_btn]
+        await update_inline_query(bot, query, *Texts.settings_agrms.full(), btn_list=btn_list)
 
 
-@dp.callback_query_handler(Regexp(regexp=r'agrm-(?!del)(?!del-yes)(?!del-no)(?!add)([^\s]*)'), state='*')
+@dp.callback_query_handler(Regexp(regexp=r'agrm-(?!del)(?!del-yes)(?!del-no)(?!add)([^\s]*)'), state=AgrmSettingsFSM.agrm)
 async def inline_h_agrm_control(query: types.CallbackQuery, state: FSMContext):
-    await AgrmSettingsFSM.agrm.set()
     async with state.proxy() as data:
         data['agrm'] = query.data[5:]
         await update_inline_query(bot, query, Texts.settings_agrm.answer.format(agrm=data['agrm']),
@@ -70,16 +70,15 @@ async def inline_h_agrm_control(query: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(text='agrm-del', state=AgrmSettingsFSM.agrm)
 async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        await state.finish()
-        await AgrmSettingsFSM.agrm.set()
-        await sql.del_agrm(query.message.chat.id, data['agrm'])
+        await sql.deactivate_agrm(query.message.chat.id, data['agrm'])
+        data['agrms'] = await sql.get_agrms(query.message.chat.id)
         btn_list = [await keyboards.get_agrms_btn(query.message.chat.id), keyboards.agrms_settings_btn]
         await update_inline_query(bot, query, Texts.settings_agrm_del_answer.format(agrm=data['agrm']),
                                   Texts.settings_agrms, Texts.settings_agrms.parse_mode, btn_list=btn_list)
-        await alogger.info(f'Agrm {data["agrm"]} deleted [{query.message.chat.id}]')
+        await alogger.info(f'Agrm {data["agrm"]} deactivated [{query.message.chat.id}]')
 
 
-@dp.callback_query_handler(text='agrm-add', state='*')
+@dp.callback_query_handler(text='agrm-add', state=AgrmSettingsFSM.agrm)
 async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
     hash_code = get_hash(query.message.chat.id)
     url = get_login_url(hash_code)
@@ -88,16 +87,15 @@ async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
     await alogger.info(f'Agrm adding [{query.message.chat.id}]')
 
 
-@dp.callback_query_handler(text='settings-notify', state='*')
+@dp.callback_query_handler(text='settings-notify', state=AgrmSettingsFSM.agrm)
 async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext):
-    await state.finish()
     btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id), keyboards.back_to_settings]
     await update_inline_query(bot, query, *Texts.settings_notify.full(), reply_markup=get_keyboard(btn_list, lining=False))
 
 
-@dp.callback_query_handler(text='settings-switch-notify')
-@dp.callback_query_handler(text='settings-switch-mailing')
-async def inline_h_notify_settings(query: types.CallbackQuery):
+@dp.callback_query_handler(text='settings-switch-notify', state=AgrmSettingsFSM.agrm)
+@dp.callback_query_handler(text='settings-switch-mailing', state=AgrmSettingsFSM.agrm)
+async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext):
     if query.data == 'settings-switch-notify':
         await sql.switch_sub(query.message.chat.id, 'notify')
         answer = Texts.settings_notify_switch_answer
@@ -110,19 +108,18 @@ async def inline_h_notify_settings(query: types.CallbackQuery):
     await alogger.info(f'Switching notify settings [{query.message.chat.id}]')
 
 
-@dp.callback_query_handler(text='exit', state='*')
+@dp.callback_query_handler(text='exit', state=AgrmSettingsFSM.agrm)
 async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext):
-    await state.finish()
     await update_inline_query(bot, query, *Texts.settings_exit.full(), btn_list=[keyboards.exit_confirm_btn])
 
 
-@dp.callback_query_handler(text='exit-yes')
-async def inline_h_notify_settings(query: types.CallbackQuery):
-    await query.answer(Texts.settings_exited.answer, show_alert=True)
-    await edit_inline_message(bot, query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
-    await alogger.info(f'Exiting [{query.message.chat.id}]')
-    await sql.unsubscribe(query.message.chat.id)
-    agrms = await sql.get_agrms(query.message.chat.id)
-    if agrms:
-        for agrm in agrms:
+@dp.callback_query_handler(text='exit-yes', state=AgrmSettingsFSM.agrm)
+async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext):
+    async with state.proxy() as data:
+        await query.answer(Texts.settings_exited.answer, show_alert=True)
+        await edit_inline_message(bot, query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
+        await alogger.info(f'Exiting [{query.message.chat.id}]')
+        await sql.unsubscribe(query.message.chat.id)
+        for agrm in data['agrms']:
             await sql.deactivate_agrm(query.message.chat.id, agrm)
+        await state.finish()

@@ -7,7 +7,7 @@ from src.utils import config
 class T(str):
     def __init__(self, value=''):
         self.__str__ = value
-        self.answer = None
+        self.answer = ''
         self.parse_mode = None
 
     def __call__(self, new_str: str):
@@ -66,7 +66,7 @@ class Texts:
         'Договор {agrm} успешно добавлен :tada:'))
     settings_notify = T(emojize(
         'Настройки >> Уведомления\n\nВ рассылках я буду рассказывать тебе об акциях, скидках и о '
-        'других интересных вещах, которые происходят у нас в Айроннет! :blush:\nВыключи, если не хочешь получать '
+        'других интересных вещах, которые происходят у нас в Айроннет! :blush:\n\nВыключи, если не хочешь получать '
         'новостную рассылку.'))
     settings_notify.answer = \
         'Настройки уведомлений'
@@ -102,19 +102,24 @@ class Texts:
     review.answer = \
         'Отзыв'
     review_rate = T(
-        'Отзыв\n\nОценка: {rating}\nНапиши отзыв или отправь оценку.')
+        'Отзыв\n\n<b>Оценка</b>: {rating}\nНапиши отзыв или отправь оценку.')
+    review_rate.parse_mode = ParseMode.HTML
     review_rate.answer = \
         'Оценил на {rating}!'
     review_with_comment = T(
-        'Отзыв:\n' + '_' * 40 + '\n{comment}\n' + '_' * 40 + '\n\nНапиши новое сообщение, чтобы изменить свой отзыв, '
-        'или отправь это.')
+        '<b>Отзыв</b>: {comment}\n\n\nНапиши новое сообщение, чтобы изменить свой отзыв, или отправь это.')
+    review_with_comment.parse_mode = ParseMode.HTML
     review_full = T(
-        'Отзыв:\n' + '_' * 40 + '\n{comment}\n' + '_' * 40 + '\nОценка: {rating}\n\nНапиши новое сообщение, чтобы'
-        ' изменить свой отзыв, или отправь это.')
+        '<b>Отзыв</b>: {comment}\n\n<b>Оценка</b>: {rating}\n\nНапиши новое сообщение, чтобы изменить свой отзыв, '
+        'или отправь это.')
+    review_full.parse_mode = ParseMode.HTML
     review_done = T(emojize(
         'Отзыв успешно отправлен! Спасибо огромное! Мы обязательно учтём твоё мнение :blush:'))
     review_done.answer = \
         'Отзыв отправлен'
+    review_done_best = T(emojize(
+        'Отзыв успешно отправлен! Спасибо огромное! Мы стараемся изо всех сил :blush:'))
+    review_done_best.answer = review_done.answer
 
     help = T(
         'Помощь\n\nС помощью этого бота ты можешь\:\n\- проверять свой __баланс__\n\- __пополнять__ счёт\n'

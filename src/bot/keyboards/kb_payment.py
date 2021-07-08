@@ -15,11 +15,14 @@ def get_payment_url_btn(url):
             {'text': 'Оплатить', 'url': url},
             {'text': 'Изменить сумму', 'callback_data': 'payments-online-another-amount'},
         ),
+        (
+            {'text': 'Отмена', 'callback_data': 'cancel'},
+        ),
     )
 
 
 async def get_promise_payment_agrms(chat_id=None, agrms=None):
-    """договоры, доступные для обещанного платежа"""
+    """договоры, доступные для обещанного платежа для определённого чата chat_id или из предоставленного списка agrms"""
     from src.lb import promise_available
     from src.sql import sql
     output = []

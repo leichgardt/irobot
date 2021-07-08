@@ -142,9 +142,10 @@ async def inline_h_payment_another_amount(query: types.CallbackQuery, state: FSM
 
 @dp.callback_query_handler(text='no', state=PaymentFSM.amount)
 async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
+    """Ответ "нет" на запрос обещанного платежа"""
     await state.finish()
-    await update_inline_query(bot, query, Texts.cancel.answer, Texts.cancel, Texts.cancel.parse_mode)
-    await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
+    await update_inline_query(bot, query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode,
+                              reply_markup=main_menu)
 
 
 @dp.callback_query_handler(text='yes', state=PaymentFSM.amount)
@@ -164,11 +165,10 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
         await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
 
 
-@dp.callback_query_handler(text='cancel', state=[PaymentFSM.oper, PaymentFSM.agrm, PaymentFSM.amount])
+@dp.callback_query_handler(text='cancel', state=[PaymentFSM.oper, PaymentFSM.agrm, PaymentFSM.amount, PaymentFSM.payment])
 async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await update_inline_query(bot, query, *Texts.cancel.full())
-    await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
+    await update_inline_query(bot, query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
 
 
 # @dp.inline_handler()
