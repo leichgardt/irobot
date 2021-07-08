@@ -46,7 +46,7 @@ class SQLMaster(SQLCore):
         await self.execute(f'UPDATE irobot.subs SET {field} = %s WHERE chat_id=%s', status, chat_id)
 
     async def get_agrms(self, chat_id):
-        res = await self.execute('SELECT agrm FROM irobot.agrms WHERE chat_id=%s AND status=\'active\'', chat_id)
+        res = await self.execute('SELECT agrm FROM irobot.agrms WHERE chat_id=%s AND active=true', chat_id)
         return [line[0] for line in res] if res else []
 
     async def get_agrm_id(self, chat_id, agrm):
@@ -54,16 +54,16 @@ class SQLMaster(SQLCore):
         return res[0][0] if res else []
 
     async def add_agrm(self, chat_id, agrm, agrm_id):
-        res = await self.execute('SELECT status FROM irobot.agrms WHERE chat_id=%s and agrm=%s', chat_id, agrm)
-        if res and res[0][0] == 'inactive':
-            await self.execute('UPDATE irobot.agrms SET status=\'active\', update_datetime=now() '
+        res = await self.execute('SELECT active FROM irobot.agrms WHERE chat_id=%s and agrm=%s', chat_id, agrm)
+        if res and not res[0][0]:
+            await self.execute('UPDATE irobot.agrms SET active=true, update_datetime=now() '
                                'WHERE chat_id=%s AND agrm=%s', chat_id, agrm)
         else:
             await self.execute('INSERT INTO irobot.agrms(chat_id, agrm, agrm_id) VALUES (%s, %s, %s)',
                                chat_id, agrm, agrm_id, faults=False)
 
     async def deactivate_agrm(self, chat_id, agrm):
-        await self.execute('UPDATE irobot.agrms SET status=\'inactive\', update_datetime=now() '
+        await self.execute('UPDATE irobot.agrms SET active=false, update_datetime=now() '
                            'WHERE chat_id=%s AND agrm=%s', chat_id, agrm)
 
     async def get_inline(self, chat_id):
