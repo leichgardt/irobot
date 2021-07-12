@@ -1,6 +1,6 @@
 import ujson
 
-from src.utils import config, request
+from src.utils import config, post_request
 
 
 async def yoomoney_pay(agrmnum: str, amount: float, hash_id: str):
@@ -39,5 +39,5 @@ async def yoomoney_pay(agrmnum: str, amount: float, hash_id: str):
         ]
     }
     payload.update({'ym_merchant_receipt': ujson.dumps(data)})
-    res = await request(url, data=payload)
+    res = await post_request('resp', url, data=payload)
     return str(res.url) if res else res
