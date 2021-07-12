@@ -153,5 +153,9 @@ class SQLMaster(SQLCore):
     async def del_pid_list(self):
         await self.execute('DELETE FROM irobot.pids')
 
+    async def find_uncompleted_task(self, task_id):
+        return await self.execute('SELECT id FROM cardinalis.tasks WHERE task_id=%s AND NOT status '
+                                  'ORDER BY id DESC LIMIT 1', task_id)
+
 
 sql = SQLMaster()

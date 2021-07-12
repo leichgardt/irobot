@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 from src.lb import get_payments
 from src.web.telegram_api import telegram_api, send_feedback, send_message, edit_inline_message
+from src.web.userside import USPipe
 from src.bot.text import Texts
 from src.bot.api import main_menu, get_keyboard
 from src.bot import keyboards
@@ -131,7 +132,7 @@ async def auto_feedback_monitor(logger):
         for fb_id, task_id, chat_id in res:
             # если задание в cardinalis еще не завершено, то отправляем сообщение
             # если сообщение отправлено, то переводим feedback в статус 'sent'
-            if await sql.find_uncompleted_task(task_id) and await send_feedback(chat_id, task_id):
+            if await _is_task_uncompleted(task_id) and await send_feedback(chat_id, task_id):
                 await sql.upd_feedback(fb_id, status='sent')
                 logger.info(f'Feedback sent [{chat_id}]')
     res = await sql.get_feedback('rated', '1 hour')
@@ -139,6 +140,16 @@ async def auto_feedback_monitor(logger):
         for fb_id, task_id, chat_id in res:
             await sql.upd_feedback(fb_id, status='complete')
             logger.info(f'Rated feedback completed due to Timeout [{chat_id}]')
+
+
+async def _is_task_uncompleted(task_id):
+    if not await sql.find_uncompleted_task(task_id):
+        return False
+    us = USPipe()
+    fb_task = await us.get_feedback_task(task_id)
+    if fb_task and fb_task.get('state', {}).get('id') == 2:  # если оно уже выполнено
+        return False
+    return True
 
 
 async def broadcast(logger: Logger):
