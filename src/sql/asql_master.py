@@ -157,7 +157,7 @@ class SQLMaster(SQLCore):
                                   'ORDER BY id DESC LIMIT 1', task_id)
 
     async def finish_feedback_task(self, task_id):
-        await self.execute('UPDATE carsinalis.tasks SET status=true, update_datetime=now() '
+        await self.execute('UPDATE cardinalis.tasks SET status=true, update_datetime=now() '
                            'WHERE status=false AND task_id=%s', task_id)
 
 
