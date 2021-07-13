@@ -39,4 +39,5 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
         url = get_login_url(hash_code)
         res = await bot.send_message(message.chat.id, text, Texts.start.parse_mode,
                                      reply_markup=get_keyboard(keyboards.get_login_btn(url)))
-        await sql.add_chat(message.chat.id, res.message_id, text, Texts.start.parse_mode, hash_code)
+        await sql.add_chat(message.chat.id, res.message_id, text, Texts.start.parse_mode, hash_code,
+                           message.from_user.as_json())
