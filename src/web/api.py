@@ -103,11 +103,11 @@ async def handle_new_payment_request(hash_code, sql_data):
 
 
 async def auto_payment_monitor(logger):
-    await sql.cancel_old_new_payments()
     payments = await sql.find_processing_payments()
     if payments:
+        await sql.cancel_old_new_payments()
         for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:
-            if datetime.now() - upd_date > timedelta(hours=12):
+            if datetime.now() - upd_date > timedelta(hours=24):
                 await sql.upd_payment(hash_code, status='canceled')
                 logger.info(f'Payment monitor: canceled [{pay_id}]')
             else:
