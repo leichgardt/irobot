@@ -79,7 +79,6 @@ async def feedback_monitor():
     Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
     """
     await rates_feedback_monitor(logger)
-    logger.info('feedback-rates')
 
 
 @app.on_event('shutdown')
