@@ -156,5 +156,9 @@ class SQLMaster(SQLCore):
         return await self.execute('SELECT id FROM cardinalis.tasks WHERE task_id=%s AND NOT status '
                                   'ORDER BY id DESC LIMIT 1', task_id)
 
+    async def finish_feedback_task(self, task_id):
+        await self.execute('UPDATE carsinalis.tasks SET status=true, update_datetime=now() '
+                           'WHERE status=false AND task_id=%s', task_id)
+
 
 sql = SQLMaster()

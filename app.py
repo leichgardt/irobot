@@ -12,7 +12,7 @@ from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
     auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor, Table, broadcast, login, \
-    Context
+    Context, rates_feedback_monitor
 from src.lb import check_account_pass
 from guni import workers
 
@@ -68,6 +68,18 @@ async def feedback_monitor():
     Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
     """
     await auto_feedback_monitor(logger)
+
+
+@app.on_event('startup')
+@repeat_every(seconds=600)
+@sw.solo_worker(task='feedback-rates')
+async def feedback_monitor():
+    """
+    Поиск новых feedback сообщений для рассылки.
+    Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
+    """
+    await rates_feedback_monitor(logger)
+    logger.info('feedback-rates')
 
 
 @app.on_event('shutdown')

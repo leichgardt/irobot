@@ -8,7 +8,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 
 from src.lb import get_payments
-from src.web.telegram_api import telegram_api, send_feedback, send_message, edit_inline_message
+from src.web.telegram_api import send_feedback, send_message, edit_inline_message
 from src.web.userside import USPipe
 from src.bot.text import Texts
 from src.bot.api import main_menu, get_keyboard
@@ -139,6 +139,9 @@ async def auto_feedback_monitor(logger):
             else:
                 await sql.upd_feedback(fb_id, status='passed')
                 logger.info(f'Feedback already closed [{chat_id}]')
+
+
+async def rates_feedback_monitor(logger):
     res = await sql.get_feedback('rated', '1 hour')
     if res:
         for fb_id, task_id, chat_id in res:
@@ -148,6 +151,7 @@ async def auto_feedback_monitor(logger):
 
 async def _is_task_uncompleted(task_id):
     if not await sql.find_uncompleted_task(task_id):
+        await sql.finish_feedback_task(task_id)
         return False
     us = USPipe()
     fb_task = await us.get_feedback_task(task_id)
