@@ -132,9 +132,13 @@ async def auto_feedback_monitor(logger):
         for fb_id, task_id, chat_id in res:
             # если задание в cardinalis еще не завершено, то отправляем сообщение
             # если сообщение отправлено, то переводим feedback в статус 'sent'
-            if await _is_task_uncompleted(task_id) and await send_feedback(chat_id, task_id):
-                await sql.upd_feedback(fb_id, status='sent')
-                logger.info(f'Feedback sent [{chat_id}]')
+            if await _is_task_uncompleted(task_id):
+                if await send_feedback(chat_id, task_id):
+                    await sql.upd_feedback(fb_id, status='sent')
+                    logger.info(f'Feedback sent [{chat_id}]')
+            else:
+                await sql.upd_feedback(fb_id, status='passed')
+                logger.info(f'Feedback already closed [{chat_id}]')
     res = await sql.get_feedback('rated', '1 hour')
     if res:
         for fb_id, task_id, chat_id in res:
