@@ -7,7 +7,7 @@ from aiogram.utils.emoji import emojize
 from src.utils import alogger
 from src.sql import sql
 from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, delete_message,\
-    update_inline_query, private_and_login_require
+    update_inline_query, private_and_login_require, run_cmd
 from src.bot import keyboards
 from src.bot.text import Texts
 from .l2_settings import bot, dp
@@ -24,10 +24,10 @@ class ReviewFSM(StatesGroup):
 async def help_message_h(message: types.Message, state: FSMContext):
     if await sql.get_sub(message.chat.id):
         kb = get_keyboard(keyboards.help_btn, keyboard_type='inline', lining=True)
-        res = await bot.send_message(message.chat.id, Texts.help, parse_mode=Texts.help.parse_mode, reply_markup=kb)
+        res = await run_cmd(bot.send_message(message.chat.id, Texts.help, parse_mode=Texts.help.parse_mode, reply_markup=kb))
         await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.help.parse_mode)
     else:
-        await bot.send_message(message.chat.id, Texts.help_auth, parse_mode=Texts.help_auth.parse_mode)
+        await run_cmd(bot.send_message(message.chat.id, Texts.help_auth, parse_mode=Texts.help_auth.parse_mode))
 
 
 @dp.callback_query_handler(text='about')
@@ -47,7 +47,7 @@ async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await delete_message(query.message)
     await query.answer(Texts.cancel.answer)
-    await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
+    await run_cmd(bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu))
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
@@ -56,9 +56,9 @@ async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
 @dp.async_task
 @private_and_login_require()
 async def help_message_h(message: types.Message, state: FSMContext):
-    await bot.send_chat_action(message.chat.id, 'typing')
+    await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     text = await get_agrm_balances(message.chat.id)
-    await bot.send_message(message.chat.id, text, reply_markup=main_menu)
+    await run_cmd(bot.send_message(message.chat.id, text, reply_markup=main_menu))
 
 
 @dp.message_handler(Text('💩 Оставить отзыв', ignore_case=True), state='*')
@@ -67,7 +67,7 @@ async def review_inline_h(message: types.Message, state: FSMContext):
     await state.finish()
     kb = get_keyboard(keyboards.get_review_btn(), keyboards.cancel_btn, keyboard_type='inline', row_size=5)
     await ReviewFSM.rating.set()
-    res = await bot.send_message(message.chat.id, Texts.review, Texts.review.parse_mode, reply_markup=kb)
+    res = await run_cmd(bot.send_message(message.chat.id, Texts.review, Texts.review.parse_mode, reply_markup=kb))
     await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.review.parse_mode)
     await alogger.info(f'Start review [{message.chat.id}]')
 
@@ -115,6 +115,6 @@ async def review_send_inline_h(query: types.CallbackQuery, state: FSMContext):
             text, parse = Texts.review_done_best, Texts.review_done_best.parse_mode
         else:
             text, parse = Texts.review_done, Texts.review_done.parse_mode
-        await bot.send_message(query.message.chat.id, text, parse, reply_markup=main_menu)
+        await run_cmd(bot.send_message(query.message.chat.id, text, parse, reply_markup=main_menu))
         await alogger.info(f'New review saved [{query.message.chat.id}]')
         await sql.upd_inline(query.message.chat.id, 0, '')

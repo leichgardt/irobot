@@ -9,7 +9,7 @@ from src.sql import sql
 from src.lb import promise_payment, get_balance
 from src.payment.yoomoney import yoomoney_pay
 from src.bot.api import main_menu, cancel_menu, edit_inline_message, update_inline_query, get_keyboard, \
-    delete_message, private_and_login_require, get_payment_hash, get_payment_url
+    delete_message, private_and_login_require, get_payment_hash, get_payment_url, run_cmd
 from src.bot import keyboards
 from src.bot.text import Texts
 
@@ -31,7 +31,7 @@ async def message_h_payments(message: types.Message, state: FSMContext):
     await state.finish()
     await PaymentFSM.oper.set()
     kb = get_keyboard(keyboards.payment_choice_btn, keyboard_type='inline')
-    res = await bot.send_message(message.chat.id, Texts.payments, Texts.payments.parse_mode, reply_markup=kb)
+    res = await run_cmd(bot.send_message(message.chat.id, Texts.payments, Texts.payments.parse_mode, reply_markup=kb))
     await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.payments.parse_mode)
 
 
@@ -162,7 +162,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
             await alogger.warning(f'Payment failure [{query.message.chat.id}]')
         await update_inline_query(query, answer, text, parse, alert=True)
         await state.finish()
-        await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
+        await run_cmd(bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu))
 
 
 @dp.callback_query_handler(text='cancel', state=[PaymentFSM.oper, PaymentFSM.agrm, PaymentFSM.amount, PaymentFSM.payment])
@@ -195,7 +195,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
 #                     input_message_content=input_content,
 #                 )
 #                 items.append(item)
-#         await bot.answer_inline_query(inline_query.id, results=items, cache_time=1)
+#         await run_cmd(bot.answer_inline_query(inline_query.id, results=items, cache_time=1))
 #     else:
 #         text = f'Вы не вошли в учётную запись.'
 #         content = 'Вы не вошли в учётную запись. Чтобы авторизоваться, отправьте команду /start мне в ЛС.'
@@ -206,4 +206,4 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
 #             title=text,
 #             input_message_content=input_content,
 #         )
-#         await bot.answer_inline_query(inline_query.id, results=[item], cache_time=1)
+#         await run_cmd(bot.answer_inline_query(inline_query.id, results=[item], cache_time=1))

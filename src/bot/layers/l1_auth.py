@@ -4,7 +4,7 @@ from aiogram.dispatcher.filters import Text
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, private_and_login_require, get_keyboard, get_hash, get_login_url
+from src.bot.api import main_menu, private_and_login_require, get_keyboard, get_hash, get_login_url, run_cmd
 from src.bot import keyboards
 from src.bot.text import Texts
 
@@ -30,14 +30,14 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
     """
     await state.finish()
     if await sql.get_sub(message.from_user.id):
-        await bot.send_message(message.chat.id, text=Texts.main_menu, parse_mode=Texts.main_menu.parse_mode,
-                               reply_markup=main_menu)
+        await run_cmd(bot.send_message(message.chat.id, text=Texts.main_menu, parse_mode=Texts.main_menu.parse_mode,
+                                       reply_markup=main_menu))
     else:
         await alogger.info(f'Start [{message.chat.id}]')
         text = Texts.start.format(name=message.from_user.first_name)
         hash_code = get_hash(message.chat.id)
         url = get_login_url(hash_code)
-        res = await bot.send_message(message.chat.id, text, Texts.start.parse_mode,
-                                     reply_markup=get_keyboard(keyboards.get_login_btn(url)))
+        res = await run_cmd(bot.send_message(message.chat.id, text, Texts.start.parse_mode,
+                                             reply_markup=get_keyboard(keyboards.get_login_btn(url))))
         await sql.add_chat(message.chat.id, res.message_id, text, Texts.start.parse_mode, hash_code,
                            message.from_user.as_json())

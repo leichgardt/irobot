@@ -1,3 +1,4 @@
+import asyncio
 import typing
 
 from aiogram import types, exceptions
@@ -9,6 +10,27 @@ from src.bot import keyboards
 from src.bot.text import Texts
 from src.bot.api.bot_keyboard_master import get_keyboard
 from src.utils import alogger
+
+
+async def run_cmd(bot_func: asyncio.coroutines):
+    task = asyncio.create_task(bot_func)
+    try:
+        return await task
+    except exceptions.BotBlocked as e:
+        await alogger.error(f'Blocked by user [{e.match}]')
+    except exceptions.ChatNotFound as e:
+        await alogger.error(f'Invalid user ID [{e.match}]')
+    except exceptions.RetryAfter as e:
+        await alogger.error(f'Flood limit is exceeded, sleep {e.timeout} seconds  [{e.match}]')
+        await asyncio.sleep(e.timeout)
+        return await task  # Recursive call
+    except exceptions.UserDeactivated as e:
+        await alogger.error(f'User is deactivated [{e.match}]')
+    except exceptions.TelegramAPIError as e:
+        await alogger.exception(f'Failed [{e.match}]')
+    except Exception as e:
+        raise e
+    return False
 
 
 def private_and_login_require(do_not_check_sub=False):
@@ -38,19 +60,19 @@ async def delete_message(message: typing.Union[types.Message,
             else:
                 chat_id = message['chat_id']
                 message_id = message['message_id']
-            await bot.delete_message(chat_id, message_id)
+            await run_cmd(bot.delete_message(chat_id, message_id))
         else:
-            await message.delete()
+            await run_cmd(message.delete())
     except:
         pass
 
 
-async def clear_inline_message(bot, chat_id):
+async def clear_inline_message(chat_id):
     inline, text, parse_mode = await sql.get_inline(chat_id)
     if inline and text:
         try:
-            await bot.edit_message_text(text, chat_id, inline, parse_mode=parse_mode)
-        except (MessageNotModified, BadRequest):
+            await run_cmd(bot.edit_message_text(text, chat_id, inline, parse_mode=parse_mode))
+        except (exceptions.MessageNotModified, exceptions.BadRequest):
             await sql.upd_inline(chat_id, 0, '')
 
 
@@ -67,12 +89,12 @@ async def edit_inline_message(chat_id: int,
         inline, _, _ = await sql.get_inline(chat_id)
     if inline:
         try:
-            await bot.edit_message_text(text, chat_id, inline, reply_markup=reply_markup, parse_mode=parse_mode,
-                                        disable_web_page_preview=disable_web_page_preview)
+            await run_cmd(bot.edit_message_text(text, chat_id, inline, reply_markup=reply_markup, parse_mode=parse_mode,
+                                                disable_web_page_preview=disable_web_page_preview))
             await sql.upd_inline(chat_id, inline, text, parse_mode)
-        except (MessageNotModified, BadRequest):
-            res = await bot.send_message(chat_id, text, parse_mode, disable_web_page_preview=disable_web_page_preview,
-                                         reply_markup=reply_markup)
+        except (exceptions.MessageNotModified, exceptions.BadRequest):
+            res = await run_cmd(bot.send_message(chat_id, text, parse_mode, reply_markup=reply_markup,
+                                                 disable_web_page_preview=disable_web_page_preview))
             await delete_message((chat_id, inline))
             await sql.upd_inline(chat_id, res.message_id, text, parse_mode)
         except Exception as e:
@@ -94,11 +116,11 @@ async def update_inline_query(
         reply_markup = get_keyboard(*btn_list, keyboard_type='inline')
     text = f'{title}\n\n{text}' if title else text
     try:
-        await bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
-                                    reply_markup=reply_markup, parse_mode=parse_mode)
-    except (MessageNotModified, BadRequest):
+        await run_cmd(bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
+                                            reply_markup=reply_markup, parse_mode=parse_mode))
+    except (exceptions.MessageNotModified, exceptions.BadRequest):
         await delete_message(query.message)
-        await bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=reply_markup)
+        await run_cmd(bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=reply_markup))
     else:
         await query.answer(answer, show_alert=alert)
         await sql.upd_inline(query.message.chat.id, query.message.message_id, query.message.text, parse_mode=parse_mode)

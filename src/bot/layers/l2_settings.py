@@ -6,7 +6,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from src.utils import alogger
 from src.sql import sql
 from src.bot.api import main_menu, edit_inline_message, get_keyboard, update_inline_query, delete_message, \
-    private_and_login_require, get_hash, get_login_url
+    private_and_login_require, get_hash, get_login_url, run_cmd
 from src.bot import keyboards
 from src.bot.text import Texts
 from .l1_auth import bot, dp
@@ -30,7 +30,7 @@ async def message_h_settings(message: types.Message, state: FSMContext):
     else:
         kb = None
         _, text, parse = Texts.settings_non_auth.full()
-    res = await bot.send_message(message.chat.id, text, parse_mode=parse, reply_markup=kb)
+    res = await run_cmd(bot.send_message(message.chat.id, text, parse_mode=parse, reply_markup=kb))
     await sql.upd_inline(message.chat.id, res.message_id, text, parse)
 
 
@@ -44,7 +44,8 @@ async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await query.answer(Texts.settings_done.answer, show_alert=True)
     await delete_message(query.message)
-    await bot.send_message(query.message.chat.id, Texts.main_menu, parse_mode=Texts.main_menu.parse_mode, reply_markup=main_menu)
+    await run_cmd(bot.send_message(query.message.chat.id, Texts.main_menu, parse_mode=Texts.main_menu.parse_mode,
+                                   reply_markup=main_menu))
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
