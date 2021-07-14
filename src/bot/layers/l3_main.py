@@ -32,12 +32,12 @@ async def help_message_h(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text='about')
 async def about_inline_h(query: types.CallbackQuery):
-    await update_inline_query(bot, query, *Texts.about_us.full(), reply_markup=main_menu)
+    await update_inline_query(query, *Texts.about_us.full(), reply_markup=main_menu)
 
 
 @dp.callback_query_handler(text='cancel')
 async def inline_h_payments_choice(query: types.CallbackQuery):
-    await update_inline_query(bot, query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode,
+    await update_inline_query(query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode,
                               reply_markup=main_menu)
 
 
@@ -79,9 +79,11 @@ async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
         kb = get_keyboard(keyboards.get_review_btn(data['rating']), keyboards.review_btn, keyboard_type='inline', row_size=5)
         if 'comment' in data.keys():
             text = Texts.review_full.format(comment=data['comment'], rating=data['rating'])
+            parse = Texts.review_full.parse_mode
         else:
             text = Texts.review_rate.format(rating=data['rating'])
-        await edit_inline_message(bot, query.message.chat.id, text, reply_markup=kb)
+            parse = Texts.review_rate.parse_mode
+        await edit_inline_message(query.message.chat.id, text, parse, reply_markup=kb)
         await query.answer(Texts.review_rate.answer.format(rating=data['rating']))
 
 
@@ -96,7 +98,7 @@ async def review_comment_message_h(message: types.Message, state: FSMContext):
             text = Texts.review_full.format(comment=data['comment'], rating=data['rating'])
         else:
             text = Texts.review_with_comment.format(comment=data['comment'])
-        await edit_inline_message(bot, message.chat.id, text, reply_markup=kb)
+        await edit_inline_message(message.chat.id, text, reply_markup=kb)
 
 
 @dp.callback_query_handler(text='send-review', state=[ReviewFSM.rating, ReviewFSM.comment])
@@ -107,7 +109,7 @@ async def review_send_inline_h(query: types.CallbackQuery, state: FSMContext):
         await sql.add_review(query.message.chat.id, rating, comment)
         await state.finish()
         text = query.message.text.rsplit('\n\n', 1)[0]
-        await edit_inline_message(bot, query.message.chat.id, text)
+        await edit_inline_message(query.message.chat.id, text)
         await query.answer(Texts.review_done.answer)
         if rating and rating == 5:
             text, parse = Texts.review_done_best, Texts.review_done_best.parse_mode

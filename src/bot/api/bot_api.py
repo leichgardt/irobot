@@ -1,7 +1,6 @@
 import typing
 
-from aiogram import Bot, types
-from aiogram.utils.exceptions import MessageNotModified, BadRequest
+from aiogram import types, exceptions
 from aiogram.dispatcher import FSMContext
 
 from src.sql import sql
@@ -55,8 +54,7 @@ async def clear_inline_message(bot, chat_id):
             await sql.upd_inline(chat_id, 0, '')
 
 
-async def edit_inline_message(bot: Bot,
-                              chat_id: int,
+async def edit_inline_message(chat_id: int,
                               text: str,
                               parse_mode: str = None,
                               reply_markup: typing.Union[types.InlineKeyboardMarkup,
@@ -84,7 +82,6 @@ async def edit_inline_message(bot: Bot,
 
 
 async def update_inline_query(
-        bot: Bot,
         query: types.CallbackQuery,
         answer: str,
         text: str = None,

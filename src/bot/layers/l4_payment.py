@@ -74,7 +74,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
             else:
                 answer, text, parse = Texts.payments_online.full()
                 kb = get_keyboard(await keyboards.get_agrms_btn(agrms=agrms), keyboards.back_to_main)
-        await update_inline_query(bot, query, answer, text, parse, reply_markup=kb)
+        await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
 
 @dp.callback_query_handler(Regexp(regexp=r'agrm-([^\s]*)'), state=PaymentFSM.agrm)
@@ -93,12 +93,12 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
             text = map_format(text, balance=data['balance'])
             kb = cancel_menu['inline']
         answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'])
-        await update_inline_query(bot, query, answer, text, parse, reply_markup=kb)
+        await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
 
 @dp.message_handler(lambda message: not message.text.isdigit(), state=PaymentFSM.amount)
 async def inline_h_payment(message: types.Message, state: FSMContext):
-    await edit_inline_message(bot, message.chat.id, Texts.payments_online_amount_is_not_digit,
+    await edit_inline_message(message.chat.id, Texts.payments_online_amount_is_not_digit,
                               Texts.payments_online_amount_is_not_digit.parse_mode, cancel_menu['inline'])
     await delete_message(message)
 
@@ -120,7 +120,7 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
         yoomoney_url = await yoomoney_pay(data['agrm'], summ, payment_hash)
         url = get_payment_url(payment_hash)
         await PaymentFSM.next()
-        inline = await edit_inline_message(bot, message.chat.id, text, Texts.payments_online_offer.parse_mode,
+        inline = await edit_inline_message(message.chat.id, text, Texts.payments_online_offer.parse_mode,
                                            reply_markup=get_keyboard(keyboards.get_payment_url_btn(url)))
         await delete_message(message)
         if 'payment' not in data.keys():
@@ -137,14 +137,14 @@ async def inline_h_payment_another_amount(query: types.CallbackQuery, state: FSM
         await PaymentFSM.amount.set()
         answer, text, parse = Texts.payments_online_amount.full()
         answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'], balance=data['balance'])
-        await update_inline_query(bot, query, answer, text, parse, reply_markup=cancel_menu['inline'])
+        await update_inline_query(query, answer, text, parse, reply_markup=cancel_menu['inline'])
 
 
 @dp.callback_query_handler(text='no', state=PaymentFSM.amount)
 async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
     """Ответ "нет" на запрос обещанного платежа"""
     await state.finish()
-    await update_inline_query(bot, query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode,
+    await update_inline_query(query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode,
                               reply_markup=main_menu)
 
 
@@ -160,7 +160,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
         else:
             answer, text, parse = Texts.payments_promise_fail.full()
             await alogger.warning(f'Payment failure [{query.message.chat.id}]')
-        await update_inline_query(bot, query, answer, text, parse, alert=True)
+        await update_inline_query(query, answer, text, parse, alert=True)
         await state.finish()
         await bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
 
@@ -168,7 +168,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(text='cancel', state=[PaymentFSM.oper, PaymentFSM.agrm, PaymentFSM.amount, PaymentFSM.payment])
 async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await update_inline_query(bot, query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
+    await update_inline_query(query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu)
 
 
 # @dp.inline_handler()

@@ -45,7 +45,7 @@ async def feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
 async def comment_feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         await state.finish()
-        await update_inline_query(bot, query, Texts.end_feedback_answer, Texts.main_menu, Texts.main_menu.parse_mode,
+        await update_inline_query(query, Texts.end_feedback_answer, Texts.main_menu, Texts.main_menu.parse_mode,
                                   reply_markup=main_menu)
         await sql.upd_feedback(data['task'], status='complete')
         await alogger.info(f'Pass feedback [{query.message.chat.id}]')
@@ -56,7 +56,7 @@ async def feedback_comment_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         await state.finish()
         await bot.send_message(message.chat.id, Texts.got_feedback, Texts.got_feedback.parse_mode, reply_markup=main_menu)
-        await edit_inline_message(bot, message.chat.id, Texts.why_feedback, Texts.why_feedback.parse_mode,
+        await edit_inline_message(message.chat.id, Texts.why_feedback, Texts.why_feedback.parse_mode,
                                   inline=data['message_id'])
         await sql.upd_feedback(data['task'], comment=message.text, status='complete')
         await alogger.info(f'Comment feedback [{message.chat.id}]')
