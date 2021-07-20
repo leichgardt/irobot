@@ -21,7 +21,7 @@ class SQLMaster(SQLCore):
         payload = msg_id, text, parse_mode, hash_line, ujson.dumps(userdata)
         if not res:
             await self.execute('INSERT INTO irobot.subs(chat_id, inline_msg_id, inline_text, inline_parse_mode, hash, '
-                               'userdata) VALUES (%s, %s, %s, %s, %s)', chat_id, *payload)
+                               'userdata) VALUES (%s, %s, %s, %s, %s, %s)', chat_id, *payload)
         else:
             await self.execute('UPDATE irobot.subs SET inline_msg_id= %s, inline_text= %s, inline_parse_mode= %s, '
                                'hash= %s, userdata= %s WHERE chat_id=%s', *payload, chat_id)

@@ -32,7 +32,8 @@ async def help_message_h(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text='about')
 async def about_inline_h(query: types.CallbackQuery):
-    await update_inline_query(query, *Texts.about_us.full(), reply_markup=main_menu)
+    kb = get_keyboard(keyboards.help_btn, keyboard_type='inline', lining=True)
+    await update_inline_query(query, *Texts.about_us.full(), reply_markup=kb)
 
 
 @dp.callback_query_handler(text='cancel')

@@ -252,14 +252,15 @@ async def get_yoomoney_payment(request: Request):
 
 @app.post('/api/status')
 async def api_status(request: Request):
-    output = 0
+    output = 1
     try:
         res1 = await sql.get_sub(config['irobot']['me'])
         res2 = await telegram_api.get_me()
     except Exception as e:
         logger.error(e)
     else:
-        output = 1 if res1 and res2 else 0
+        output -= 1 if not res1 else 0
+        output -= 2 if not res2 else 0
     return {'response': output}
 
 
