@@ -17,15 +17,6 @@ from src.utils import config
 from src.sql import sql
 
 
-class Context(dict):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def __call__(self, **kwargs):
-        self.update(kwargs)
-        return self
-
-
 async def get_request_data(request: Request):
     if request.method == 'GET':
         data = dict(request.query_params)

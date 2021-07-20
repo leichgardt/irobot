@@ -12,7 +12,7 @@ from src.sql import sql
 from src.utils import config, init_logger
 from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
     auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor, Table, broadcast, login, \
-    Context, rates_feedback_monitor
+    rates_feedback_monitor
 from src.lb import check_account_pass
 from guni import workers
 
@@ -113,26 +113,27 @@ async def index(request: Request):
     if res:
         t_history = Table(res).get_html()
     return templates.TemplateResponse('index.html',
-                                      Context(request=request,
-                                              title='IroBot',
-                                              domain=config['paladin']['domain'],
-                                              about=ABOUT,
-                                              version=VERSION,
-                                              tables={'subs': t_subs, 'history': t_history},
-                                              ))
+                                      dict(request=request,
+                                           title='IroBot',
+                                           domain=config['paladin']['domain'],
+                                           about=ABOUT,
+                                           version=VERSION,
+                                           tables={'subs': t_subs, 'history': t_history},
+                                           ))
 
 
 @app.get('/login')
 async def login_page(request: Request):
     data = await get_request_data(request)
-    context = Context(request=request,
-                      title='Авторизация',
-                      domain=config['paladin']['domain'],
-                      bot_name=bot_name,
-                      support_bot_name=config['irobot']['chatbot'],
-                      )
+    context = dict(request=request,
+                   title='Авторизация',
+                   domain=config['paladin']['domain'],
+                   bot_name=bot_name,
+                   support_bot_name=config['irobot']['chatbot'],
+                   )
     if data and 'hash' in data and await sql.find_chat_by_hash(data['hash']):
-        return templates.TemplateResponse('login.html', context(hash_code=data['hash']))
+        context.update(dict(hash_code=data['hash']))
+        return templates.TemplateResponse('login.html', context)
     return templates.TemplateResponse('login_error.html', context)
 
 
@@ -163,14 +164,10 @@ async def login_try(request: Request, response: Response, background_tasks: Back
 
 @app.get('/login_success')
 async def login_page(request: Request):
-    data = await get_request_data(request)
-    context = Context(request=request,
-                      title='Авторизация',
-                      domain=config['paladin']['domain'],
-                      bot_name=bot_name)
-    if data and 'hash' in data and await sql.find_chat_by_hash(data['hash']):
-        return templates.TemplateResponse('login_success.html', context)
-    return templates.TemplateResponse('login_error.html', context)
+    return templates.TemplateResponse('login_success.html', dict(request=request,
+                                                                 title='Авторизация',
+                                                                 domain=config['paladin']['domain'],
+                                                                 bot_name=bot_name))
 
 
 @app.get('/api/get_history')
@@ -251,7 +248,14 @@ async def get_yoomoney_payment(request: Request):
 
 
 @app.post('/api/status')
+@lan_require
 async def api_status(request: Request):
+    """
+    response: 1  - OK
+    response: 0  - SQL error
+    response: -1 - telegram API error
+    response: -2 - SQL and API error
+    """
     output = 1
     try:
         res1 = await sql.get_sub(config['irobot']['me'])
