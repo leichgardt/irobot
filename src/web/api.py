@@ -166,7 +166,7 @@ async def broadcast(logger: Logger):
                     logger.warning(f'Wrong mail_type ID: {m_id}')
                     continue
                 if targets:
-                    for chat_id, _, _ in targets:
+                    for chat_id, _ in targets:
                         if await send_message(chat_id, text):
                             count += 1
                         await asyncio.sleep(.05)

@@ -4,17 +4,13 @@ from .asql_core import SQLCore
 
 class SQLMaster(SQLCore):
     async def get_sub(self, chat_id):
-        data = 'mailing, notify'
+        data = 'mailing'
         res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true AND chat_id=%s', chat_id)
         return res[0] if res else res
 
     async def get_subs(self, mailing=False):
         flt = 'AND mailing=true' if mailing else ''
-        return await self.execute(f'SELECT chat_id, mailing, notify FROM irobot.subs WHERE subscribed=true {flt}')
-
-    async def get_chat(self, chat_id):
-        res = await self.execute('SELECT chat_id, subscribed FROM irobot.subs WHERE chat_id=%s', chat_id)
-        return res[0] if res else (None, None)
+        return await self.execute(f'SELECT chat_id, mailing FROM irobot.subs WHERE subscribed=true {flt}')
 
     async def add_chat(self, chat_id, msg_id, text, parse_mode=None, hash_line=None, userdata=None):
         res = await self.execute('SELECT chat_id FROM irobot.subs WHERE chat_id=%s', chat_id)
