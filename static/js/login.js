@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
                 console.log(data);
                 if (data['response'] === 1) {
                     btn_status(btn_login, 'start');
-                    window.location = `login_success?hash=${hash}`;
+                    window.location = `login_success`;
                 } else if (data['response'] === 2) {
                     btn_status(btn_login, 'error', 'Договор уже был добавлен');
                     setTimeout(btn_status, 5000, btn_login, 'start');
