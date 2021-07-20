@@ -70,6 +70,11 @@ class Texts:
         'новостную рассылку.'))
     settings_notify.answer = \
         'Настройки уведомлений'
+    settings_notify_enable = T(emojize(
+        'Настройки >> Уведомления\n\nВ рассылках я буду рассказывать тебе об акциях, скидках и о '
+        'других интересных вещах, которые происходят у нас в Айроннет! :blush:\n\nВключи, если хочешь получать '
+        'новостную рассылку.'))
+    settings_notify_enable.answer = settings_notify.answer
     settings_notify_switch_answer = T(
         'Уведомления переключены')
     settings_mailing_switch_answer = T(
