@@ -29,8 +29,6 @@ async def run_cmd(bot_func: asyncio.coroutines):
         return await task  # Recursive call
     except exceptions.UserDeactivated:
         await alogger.error(f'{bot_func.__qualname__}: User is deactivated {args}')
-    except exceptions.TelegramAPIError:
-        await alogger.exception(f'{bot_func.__qualname__}: Failed {args}')
     except Exception as e:
         raise e
     return False
@@ -94,15 +92,16 @@ async def edit_inline_message(chat_id: int,
         try:
             await run_cmd(bot.edit_message_text(text, chat_id, inline, reply_markup=reply_markup, parse_mode=parse_mode,
                                                 disable_web_page_preview=disable_web_page_preview))
-            await sql.upd_inline(chat_id, inline, text, parse_mode)
-        except (exceptions.MessageNotModified, exceptions.BadRequest):
+        except (exceptions.MessageNotModified, exceptions.BadRequest, exceptions.InlineKeyboardExpected):
+            await delete_message((chat_id, inline))
             res = await run_cmd(bot.send_message(chat_id, text, parse_mode, reply_markup=reply_markup,
                                                  disable_web_page_preview=disable_web_page_preview))
-            await delete_message((chat_id, inline))
             await sql.upd_inline(chat_id, res.message_id, text, parse_mode)
         except Exception as e:
             await alogger.warning(e)
             await sql.upd_inline(chat_id, 0, '')
+        else:
+            await sql.upd_inline(chat_id, inline, text, parse_mode)
     return inline
 
 
@@ -121,7 +120,7 @@ async def update_inline_query(
     try:
         await run_cmd(bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
                                             reply_markup=reply_markup, parse_mode=parse_mode))
-    except (exceptions.MessageNotModified, exceptions.BadRequest):
+    except (exceptions.MessageNotModified, exceptions.BadRequest, exceptions.InlineKeyboardExpected):
         await delete_message(query.message)
         await run_cmd(bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=reply_markup))
     else:
