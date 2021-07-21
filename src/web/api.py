@@ -46,6 +46,7 @@ def get_query_params(url):
 
 async def login(chat_id, agrm, agrm_id):
     await sql.add_agrm(chat_id, agrm, agrm_id)
+    await sql.upd_hash(chat_id, None)
     if not await sql.get_sub(chat_id):
         await sql.subscribe(chat_id)
         text, parse = Texts.auth_success.format(agrm=agrm), Texts.auth_success.parse_mode
