@@ -8,7 +8,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 
 from src.lb import get_payments
-from src.web.telegram_api import send_feedback, send_message, edit_inline_message
+from src.web.telegram_api import send_feedback, send_message, edit_inline_message, delete_message
 from src.web.userside import USPipe
 from src.bot.text import Texts
 from src.bot.api import main_menu, get_keyboard
@@ -49,6 +49,8 @@ async def login(chat_id, agrm, agrm_id):
     await sql.upd_hash(chat_id, None)
     if not await sql.get_sub(chat_id):
         await sql.subscribe(chat_id)
+        inline, _, _ = await sql.get_inline(chat_id)
+        await delete_message(chat_id, inline)
         text, parse = Texts.auth_success.format(agrm=agrm), Texts.auth_success.parse_mode
         await send_message(chat_id, text, parse, reply_markup=main_menu)
     else:
