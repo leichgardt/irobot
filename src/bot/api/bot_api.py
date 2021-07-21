@@ -92,7 +92,8 @@ async def edit_inline_message(chat_id: int,
         try:
             await run_cmd(bot.edit_message_text(text, chat_id, inline, reply_markup=reply_markup, parse_mode=parse_mode,
                                                 disable_web_page_preview=disable_web_page_preview))
-        except (exceptions.MessageNotModified, exceptions.BadRequest, exceptions.InlineKeyboardExpected):
+        except (exceptions.MessageNotModified, exceptions.BadRequest,
+                exceptions.InlineKeyboardExpected, exceptions.TelegramAPIError):
             await delete_message((chat_id, inline))
             res = await run_cmd(bot.send_message(chat_id, text, parse_mode, reply_markup=reply_markup,
                                                  disable_web_page_preview=disable_web_page_preview))
@@ -120,7 +121,8 @@ async def update_inline_query(
     try:
         await run_cmd(bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
                                             reply_markup=reply_markup, parse_mode=parse_mode))
-    except (exceptions.MessageNotModified, exceptions.BadRequest, exceptions.InlineKeyboardExpected):
+    except (exceptions.MessageNotModified, exceptions.BadRequest,
+            exceptions.InlineKeyboardExpected, exceptions.TelegramAPIError):
         await delete_message(query.message)
         await run_cmd(bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=reply_markup))
     else:
