@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
     input_agrm.oninput = function () { valid(input_agrm, agrm_form) };
     input_pwd.oninput = function () { valid(input_pwd, pwd_form) };
 
+    input_agrm.onkeypress = function (e) { if (e.key === 'Enter') btn_login['btn'].click(); }
+    input_pwd.onkeypress = function (e) { if (e.key === 'Enter') btn_login['btn'].click(); }
+
     function valid(input, form) {
         if (!input.value) {
             form.classList.add('was-validated');
