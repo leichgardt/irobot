@@ -127,7 +127,8 @@ async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext
 async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         await query.answer(Texts.settings_exited.answer, show_alert=True)
-        await edit_inline_message(query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
+        await run_cmd(query.message.delete())
+        await run_cmd(bot.send_message(query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove()))
         await alogger.info(f'Exiting [{query.message.chat.id}]')
         await sql.unsubscribe(query.message.chat.id)
         for agrm in data['agrms']:
