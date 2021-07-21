@@ -26,10 +26,12 @@ ABOUT = """Веб-приложение IroBot-web предназначено д�
 Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении завершенного 
 платежа сервис уведомляет пользователя через бота об успешной оплате."""
 
-logger = init_logger('irobot-web', new_formatter=True)
-sql.logger = logger
 bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
+cache_header = {'Cache-Control': 'max-age=86400, must-revalidate'}
+
+logger = init_logger('irobot-web', new_formatter=True)
+sql.logger = logger
 templates = Jinja2Templates(directory='templates')
 app = FastAPI(debug=False, root_path='/irobot_web')
 app.mount('/static', StaticFiles(directory='static', html=True), name='static')
@@ -118,13 +120,14 @@ async def index(request: Request):
     if res:
         t_history = Table(res).get_html()
     return templates.TemplateResponse('index.html',
-                                      dict(request=request,
-                                           title='IroBot',
-                                           domain=config['paladin']['domain'],
-                                           about=ABOUT,
-                                           version=VERSION,
-                                           tables={'subs': t_subs, 'history': t_history},
-                                           ))
+                                      headers=cache_header,
+                                      context=dict(request=request,
+                                                   title='IroBot',
+                                                   domain=config['paladin']['domain'],
+                                                   about=ABOUT,
+                                                   version=VERSION,
+                                                   tables={'subs': t_subs, 'history': t_history},
+                                                   ))
 
 
 @app.get('/login')
@@ -137,8 +140,8 @@ async def login_page(request: Request, hash: str = None):
                    )
     if hash and await sql.find_chat_by_hash(hash):
         context.update(dict(hash_code=hash))
-        return templates.TemplateResponse('login.html', context)
-    return templates.TemplateResponse('login_error.html', context)
+        return templates.TemplateResponse('login.html', context, headers=cache_header)
+    return templates.TemplateResponse('login_error.html', context, headers=cache_header)
 
 
 class LoginItem(BaseModel):
@@ -184,10 +187,12 @@ async def login_try(response: Response,
 
 @app.get('/login_success')
 async def login_page(request: Request):
-    return templates.TemplateResponse('login_success.html', dict(request=request,
-                                                                 title='Авторизация',
-                                                                 domain=config['paladin']['domain'],
-                                                                 bot_name=bot_name))
+    return templates.TemplateResponse('login_success.html',
+                                      dict(request=request,
+                                           title='Авторизация',
+                                           domain=config['paladin']['domain'],
+                                           bot_name=bot_name),
+                                      headers=cache_header)
 
 
 @app.get('/api/get_history')
