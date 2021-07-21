@@ -5,8 +5,9 @@ import uvicorn
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.responses import Response, RedirectResponse
 from fastapi_utils.tasks import repeat_every
+from starlette.responses import Response, RedirectResponse
+from pydantic import BaseModel
 
 from src.sql import sql
 from src.utils import config, init_logger
@@ -124,43 +125,58 @@ async def index(request: Request):
 
 
 @app.get('/login')
-async def login_page(request: Request):
-    data = await get_request_data(request)
+async def login_page(request: Request, hash: str = None):
     context = dict(request=request,
                    title='Авторизация',
                    domain=config['paladin']['domain'],
                    bot_name=bot_name,
                    support_bot_name=config['irobot']['chatbot'],
                    )
-    if data and 'hash' in data and await sql.find_chat_by_hash(data['hash']):
-        context.update(dict(hash_code=data['hash']))
+    if hash and await sql.find_chat_by_hash(hash):
+        context.update(dict(hash_code=hash))
         return templates.TemplateResponse('login.html', context)
     return templates.TemplateResponse('login_error.html', context)
 
 
+class LoginItem(BaseModel):
+    agrm: str = ''
+    pwd: str = ''
+    hash: str = ''
+
+
 @app.post('/api/login')
-async def login_try(request: Request, response: Response, background_tasks: BackgroundTasks):
-    data = await get_request_data(request)
-    res, agrm_id = await check_account_pass(data['agrm'], data['pwd'])
-    if res == 1:
-        chat_id = await sql.find_chat_by_hash(data['hash'])
-        if chat_id:
-            if data['agrm'] in await sql.get_agrms(chat_id):
-                logger.info(f'Agrm already added [{chat_id}]')
-                return {'response': 2}
-            logger.info(f'Logging [{chat_id}]')
-            background_tasks.add_task(login, chat_id, data['agrm'], agrm_id)
-            response.status_code = 202
-            return {'response': 1}
+async def login_try(response: Response,
+                    background_tasks: BackgroundTasks,
+                    item: LoginItem):
+    """
+    response: 1  - успешная авторизация
+    response: 2  - договор уже добавлен к учётной записи
+    response: 0  - неверный пароль
+    response: -1 - договор не найден
+    response: -2 - не переданы данные (agrm/password/hash)
+    """
+    if item.agrm and item.pwd and item.hash:
+        res, agrm_id = await check_account_pass(item.agrm, item.pwd)
+        if res == 1:
+            chat_id = await sql.find_chat_by_hash(item.hash)
+            if chat_id:
+                if item.agrm in await sql.get_agrms(chat_id):
+                    logger.info(f'Login: agrm already added [{chat_id}]')
+                    return {'response': 2}
+                logger.info(f'Logging [{chat_id}]')
+                background_tasks.add_task(login, chat_id, item.agrm, agrm_id)
+                response.status_code = 202
+                return {'response': 1}
+            else:
+                logger.info(f'Login: chat_id not found [{item.agrm}]')
+                return {'response': -1}
+        elif res == 0:
+            logger.info(f'Login: incorrect agrm or pwd [{item.agrm}]')
+            return {'response': 0}
         else:
-            logger.info(f'Login: chat_id not found [{chat_id}]')
+            logger.info(f'Login: error [{item.agrm}]')
             return {'response': -1}
-    elif res == 0:
-        logger.info('Login: incorrect agrm or pwd [{}]'.format(data['agrm']))
-        return {'response': 0}
-    else:
-        logger.info('Login error [{}]'.format(data['agrm']))
-        return {'response': -1}
+    return {'response': -2}
 
 
 @app.get('/login_success')
