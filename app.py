@@ -11,9 +11,12 @@ from pydantic import BaseModel
 
 from src.sql import sql
 from src.utils import config, init_logger
-from src.web import handle_payment_response, get_query_params, get_request_data, lan_require, telegram_api, \
-    auto_payment_monitor, handle_new_payment_request, SoloWorker, auto_feedback_monitor, Table, broadcast, login, \
-    rates_feedback_monitor
+from src.web import (
+    get_query_params, get_request_data, lan_require,
+    SoloWorker, Table,
+    telegram_api, broadcast, login,
+    handle_new_payment_request, handle_payment_response,
+    auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor)
 from src.lb import check_account_pass
 from guni import workers
 
@@ -198,13 +201,17 @@ async def history(request: Request):
     return {'response': 0}
 
 
+class MailingItem(BaseModel):
+    type: str = ''
+    text: str = ''
+
+
 @app.post('/api/send_mail')
 @lan_require
-async def send_mailing(request: Request, response: Response, background_tasks: BackgroundTasks):
+async def send_mailing(request: Request, response: Response, background_tasks: BackgroundTasks, item: MailingItem):
     """Добавить новую рассылку"""
-    data = await get_request_data(request)
-    if data['mail_type'] in ('notify', 'mailing'):
-        res = await sql.add_mailing(data['mail_type'], data['text'])
+    if item.type in ('notify', 'mailing'):
+        res = await sql.add_mailing(item.type, item.text)
         if res:
             background_tasks.add_task(broadcast, logger)
             logger.info(f'New mailing added [{res[0][0]}]')
@@ -212,7 +219,7 @@ async def send_mailing(request: Request, response: Response, background_tasks: B
             return {'response': 1, 'id': res[0][0]}
         else:
             response.status_code = 500
-            logger.error(f'Error of New mailing. Data: {data}')
+            logger.error(f'Error of New mailing. Data: {item}')
             return {'response': -1, 'error': 'backand error'}
     else:
         response.status_code = 400
@@ -220,12 +227,11 @@ async def send_mailing(request: Request, response: Response, background_tasks: B
 
 
 @app.get('/api/new_payment')
-async def new_yoomoney_payment(request: Request):
+async def new_yoomoney_payment(request: Request, hash: str = None):
     """Перевести платёж в состояние "processing" для отслеживания монитором payment_monitor"""
-    data = await get_request_data(request)
-    if data and 'hash' in data:
-        sql_data = await sql.find_payment(data['hash'])
-        res = await handle_new_payment_request(data['hash'], sql_data)
+    if hash:
+        sql_data = await sql.find_payment(hash)
+        res = await handle_new_payment_request(hash, sql_data)
         if res == 1:  # это новый платёж - перенаправить на страницу оплаты
             return RedirectResponse(sql_data[2], 302)
         elif res == 0:  # это старый платёж - вернуться к телеграм боту

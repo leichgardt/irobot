@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
     function start_broadcast(type) {
         let url = 'api/send_mail';
-        let data = {'mail_type': type, 'text': textarea.value}
+        let data = {'type': type, 'text': textarea.value}
         fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
