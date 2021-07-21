@@ -85,7 +85,8 @@ async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
 async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
     hash_code = get_hash(query.message.chat.id)
     url = get_login_url(hash_code)
-    await update_inline_query(query, *Texts.settings_agrm_add.full(), btn_list=[keyboards.get_login_btn(url)])
+    kb = get_keyboard(keyboards.get_login_btn(url), keyboards.cancel_btn, lining=False)
+    await update_inline_query(query, *Texts.settings_agrm_add.full(), reply_markup=kb)
     await sql.upd_hash(query.message.chat.id, hash_code)
     await alogger.info(f'Agrm adding [{query.message.chat.id}]')
 
