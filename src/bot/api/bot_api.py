@@ -14,20 +14,23 @@ from src.utils import alogger
 
 async def run_cmd(bot_func: asyncio.coroutines):
     task = asyncio.create_task(bot_func)
+    args = bot_func.cr_frame.f_locals
+    if 'self' in args:
+        args.pop('self')
     try:
         return await task
-    except exceptions.BotBlocked as e:
-        await alogger.error(f'Blocked by user [{e.match}]')
-    except exceptions.ChatNotFound as e:
-        await alogger.error(f'Invalid user ID [{e.match}]')
+    except exceptions.BotBlocked:
+        await alogger.error(f'{bot_func.__qualname__}: Blocked by user {args}')
+    except exceptions.ChatNotFound:
+        await alogger.error(f'{bot_func.__qualname__}: Invalid user ID {args}')
     except exceptions.RetryAfter as e:
-        await alogger.error(f'Flood limit is exceeded, sleep {e.timeout} seconds  [{e.match}]')
+        await alogger.error(f'{bot_func.__qualname__}: Flood limit is exceeded, sleep {e.timeout} seconds {args}')
         await asyncio.sleep(e.timeout)
         return await task  # Recursive call
-    except exceptions.UserDeactivated as e:
-        await alogger.error(f'User is deactivated [{e.match}]')
-    except exceptions.TelegramAPIError as e:
-        await alogger.exception(f'Failed [{e.match}]')
+    except exceptions.UserDeactivated:
+        await alogger.error(f'{bot_func.__qualname__}: User is deactivated {args}')
+    except exceptions.TelegramAPIError:
+        await alogger.exception(f'{bot_func.__qualname__}: Failed {args}')
     except Exception as e:
         raise e
     return False
