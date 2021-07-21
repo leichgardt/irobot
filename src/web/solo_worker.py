@@ -24,11 +24,12 @@ class SoloWorker:
         self.task_list = []
         self.announcement = set()
         self.running = {}
+        self.block = False
 
-    async def wait_tasks(self):
+    async def close_tasks(self):
+        self.block = True
         while True in self.running.values():
             await asyncio.sleep(.1)
-        return True
 
     async def update(self):
         res = await sql.get_pid_list()
@@ -53,19 +54,20 @@ class SoloWorker:
                 return True
         return False
 
-    def solo_worker(self, *, task: str):  # decorator's factory
+    def solo_worker(self, *, task: str):  # factory
         self.task_list.append(task)
 
         def decorator(func):
             async def wrapper(*args, **kwargs):
-                await self.update()
-                if self._is_my_task(task):
-                    self.running[task] = True
-                    if task not in self.announcement:
-                        self.logger.info(f'Solo worker "{task}" starts in [{self.pid}]')
-                        self.announcement.add(task)
-                    res = await func(*args, **kwargs)
-                    self.running[task] = False
-                    return res
+                if not self.block:
+                    await self.update()
+                    if self._is_my_task(task):
+                        self.running[task] = True
+                        if task not in self.announcement:
+                            self.logger.info(f'Solo worker "{task}" starts in [{self.pid}]')
+                            self.announcement.add(task)
+                        res = await func(*args, **kwargs)
+                        self.running[task] = False
+                        return res
             return wrapper
         return decorator
