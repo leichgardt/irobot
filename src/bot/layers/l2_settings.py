@@ -55,8 +55,7 @@ async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(text='settings-my-agrms', state=AgrmSettingsFSM.agrm)
 async def inline_h_agrm_settings(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        if 'agrms' not in data.keys():
-            data['agrms'] = await sql.get_agrms(query.message.chat.id)
+        data['agrms'] = await sql.get_agrms(query.message.chat.id)
         btn_list = [await keyboards.get_agrms_btn(agrms=data['agrms']), keyboards.agrms_settings_btn]
         await update_inline_query(query, *Texts.settings_agrms.full(), btn_list=btn_list)
 
@@ -83,6 +82,7 @@ async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(text='agrm-add', state=AgrmSettingsFSM.agrm)
 async def inline_h_agrm_del(query: types.CallbackQuery, state: FSMContext):
+    await AgrmSettingsFSM.agrm.set()
     hash_code = get_hash(query.message.chat.id)
     url = get_login_url(hash_code)
     kb = get_keyboard(keyboards.get_login_btn(url), keyboards.cancel_btn, lining=False)
