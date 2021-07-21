@@ -27,9 +27,11 @@ class SoloWorker:
         self.block = False
 
     async def close_tasks(self):
+        self.logger.info(f'Solo Worker: waiting for tasks [{self.pid}]')
         self.block = True
         while True in self.running.values():
             await asyncio.sleep(.1)
+        self.logger.info(f'Solo Worker: tasks finished at [{self.pid}]')
 
     async def update(self):
         res = await sql.get_pid_list()
