@@ -30,17 +30,17 @@ async def send_message(chat_id: int, text: str, *args, **kwargs):
     try:
         res = await telegram_api.send_message(chat_id, text, *args, **kwargs)
     except exceptions.BotBlocked:
-        log.error(f"Target [ID:{chat_id}]: blocked by user")
+        log.error(f"Blocked by user [{chat_id}]")
     except exceptions.ChatNotFound:
-        log.error(f"Target [ID:{chat_id}]: invalid user ID")
+        log.error(f"Invalid user ID [{chat_id}]")
     except exceptions.RetryAfter as e:
-        log.error(f"Target [ID:{chat_id}]: Flood limit is exceeded. Sleep {e.timeout} seconds.")
+        log.error(f"Flood limit is exceeded. Sleep {e.timeout} seconds [{chat_id}]")
         await asyncio.sleep(e.timeout)
         return await send_message(chat_id, text, *args, **kwargs)  # Recursive call
     except exceptions.UserDeactivated:
-        log.error(f"Target [ID:{chat_id}]: user is deactivated")
+        log.error(f"User is deactivated [{chat_id}]")
     except exceptions.TelegramAPIError:
-        log.exception(f"Target [ID:{chat_id}]: failed")
+        log.exception(f"Failed [{chat_id}]")
     else:
         return res
     return False
@@ -67,7 +67,7 @@ async def edit_message_text(text, chat_id, message_id, *args, **kwargs):
     try:
         res = await telegram_api.edit_message_text(text, chat_id, message_id, *args, **kwargs)
     except exceptions.RetryAfter as e:
-        log.error(f'Target [ID:{chat_id}]: Flood limit is exceeded. Sleep {e.timeout} seconds.')
+        log.error(f'Flood limit is exceeded. Sleep {e.timeout} seconds.')
         await asyncio.sleep(e.timeout)
         return await send_message(chat_id, text, *args, **kwargs)  # Recursive call
     except:
