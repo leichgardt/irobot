@@ -100,22 +100,22 @@ async def auto_payment_monitor(logger):
     payments = await sql.find_processing_payments()
     if payments:
         await sql.cancel_old_new_payments()
-        for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified in payments:
+        for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified, inline, agrm_id in payments:
             if datetime.now() - upd_date > timedelta(hours=24):
                 await sql.upd_payment(hash_code, status='canceled')
                 logger.info(f'Payment monitor: canceled [{pay_id}]')
             else:
-                agrm_id = await sql.get_agrm_id(chat_id, agrm)
-                for payment in await get_payments(agrm_id, days=1):  # загрузить из биллинга платежи за 1 сутки
-                    if not await sql.find_payments_by_record_id(payment.pay.recordid):
-                        if abs((float(payment.amountcurr) / float(amount)) - 1) < 0.01:
+                for lb_payment in await get_payments(agrm_id, days=1):  # загрузить из биллинга платежи за 1 сутки
+                    if not await sql.find_payments_by_record_id(lb_payment.pay.recordid):
+                        if abs(float(lb_payment.amountcurr) - float(amount)) <= 0.01:
                             text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
                             if not notified:
+                                await delete_message(chat_id, inline)
                                 await send_message(chat_id, text, parse, reply_markup=main_menu)
-                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid,
+                                await sql.upd_payment(hash_code, status='finished', record_id=lb_payment.pay.recordid,
                                                       notified=True)
                             else:
-                                await sql.upd_payment(hash_code, status='finished', record_id=payment.pay.recordid)
+                                await sql.upd_payment(hash_code, status='finished', record_id=lb_payment.pay.recordid)
                             logger.info(f'Payment monitor: finished [{pay_id}]')
                             break
 

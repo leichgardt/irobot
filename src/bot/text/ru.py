@@ -175,8 +175,8 @@ class Texts:
         'Платежи >> Оплата Онлайн\n\nДоговор №{agrm}\nБаланс: {balance} руб.\n\nНа сколько хочешь пополнить счёт?\n\n'
         'Введи сумму.')
     payments_online_amount.answer = payments_promise_offer.answer
-    payments_online_amount_is_not_digit = T(
-        'Платежи >> Оплата Онлайн\n\nНе могу понять, что ты написал. Введи число.')
+    payments_online_amount_is_not_digit = T(emojize(
+        'Платежи >> Оплата Онлайн\n\nНе понимаю, о чем ты :hmm: Введи сумму, на которую хочешь пополнить счёт.'))
     payments_online_offer = T(
         'Платежи >> Оплата онлайн\n\nДоговор №{agrm}\nБаланс: {balance} руб.\n\nК зачислению: {amount} руб.\nКомиссия: '
         '{tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>')
