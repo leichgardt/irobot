@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 from src.sql import sql
 
@@ -6,7 +7,7 @@ from src.sql import sql
 class SoloWorker:
     """
     Класс для распределения задач между процессами/воркерами. Web-приложение Irobot-web работает на нескольких воркерах,
-    и, например, чтобы функцию мониторинга платежей выполнял только один процесс, используйте декоратор:
+    и, например, чтобы функцию мониторинга платежей выполнял только один процесс, используйте декоратор "solo_worker":
     >>> sw = SoloWorker()
     >>> @app.on_event('start')
     >>> @repeat_every(seconds=5)
@@ -16,16 +17,22 @@ class SoloWorker:
     Данные о процессах сохраняются в БД "irobot.pids"
     """
     def __init__(self, logger, workers):
-        self.workers = workers
+        self.workers_num = workers
         self.logger = logger
         self.pid = os.getpid()
         self.pid_list = []
         self.task_list = []
         self.announcement = set()
+        self.running = {}
+
+    async def wait_tasks(self):
+        while True in self.running.values():
+            await asyncio.sleep(.1)
+        return True
 
     async def update(self):
         res = await sql.get_pid_list()
-        self.pid_list = [row[0] for row in res] if res else res
+        self.pid_list = [row[0] for row in res] if res else []
         if self.pid not in self.pid_list:
             await sql.add_pid(self.pid)
 
@@ -33,13 +40,17 @@ class SoloWorker:
         await sql.del_pid_list()
         self.pid_list = []
         self.announcement = set()
+        self.running = {}
 
     def _is_my_task(self, my_task):
-        for i, pid in enumerate(self.pid_list):
-            if pid == self.pid:
-                for j, task in enumerate(self.task_list):
-                    if task == my_task and j % self.workers == i:
-                        return True
+        try:
+            i = self.pid_list.index(self.pid)
+            j = self.task_list.index(my_task)
+        except ValueError:
+            return False
+        else:
+            if self.task_list[j] == my_task and j % self.workers_num == i:
+                return True
         return False
 
     def solo_worker(self, *, task: str):  # decorator's factory
@@ -49,9 +60,12 @@ class SoloWorker:
             async def wrapper(*args, **kwargs):
                 await self.update()
                 if self._is_my_task(task):
+                    self.running[task] = True
                     if task not in self.announcement:
                         self.logger.info(f'Solo worker "{task}" starts in [{self.pid}]')
                         self.announcement.add(task)
-                    return await func(*args, **kwargs)
+                    res = await func(*args, **kwargs)
+                    self.running[task] = False
+                    return res
             return wrapper
         return decorator

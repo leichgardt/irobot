@@ -85,6 +85,7 @@ async def feedback_monitor():
 async def close_connections():
     await sql.close_pool()
     await telegram_api.close()
+    await sw.wait_tasks()
 
 
 @app.get('/')
