@@ -101,7 +101,7 @@ async def index(request: Request):
         data = {}
         for chat_id, agrm, mailing in res:
             if chat_id not in data:
-                data.update({chat_id: {'agrms': str(agrm), 'mailing': mailing}})
+                data[chat_id] = {'agrms': str(agrm), 'mailing': mailing}
             else:
                 data[chat_id]['agrms'] = data[chat_id]['agrms'] + '<br/>' + str(agrm)
         res = []
@@ -208,7 +208,10 @@ class MailingItem(BaseModel):
 
 @app.post('/api/send_mail')
 @lan_require
-async def send_mailing(request: Request, response: Response, background_tasks: BackgroundTasks, item: MailingItem):
+async def send_mailing(request: Request,
+                       response: Response,
+                       background_tasks: BackgroundTasks,
+                       item: MailingItem):
     """Добавить новую рассылку"""
     if item.type in ('notify', 'mailing'):
         res = await sql.add_mailing(item.type, item.text)
