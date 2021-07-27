@@ -10,14 +10,15 @@ async def check_account_pass(agrmnum, input_pass):
     0  - access denied
     -1 - agreement not found
     """
-    agrm = await lb_request('getAgreements', {'agrmnum': agrmnum})
-    if agrm:
-        if agrm[0].closedon is None:
-            acc = await lb_request('getAccount', agrm[0].uid)
+    agrms = await lb_request('getAgreements', {'agrmnum': agrmnum})
+    if agrms:
+        if agrms[0].closedon is None:
+            acc = await lb_request('getAccount', agrms[0].uid)
             if acc:
-                return 1 if acc[0].account['pass'] == input_pass else 0, agrm[0].agrmid
+                agreements = [(agrm.number, agrm.agrmid) for agrm in acc[0].agreements]
+                return 1 if acc[0].account['pass'] == input_pass else 0, agreements
             else:
-                await alogger.warning(f'Getting account error: agrmnum={agrm}')
+                await alogger.warning(f'Getting account error: agrmnum={agrms}')
                 return 0, None
     return -1, None
 

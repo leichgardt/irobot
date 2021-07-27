@@ -14,7 +14,7 @@ from src.utils import config, init_logger
 from src.web import (
     get_query_params, get_request_data, lan_require,
     SoloWorker, Table,
-    telegram_api, broadcast, login,
+    telegram_api, broadcast, logining,
     handle_new_payment_request, handle_payment_response,
     auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor)
 from src.lb import check_account_pass
@@ -145,7 +145,7 @@ async def login_page(request: Request, hash: str = None):
 
 
 class LoginItem(BaseModel):
-    agrm: str = ''
+    login: str = ''
     pwd: str = ''
     hash: str = ''
 
@@ -161,26 +161,26 @@ async def login_try(response: Response,
     response: -1 - договор не найден
     response: -2 - не переданы данные (agrm/password/hash)
     """
-    if item.agrm and item.pwd and item.hash:
-        res, agrm_id = await check_account_pass(item.agrm, item.pwd)
+    if item.login and item.pwd and item.hash:
+        res, agrms_data = await check_account_pass(item.login, item.pwd)
         if res == 1:
             chat_id = await sql.find_chat_by_hash(item.hash)
             if chat_id:
-                if item.agrm in await sql.get_agrms(chat_id):
+                if item.login in await sql.get_agrms(chat_id):
                     logger.info(f'Login: agrm already added [{chat_id}]')
                     return {'response': 2}
                 logger.info(f'Logging [{chat_id}]')
-                background_tasks.add_task(login, chat_id, item.agrm, agrm_id)
+                background_tasks.add_task(logining, chat_id, item.login, agrms_data)
                 response.status_code = 202
                 return {'response': 1}
             else:
-                logger.info(f'Login: chat_id not found [{item.agrm}]')
+                logger.info(f'Login: chat_id not found [{item.login}]')
                 return {'response': -1}
         elif res == 0:
-            logger.info(f'Login: incorrect agrm or pwd [{item.agrm}]')
+            logger.info(f'Login: incorrect login or pwd [{item.login}]')
             return {'response': 0}
         else:
-            logger.info(f'Login: error [{item.agrm}]')
+            logger.info(f'Login: error [{item.login}]')
             return {'response': -1}
     return {'response': -2}
 

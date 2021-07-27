@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         'default': document.getElementById('login-btn-text').innerText,
     };
 
-    let input_agrm = document.getElementById('agrm-input');
+    let input_login = document.getElementById('login-input');
     let input_pwd = document.getElementById('password-input');
     let agrm_form = document.getElementById('agrm-form');
     let pwd_form = document.getElementById('pwd-form');
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     btn_login['btn'].onclick = function () {
         if (!on_loading) {
             let one = valid(input_pwd, pwd_form),
-                two = valid(input_agrm, agrm_form);
+                two = valid(input_login, agrm_form);
             if (one && two) {
                 on_loading = true;
                 login();
@@ -24,10 +24,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    input_agrm.oninput = function () { valid(input_agrm, agrm_form) };
+    input_login.oninput = function () { valid(input_login, agrm_form) };
     input_pwd.oninput = function () { valid(input_pwd, pwd_form) };
 
-    input_agrm.onkeypress = function (e) { if (e.key === 'Enter') btn_login['btn'].click(); }
+    input_login.onkeypress = function (e) { if (e.key === 'Enter') btn_login['btn'].click(); }
     input_pwd.onkeypress = function (e) { if (e.key === 'Enter') btn_login['btn'].click(); }
 
     function valid(input, form) {
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     function login() {
         btn_status(btn_login, 'loading');
         let hash = document.getElementById('hash-code').value;
-        let data = {'agrm': input_agrm.value, 'pwd': input_pwd.value, 'hash': hash};
+        let data = {'login': input_login.value, 'pwd': input_pwd.value, 'hash': hash};
         let url = 'api/login'
         fetch(url, {
             method: 'POST',
