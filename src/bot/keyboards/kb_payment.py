@@ -42,4 +42,4 @@ async def get_promise_payment_btn(chat_id=None, agrms=None):
         agrms = await get_promise_payment_agrms(chat_id)
     else:
         agrms = await get_promise_payment_agrms(chat_id, agrms)
-    return await get_agrms_btn(agrms=agrms)
+    return await get_agrms_btn(custom=agrms)

@@ -169,7 +169,7 @@ async def login_try(response: Response,
                 if item.login in await sql.get_agrms(chat_id):
                     logger.info(f'Login: agrm already added [{chat_id}]')
                     return {'response': 2}
-                logger.info(f'Logging [{chat_id}]')
+                logger.info(f'Logining [{chat_id}]')
                 background_tasks.add_task(logining, chat_id, item.login, agrms_data)
                 response.status_code = 202
                 return {'response': 1}

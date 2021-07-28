@@ -1,6 +1,6 @@
 settings_menu_btn = (
     (
-        {'text': 'Мои договоры', 'callback_data': 'settings-my-agrms'},
+        {'text': 'Учётные записи', 'callback_data': 'settings-my-accounts'},
         {'text': 'Уведомления', 'callback_data': 'settings-notify'},
     ),
     (
@@ -14,10 +14,10 @@ exit_confirm_btn = (
         {'text': 'Отмена', 'callback_data': 'settings'},
     ),
 )
-agrm_control_btn = (
+account_control_btn = (
     (
-        {'text': 'Удалить', 'callback_data': 'agrm-del'},
-        {'text': 'Назад', 'callback_data': 'settings-my-agrms'},
+        {'text': 'Удалить', 'callback_data': 'del-account'},
+        {'text': 'Назад', 'callback_data': 'settings-my-accounts'},
     ),
 )
 cancel_btn = (

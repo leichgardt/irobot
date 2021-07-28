@@ -41,24 +41,23 @@ def get_query_params(url):
     return parse_qs(urlparse(url).query)
 
 
-async def logining(chat_id, login, agrms_data):
-    agrms = []
+async def logining(chat_id, account, agrms_data):
     for agrm, agrm_id in agrms_data:
-        agrms.append(str(agrm))
-        await sql.add_agrm(chat_id, agrm, agrm_id)
-    agrms = ', '.join(agrms)
+        await sql.add_agrm(chat_id, agrm, agrm_id, account)
     await sql.upd_hash(chat_id, None)
     if not await sql.get_sub(chat_id):
         await sql.subscribe(chat_id)
         inline, _, _ = await sql.get_inline(chat_id)
         await delete_message(chat_id, inline)
-        text, parse = Texts.auth_success.format(login=login, agrms=agrms), Texts.auth_success.parse_mode
-        await send_message(chat_id, text, parse, reply_markup=main_menu)
+        _, text, parse = Texts.auth_success.full()
+        await send_message(chat_id, text.format(account=account), parse, reply_markup=main_menu)
     else:
-        text, parse = Texts.settings_agrm_add_success.format(login=login, agrms=agrms), Texts.settings_agrm_add_success.parse_mode
-        await edit_inline_message(chat_id, text, parse)
-        kb = get_keyboard(await keyboards.get_agrms_btn(chat_id), keyboards.agrms_settings_btn)
-        await send_message(chat_id, Texts.settings_agrms, Texts.settings_agrms.parse_mode, reply_markup=kb)
+        _, text, parse = Texts.settings_account_add_success.full()
+        await edit_inline_message(chat_id, text.format(account=account), parse)
+        accounts = await sql.get_account_agrms(chat_id)
+        kb = get_keyboard(await keyboards.get_agrms_btn(custom=accounts, prefix='account'), keyboards.account_settings_btn)
+        _, text, parse = Texts.settings_accounts.full()
+        await send_message(chat_id, text.format(accounts=Texts.get_account_agrm_list(accounts)), parse, reply_markup=kb)
 
 
 async def handle_payment_response(logger, result, hash_id):

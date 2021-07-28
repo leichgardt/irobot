@@ -73,7 +73,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
                 kb = get_keyboard(await keyboards.get_promise_payment_btn(query.message.chat.id, agrms), keyboards.back_to_main)
             else:
                 answer, text, parse = Texts.payments_online.full()
-                kb = get_keyboard(await keyboards.get_agrms_btn(agrms=agrms), keyboards.back_to_main)
+                kb = get_keyboard(await keyboards.get_agrms_btn(custom=agrms), keyboards.back_to_main)
         await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
 

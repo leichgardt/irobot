@@ -44,11 +44,22 @@ class SQLMaster(SQLCore):
         res = await self.execute('SELECT agrm FROM irobot.agrms WHERE chat_id=%s AND active=true', chat_id)
         return [line[0] for line in res] if res else []
 
+    async def get_account_agrms(self, chat_id):
+        res = await self.execute('SELECT agrm, account FROM irobot.agrms WHERE chat_id=%s AND active=true', chat_id)
+        output = {}
+        if res:
+            for agrm, account in res:
+                if account not in output:
+                    output[account] = [agrm]
+                else:
+                    output[account].append(agrm)
+        return output
+
     async def get_agrm_id(self, chat_id, agrm):
         res = await self.execute('SELECT agrm_id FROM irobot.agrms WHERE chat_id=%s and agrm=%s', chat_id, agrm)
         return res[0][0] if res else []
 
-    async def add_agrm(self, chat_id, agrm, agrm_id):
+    async def add_agrm(self, chat_id, agrm, agrm_id, login):
         res = await self.execute('SELECT active FROM irobot.agrms WHERE chat_id=%s and agrm=%s', chat_id, agrm)
         if res and not res[0][0]:
             await self.execute('UPDATE irobot.agrms SET active=true, update_datetime=now() '
