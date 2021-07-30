@@ -10,7 +10,7 @@ from src.bot.text import Texts
 
 try:
     from .l0_test import bot, dp
-    print('>>> Test layer loaded.')
+    print('>>> The Test layer L0 was loaded.')
 except ImportError:
     from src.bot.bot_core import bot, dp
 
