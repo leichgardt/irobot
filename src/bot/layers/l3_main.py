@@ -22,6 +22,7 @@ class ReviewFSM(StatesGroup):
 @dp.message_handler(commands='help', state='*')
 @private_and_login_require(do_not_check_sub=True)
 async def help_message_h(message: types.Message, state: FSMContext):
+    await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     if await sql.get_sub(message.chat.id):
         kb = get_keyboard(keyboards.help_btn, keyboard_type='inline', lining=True)
         res = await run_cmd(bot.send_message(message.chat.id, Texts.help, parse_mode=Texts.help.parse_mode, reply_markup=kb))
@@ -65,6 +66,7 @@ async def help_message_h(message: types.Message, state: FSMContext):
 @dp.message_handler(Text('💩 Оставить отзыв', ignore_case=True), state='*')
 @private_and_login_require()
 async def review_inline_h(message: types.Message, state: FSMContext):
+    await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     await state.finish()
     kb = get_keyboard(keyboards.get_review_btn(), keyboards.cancel_btn, keyboard_type='inline', row_size=5)
     await ReviewFSM.rating.set()

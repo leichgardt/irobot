@@ -29,6 +29,7 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
 
     Далее форма авторизации обрабатывается Web-приложением в главном модуле app.py по адресам "/login" и "/api/login"
     """
+    await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     await state.finish()
     if await sql.get_sub(message.from_user.id):
         await run_cmd(bot.send_message(message.chat.id, text=Texts.main_menu, parse_mode=Texts.main_menu.parse_mode,

@@ -5,7 +5,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_keyboard, update_inline_query, edit_inline_message
+from src.bot.api import main_menu, get_keyboard, update_inline_query, edit_inline_message, run_cmd
 from src.bot import keyboards
 from src.bot.text import Texts
 from .l4_payment import bot, dp
@@ -54,9 +54,10 @@ async def comment_feedback_inline_h(query: types.CallbackQuery, state: FSMContex
 @dp.message_handler(state=FeedbackFSM.comment)
 async def feedback_comment_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
+        await alogger.info(f'Comment feedback [{message.chat.id}]')
+        await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
         await state.finish()
+        await sql.upd_feedback(data['task'], comment=message.text, status='complete')
         await bot.send_message(message.chat.id, Texts.got_feedback, Texts.got_feedback.parse_mode, reply_markup=main_menu)
         await edit_inline_message(message.chat.id, Texts.why_feedback, Texts.why_feedback.parse_mode,
                                   inline=data['message_id'])
-        await sql.upd_feedback(data['task'], comment=message.text, status='complete')
-        await alogger.info(f'Comment feedback [{message.chat.id}]')

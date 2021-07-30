@@ -22,6 +22,7 @@ class AccountSettingsFSM(StatesGroup):
 @dp.message_handler(Text('🔧 Настройки', ignore_case=True), state='*')
 @private_and_login_require(do_not_check_sub=True)
 async def message_h_settings(message: types.Message, state: FSMContext):
+    await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     await state.finish()
     data = await sql.get_sub(message.chat.id)
     if data:
