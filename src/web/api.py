@@ -1,12 +1,13 @@
 import asyncio
 import traceback
-from logging import Logger
-from urllib.parse import urlparse, parse_qs
-from fastapi import Request
-from starlette.responses import Response
-from functools import wraps
 
-from src.web.telegram_api import send_message, edit_inline_message, delete_message
+from fastapi import Request
+from functools import wraps
+from logging import Logger
+from starlette.responses import Response
+from urllib.parse import urlparse, parse_qs
+
+from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action
 from src.bot.text import Texts
 from src.bot.api import main_menu, get_keyboard
 from src.bot import keyboards
@@ -42,6 +43,7 @@ def get_query_params(url):
 
 
 async def logining(chat_id, account, agrms_data):
+    await send_chat_action(chat_id, 'typing')
     for agrm, agrm_id in agrms_data:
         await sql.add_agrm(chat_id, agrm, agrm_id, account)
     await sql.upd_hash(chat_id, None)

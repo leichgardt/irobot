@@ -85,4 +85,11 @@ async def edit_inline_message(chat_id, text, *args, **kwargs):
         await send_message(chat_id, text, *args, **kwargs)
 
 
+async def send_chat_action(chat_id, action):
+    try:
+        await telegram_api.send_chat_action(chat_id, action)
+    except:
+        pass
+
+
 telegram_api = TelegramAPI()
