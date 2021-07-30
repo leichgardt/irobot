@@ -1,6 +1,8 @@
 import aiopg
+import asyncio
 import psycopg2
-from src.utils import config
+
+from src.utils import config, is_async_logger
 
 
 class SQLCore:
@@ -37,9 +39,9 @@ class SQLCore:
             self.pool.close()
             await self.pool.wait_closed()
             self.pool.terminate()
-            try:
+            if is_async_logger(self.logger):
                 await self.logger.info('PSQL pool closed')
-            except:
+            else:
                 self.logger.info('PSQL pool closed')
 
     async def execute(self, cmd, *args, retrying=False, faults=True):
@@ -54,16 +56,11 @@ class SQLCore:
                     await cur.execute(cmd, args)
                 except Exception as e:
                     if faults:
-                        try:
-                            if retrying:
+                        if retrying:
+                            if is_async_logger(self.logger):
                                 await self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
                             else:
-                                await self.logger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
-                        except:
-                            if retrying:
                                 self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
-                            else:
-                                self.logger.info(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
                     return res
                 else:
                     res = await get_res(cur)

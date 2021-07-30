@@ -65,12 +65,12 @@ class SQLMaster(SQLCore):
             await self.execute('UPDATE irobot.agrms SET active=true, update_datetime=now() '
                                'WHERE chat_id=%s AND agrm=%s', chat_id, agrm)
         else:
-            await self.execute('INSERT INTO irobot.agrms(chat_id, agrm, agrm_id) VALUES (%s, %s, %s)',
-                               chat_id, agrm, agrm_id, faults=False)
+            await self.execute('INSERT INTO irobot.agrms(chat_id, agrm, agrm_id, account) VALUES (%s, %s, %s, %s)',
+                               chat_id, agrm, agrm_id, login)
 
-    async def deactivate_agrm(self, chat_id, agrm):
+    async def deactivate_account(self, chat_id, account):
         await self.execute('UPDATE irobot.agrms SET active=false, update_datetime=now() '
-                           'WHERE chat_id=%s AND agrm=%s', chat_id, agrm)
+                           'WHERE chat_id=%s AND account=%s', chat_id, account)
 
     async def get_inline(self, chat_id):
         res = await self.execute('SELECT inline_msg_id, inline_text, inline_parse_mode FROM irobot.subs '

@@ -1,41 +1,24 @@
 import asyncio
 import httpx
 import zeep.exceptions
+import uvloop
+
 from zeep import AsyncClient, Settings
 from zeep.wsdl import Document
 from zeep.transports import AsyncTransport
-import uvloop
 
-from src.utils import config, alogger, get_datetime, get_phone_number
-
-
-# import logging.config
-#
-# logging.config.dictConfig({
-#     'version': 1,
-#     'formatters': {
-#         'verbose': {
-#             'format': '%(name)s: %(message)s'
-#         }
-#     },
-#     'handlers': {
-#         'console': {
-#             'level': 'DEBUG',
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'verbose',
-#         },
-#     },
-#     'loggers': {
-#         'zeep.transports': {
-#             'level': 'DEBUG',
-#             'propagate': True,
-#             'handlers': ['console'],
-#         },
-#     }
-# })
+from src.utils import config, alogger, is_async_logger, get_datetime, get_phone_number
 
 
 class CustomAsyncClient(AsyncClient):
+    """
+    Данный кастомный класс предназначен для добавления возможности указывать remote-host
+    в параметр port.binding_options['address'] (по умолчанию '127.0.0.1'):
+
+    >>> client = CustomAsyncClient('url_to_wsdl', address='remote_host')
+
+    Это сделано с помощью переопределения метода '_get_port'
+    """
     def __init__(self, wsdl, transport=None, settings=None, address=None):
         self.settings = settings or Settings()
         self.transport = (
@@ -48,7 +31,7 @@ class CustomAsyncClient(AsyncClient):
         self._default_service_name = None
         self._default_port_name = None
         self._default_soapheaders = None
-        self.address = address  # new param
+        self.address = address  # новый параметр
 
     def _get_port(self, service, name):
         if name:
@@ -65,7 +48,7 @@ class LBZeepCore:
     get_datetime = get_datetime
     get_phone_number = get_phone_number
 
-    def __init__(self):
+    def __init__(self, logger=alogger):
         self.user = config['lanbilling']['user']
         self.__password = config['lanbilling']['password']
         self._api_url = config['lanbilling']['url']
@@ -75,6 +58,7 @@ class LBZeepCore:
         self._settings = Settings(raw_response=False)
         self._httpx_client: httpx.AsyncClient = httpx.AsyncClient(auth=(self.user, self.__password))
         self._wsdl_client: httpx.Client = httpx.Client(auth=(self.user, self.__password))
+        self.logger = logger
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
@@ -110,7 +94,10 @@ class LBZeepCore:
         try:
             await self.client.service.Login(self.user, self.__password)
         except Exception as e:
-            await alogger.warning(e)
+            if is_async_logger(self.logger):
+                await self.logger.warning(e)
+            else:
+                self.logger.warning(e)
             return False
         else:
             return True
@@ -141,7 +128,10 @@ class LBZeepCore:
                 return await self.direct_request(func, *args, try_again=True, pass_faults=pass_faults)
             else:
                 if not pass_faults:
-                    await alogger.warning(e)
+                    if is_async_logger(self.logger):
+                        await self.logger.warning(e)
+                    else:
+                        self.logger.warning(e)
                 return []
         else:
             return res

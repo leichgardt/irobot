@@ -10,7 +10,7 @@ s_format2 = '%(levelname)-9s %(message)s'
 logfile = '/var/log/iron/{}.log'
 
 
-def init_logger(name, info_file_level=True, new_formatter=False):
+def init_logger(name, info_file_level=False, new_formatter=False):
     s_handler = logging.StreamHandler()
     s_handler.setLevel(logging.INFO)
     s_handler.setFormatter(logging.Formatter(s_format2 if new_formatter else s_format1))
@@ -29,13 +29,17 @@ def init_logger(name, info_file_level=True, new_formatter=False):
 def aio_logger(name, loop=None):
     s_handler = AsyncStreamHandler(level=logging.INFO, formatter=Formatter(s_format1))
     f_handler = AsyncFileHandler(logfile.format(name))
-    f_handler.level = logging.INFO
+    f_handler.level = logging.WARNING
     f_handler.formatter = Formatter(f_format)
     logger = Logger(name=name, loop=loop)
     logger.add_handler(s_handler)
     logger.add_handler(f_handler)
     logger.level = logging.INFO
     return logger
+
+
+def is_async_logger(logger):
+    return '_LoopCompat__loop' in logger.__dict__
 
 
 logger = init_logger('irobot')
