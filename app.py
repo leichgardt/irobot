@@ -17,7 +17,7 @@ from src.web import (
     telegram_api, broadcast, logining,
     handle_new_payment_request, handle_payment_response,
     auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor)
-from src.lb import check_account_pass
+from src.lb import lb, check_account_pass
 from guni import workers
 
 VERSION = '0.3.1'
@@ -32,6 +32,7 @@ cache_header = {'Cache-Control': 'max-age=86400, must-revalidate'}
 
 logger = init_logger('irobot-web', new_formatter=True)
 sql.logger = logger
+lb.logger = logger
 templates = Jinja2Templates(directory='templates')
 app = FastAPI(debug=False, root_path='/irobot_web')
 app.mount('/static', StaticFiles(directory='static', html=True), name='static')
