@@ -1,6 +1,7 @@
 import aiopg
 import asyncio
 import psycopg2
+import psycopg2.errors
 
 from src.utils import config, is_async_logger
 
@@ -46,25 +47,28 @@ class SQLCore:
 
     async def execute(self, cmd, *args, retrying=False, faults=True):
         res = []
+        need_to_retry = not retrying
         if self.pool is None:
             await self.init_pool()
-        async with self.pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                if len(args) == 1 and isinstance(args[0], dict):
-                    args = args[0]
-                try:
+        try:
+            async with self.pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    if len(args) == 1 and isinstance(args[0], dict):
+                        args = args[0]
                     await cur.execute(cmd, args)
-                except Exception as e:
-                    if faults:
-                        if retrying:
-                            if is_async_logger(self.logger):
-                                await self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
-                            else:
-                                self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
-                    return res
-                else:
                     res = await get_res(cur)
-        if not res and not retrying and 'select' == cmd[:6].lower():
+        except psycopg2.errors.AdminShutdown:
+            if not retrying:
+                return await self.execute(cmd, *args, retrying=True, faults=faults)
+        except Exception as e:
+            if faults and retrying:
+                if is_async_logger(self.logger):
+                    await self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                else:
+                    self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+        else:
+            need_to_retry = False
+        if need_to_retry:
             if isinstance(args, dict):
                 args = (args,)
             return await self.execute(cmd, *args, retrying=True)
