@@ -10,7 +10,7 @@ from src.utils import config, logger, alogger
 from src.utils.logger import logfile
 
 CERTIFICATE = ''
-HOST = config['paladin']['domain']
+HOST = config['paladin']['maindomain']
 WEBHOOK_HOST = f'https://{HOST}/irobot_webhook'
 WEBHOOK_PATH = '/'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
