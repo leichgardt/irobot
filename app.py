@@ -34,8 +34,8 @@ logger = init_logger('irobot-web', new_formatter=True)
 sql.logger = logger
 lb.logger = logger
 templates = Jinja2Templates(directory='templates')
-app = FastAPI(debug=False, root_path='/irobot_web')
-app.mount('/static', StaticFiles(directory='static', html=True), name='static')
+app = FastAPI(debug=False, root_path='/irobot')
+app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 sw = SoloWorker(logger=logger, workers=workers)
 
 
