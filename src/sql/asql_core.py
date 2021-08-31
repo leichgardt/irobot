@@ -45,7 +45,7 @@ class SQLCore:
             else:
                 self.logger.info('PSQL pool closed')
 
-    async def execute(self, cmd, *args, retrying=False, faults=True):
+    async def execute(self, cmd, *args, retrying=False, log_faults=True):
         res = []
         need_to_retry = not retrying
         if self.pool is None:
@@ -59,13 +59,13 @@ class SQLCore:
                     res = await get_res(cur)
         except psycopg2.errors.AdminShutdown:
             if not retrying:
-                return await self.execute(cmd, *args, retrying=True, faults=faults)
+                return await self.execute(cmd, *args, retrying=True, log_faults=log_faults)
         except Exception as e:
-            if faults and retrying:
+            if log_faults and retrying:
                 if is_async_logger(self.logger):
-                    await self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                    await self.logger.warning(f'Error: {e}\nCmd: {cmd}' + f'\t|\targs: {args}' if args else '')
                 else:
-                    self.logger.warning(f'Error: {e}\nOn cmd: {cmd}\t|\twith args: {args}')
+                    self.logger.warning(f'Error: {e}\nCmd: {cmd}' + f'\t|\targs: {args}' if args else '')
         else:
             need_to_retry = False
         if need_to_retry:
