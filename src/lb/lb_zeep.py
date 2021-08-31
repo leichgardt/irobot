@@ -4,6 +4,7 @@ import zeep.exceptions
 import uvloop
 
 from zeep import AsyncClient, Settings
+from zeep.client import Factory
 from zeep.wsdl import Document
 from zeep.transports import AsyncTransport
 
@@ -55,6 +56,7 @@ class LBZeepCore:
         self._api_location = config['lanbilling']['location']
         self.loop: uvloop.Loop = None
         self.client: CustomAsyncClient = None
+        self.factory: Factory = None
         self._settings = Settings(raw_response=False)
         self._httpx_client: httpx.AsyncClient = httpx.AsyncClient(auth=(self.user, self.__password))
         self._wsdl_client: httpx.Client = httpx.Client(auth=(self.user, self.__password))
@@ -83,9 +85,11 @@ class LBZeepCore:
             pass
 
     def connect_api(self):
-        self.client = CustomAsyncClient(self._api_url, settings=self._settings, address=self._api_location,
-                                        transport=AsyncTransport(client=self._httpx_client,
-                                                                 wsdl_client=self._wsdl_client))
+        if not self.client:
+            self.client = CustomAsyncClient(self._api_url, settings=self._settings, address=self._api_location,
+                                            transport=AsyncTransport(client=self._httpx_client,
+                                                                     wsdl_client=self._wsdl_client))
+            self.factory = self.client.type_factory('ns0')
         # self.client.service._binding_options.update({'address': self._api_location})
 
     async def login(self):
@@ -95,9 +99,9 @@ class LBZeepCore:
             await self.client.service.Login(self.user, self.__password)
         except Exception as e:
             if is_async_logger(self.logger):
-                await self.logger.warning(e)
+                await self.logger.warning(f'Logining: {e}')
             else:
-                self.logger.warning(e)
+                self.logger.warning(f'Logining: {e}')
             return False
         else:
             return True
@@ -105,7 +109,7 @@ class LBZeepCore:
     async def logout(self):
         await self.client.service.Logout()
 
-    async def func(self, func, *args):
+    async def execute(self, func, *args):
         try:
             return await self.client.service[func](*args)
         except zeep.exceptions.Fault as e:
@@ -117,21 +121,22 @@ class LBZeepCore:
             else:
                 raise e
 
-    async def direct_request(self, func, *args, try_again=False, pass_faults=False):
+    async def direct_request(self, function, *args, try_again=False, pass_faults=False):
         if self.client is None:
             if not await self.login():
                 return []
         try:
-            res = await self.func(func, *args)
+            res = await self.execute(function, *args)
         except Exception as e:
             if not try_again:
-                return await self.direct_request(func, *args, try_again=True, pass_faults=pass_faults)
+                return await self.direct_request(function, *args, try_again=True, pass_faults=pass_faults)
             else:
                 if not pass_faults:
+                    msg = f'"{function}" request error{f" [args: {args}]" if args else ""}: {e}'
                     if is_async_logger(self.logger):
-                        await self.logger.warning(e)
+                        await self.logger.warning(msg)
                     else:
-                        self.logger.warning(e)
+                        self.logger.warning(msg)
                 return []
         else:
             return res
