@@ -152,7 +152,7 @@ class SQLMaster(SQLCore):
         return await self.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', status, mail_id)
 
     async def add_pid(self, pid: int):
-        await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid, faults=False)
+        await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid, log_faults=False)
 
     async def get_pid_list(self):
         return await self.execute('SELECT pid, tasks FROM irobot.pids')
