@@ -1,5 +1,4 @@
-import ujson
-from .asql_core import SQLCore
+from src.sql.asql_core import SQLCore
 
 
 class SQLMaster(SQLCore):
@@ -14,7 +13,7 @@ class SQLMaster(SQLCore):
 
     async def add_chat(self, chat_id, msg_id, text, parse_mode=None, hash_line=None, userdata=None):
         res = await self.execute('SELECT chat_id FROM irobot.subs WHERE chat_id=%s', chat_id)
-        payload = msg_id, text, parse_mode, hash_line, ujson.dumps(userdata)
+        payload = msg_id, text, parse_mode, hash_line, userdata
         if not res:
             await self.execute('INSERT INTO irobot.subs(chat_id, inline_msg_id, inline_text, inline_parse_mode, hash, '
                                'userdata) VALUES (%s, %s, %s, %s, %s, %s)', chat_id, *payload)

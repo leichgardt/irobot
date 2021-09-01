@@ -3,6 +3,7 @@ import asyncio
 import psycopg2
 import psycopg2.errors
 import psycopg2.extensions
+import ujson
 
 from src.utils import config, is_async_logger
 
@@ -56,6 +57,8 @@ class SQLCore:
                 async with conn.cursor() as cur:
                     if len(args) == 1 and isinstance(args[0], dict):
                         args = args[0]
+                    else:
+                        args = [arg if not isinstance(arg, dict) else ujson.dumps(arg) for arg in args]
                     await cur.execute(cmd, args)
                     res = await get_res(cur, as_dict)
         except psycopg2.errors.AdminShutdown:
