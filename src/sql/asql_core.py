@@ -66,10 +66,11 @@ class SQLCore:
                 return await self.execute(cmd, *args, retrying=True, log_faults=log_faults)
         except Exception as e:
             if log_faults and retrying:
+                msg = f'SQL exception: {e}CMD: {cmd}' + f'\nARGS: {args}\n' if args else '\n'
                 if is_async_logger(self.logger):
-                    await self.logger.warning(f'Error: {e}\nCmd: {cmd}' + f'\t|\targs: {args}' if args else '')
+                    await self.logger.warning(msg)
                 else:
-                    self.logger.warning(f'Error: {e}\nCmd: {cmd}' + f'\t|\targs: {args}' if args else '')
+                    self.logger.warning(msg)
         else:
             need_to_retry = False
         if need_to_retry:

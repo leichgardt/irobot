@@ -7,7 +7,7 @@ from src.utils import config
 
 API_TOKEN = config['tesseract']['token-iro-mega-bot']
 
-storage = MongoStorage(host='192.168.100.92', port=27017, db_name='aiogram_fsm')
+storage = MongoStorage(host=config['paladin']['cup'], port=27017, db_name='aiogram_fsm')
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot, storage=storage)

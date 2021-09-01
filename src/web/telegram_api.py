@@ -1,6 +1,7 @@
+import logging
+
 from aiogram import Bot
 from aiogram.utils import exceptions
-import logging
 
 from src.bot.api import get_keyboard
 from src.bot import keyboards

@@ -39,7 +39,7 @@ def aio_logger(name, loop=None):
 
 
 def is_async_logger(logger):
-    return '_LoopCompat__loop' in logger.__dict__
+    return '_LoopCompat__loop' in logger.__dict__ if logger else False
 
 
 logger = init_logger('irobot')
