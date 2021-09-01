@@ -45,7 +45,7 @@ class SQLCore:
             else:
                 self.logger.info('PSQL pool closed')
 
-    async def execute(self, cmd, *args, retrying=False, log_faults=True):
+    async def execute(self, cmd, *args, retrying=False, log_faults=True, as_dict=False):
         res = []
         need_to_retry = not retrying
         if self.pool is None:
@@ -56,7 +56,7 @@ class SQLCore:
                     if len(args) == 1 and isinstance(args[0], dict):
                         args = args[0]
                     await cur.execute(cmd, args)
-                    res = await get_res(cur)
+                    res = await get_res(cur, as_dict)
         except psycopg2.errors.AdminShutdown:
             if not retrying:
                 return await self.execute(cmd, *args, retrying=True, log_faults=log_faults)
@@ -75,7 +75,7 @@ class SQLCore:
         return res
 
 
-async def get_res(cur):
+async def get_res(cur, dict_flag):
     try:
         ret = await cur.fetchall()
     except psycopg2.ProgrammingError as e:
@@ -88,7 +88,11 @@ async def get_res(cur):
         for i in range(len(ret)):
             for y in range(len(ret[i])):
                 ret[i][y] = strip_res(ret[i][y])
-        return [tuple(line) for line in ret]
+        res = [tuple(line) for line in ret]
+        if dict_flag:
+            col_names = [col.name for col in cur.description]
+            res = [dict(zip(col_names, line)) for line in res]
+        return res
 
 
 def strip_res(val):
