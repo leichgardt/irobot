@@ -12,7 +12,18 @@ from src.bot.api.bot_keyboard_master import get_keyboard
 from src.utils import alogger
 
 
-async def run_cmd(bot_func: asyncio.coroutines):
+async def run_cmd(bot_func: [asyncio.coroutines, asyncio.tasks]):
+    """
+    Функция-обработчик методов бота.
+    Используйте для всех методов бота, чтобы обрабатывать и логировать исключения
+
+    :param bot_func: Сопрограмма или задание от бота в асинхронном виде. Вместо
+        >>> await bot.send_message(...)
+        используйте
+        >>> await run_cmd(bot.send_message(...))
+
+    :return В случае успеха возвращает результат сопрограммы/задания, иначе False
+    """
     task = asyncio.create_task(bot_func)
     args = bot_func.cr_frame.f_locals
     if 'self' in args:
@@ -22,7 +33,7 @@ async def run_cmd(bot_func: asyncio.coroutines):
     except exceptions.BotBlocked:
         await alogger.error(f'{bot_func.__qualname__}: Blocked by user {args}')
     except exceptions.ChatNotFound:
-        await alogger.error(f'{bot_func.__qualname__}: Invalid user ID {args}')
+        await alogger.error(f'{bot_func.__qualname__}: Chat ID not found {args}')
     except exceptions.RetryAfter as e:
         await alogger.error(f'{bot_func.__qualname__}: Flood limit is exceeded, sleep {e.timeout} seconds {args}')
         await asyncio.sleep(e.timeout)
@@ -34,7 +45,12 @@ async def run_cmd(bot_func: asyncio.coroutines):
     return False
 
 
-def private_and_login_require(do_not_check_sub=False):
+def private_and_login_require(do_not_check_sub: bool = False):
+    """
+    Декоратор-ограничитель, который блокирует функции для неавторизованных пользователей и публичных чатов
+
+    :param do_not_check_sub: Передайте True, чтобы разрешать функции неавторизованным пользователям
+    """
     def decorator(func):
         async def message_handler(message: types.Message, state: FSMContext):
             if message.chat.type == 'private':
@@ -52,23 +68,36 @@ def private_and_login_require(do_not_check_sub=False):
 async def delete_message(message: typing.Union[types.Message,
                                                tuple,
                                                list,
-                                               dict]):
+                                               dict,
+                                               int]):
+    """
+    Удалить сообщение
+
+    :param message: указатель на сообщение
+    :type message: :obj:`types.Message` - объект класса сообщения
+    :type message: :tuple: :list: :dict: - указывается chat_id и message_id
+    :type message: :int: - chat_id; в этом случае удаляется сообщение inline, загружаемое с БД
+    """
     try:
-        if isinstance(message, (tuple, list, dict)):
-            if isinstance(message, (tuple, list)):
+        if isinstance(message, (tuple, list, dict, int)):
+            if isinstance(message, int):
+                chat_id = message
+                message_id, _, _ = await sql.get_inline(chat_id)
+            elif isinstance(message, (tuple, list)):
                 chat_id = message[0]
                 message_id = message[1]
             else:
                 chat_id = message['chat_id']
                 message_id = message['message_id']
-            await run_cmd(bot.delete_message(chat_id, message_id))
+            if chat_id and message_id:
+                await run_cmd(bot.delete_message(chat_id, message_id))
         else:
             await run_cmd(message.delete())
     except:
         pass
 
 
-async def clear_inline_message(chat_id):
+async def clear_inline_message(chat_id: int):
     inline, text, parse_mode = await sql.get_inline(chat_id)
     if inline and text:
         try:
@@ -114,7 +143,19 @@ async def update_inline_query(
         title: str = None,
         alert: bool = False,
         btn_list: list = None,
-        reply_markup: types.InlineKeyboardMarkup = None, ):
+        reply_markup: types.InlineKeyboardMarkup = None):
+    """
+    Обновить inline query сообщение, его текст, клавиатуру и т.д., а так же вызвать Ответ на этот inline запрос
+
+    :param query: Объект запроса
+    :param answer: Текст ответа на запрос
+    :param text: Новый текст сообщения
+    :param parse_mode: Метод парсинга текста сообщения
+    :param title: -не используется-
+    :param alert: Передайте True, чтобы ответ на запрос появился в отдельном окошке
+    :param btn_list: Список кнопок inline клавиатуры, которые собирутся в клавиатуру
+    :param reply_markup: Клавиатура
+    """
     if btn_list:
         reply_markup = get_keyboard(*btn_list, keyboard_type='inline')
     text = f'{title}\n\n{text}' if title else text
