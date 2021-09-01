@@ -177,19 +177,37 @@ class Texts:
     payments_online_amount.answer = payments_promise_offer.answer
     payments_online_amount_is_not_digit = T(emojize(
         'Платежи >> Оплата Онлайн\n\nНе понимаю, о чем ты :hmm: Введи сумму, на которую хочешь пополнить счёт.'))
-    payments_online_offer = T(
-        'Платежи >> Оплата онлайн\n\nДоговор №{agrm}\nБаланс: {balance} руб.\n\nК зачислению: {amount} руб.\nКомиссия: '
-        '{tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>')
+    payments_online_offer = T(emojize(
+        'Платежи >> Оплата онлайн >> Договор №{agrm}\n\nК зачислению: {amount} руб.\n'
+        'Комиссия (до 4%): {tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>\n\n'
+        'Можешь переслать сообщение со счётом другу, чтобы он оплатил его тебе :smiley:'))
     payments_online_offer.parse_mode = ParseMode.HTML
     payments_online_success = T(
-        'Платёж успешно проведён!')
+        'Оплата успешно прошла! Деньги на счёт поступят в ближайшие пару минут!')
+    payments_online_success_short = T(
+        'Оплата успешно прошла!')
     payments_online_fail = T(
         'Не удалось провести платёж.')
     payment_error = T(
-        'Ошибка платежа. Попробуй ещё раз или обратись в службу технической поддержки по номеру {}.'.format(
-            config['paladin']['support-phone']))
+        'Ошибка платежа. Попробуй ещё раз или обратись в службу технической поддержки')
     payments_online_already_have = T(
-        'Этот платёж уже выполнен, так что создай новый.')
+        'Этот счёт уже был оплачен.')
+    payment_item_price = T(
+        'Услуги доступа к сети Интернет по договору №{agrm}')
+    payment_item_tax = T(
+        'Комиссия (до 4%)')
+    payment_title = T(
+        'Пополнение счёта договора №{agrm}')
+    payment_description = T(
+        'Пополнить счёт договора №{agrm} на {amount} руб.')
+    payment_error_message = T(
+        'Не удалось провести платёж. Попробуйте ещё раз.')
+    payments_on_process = T(
+        'Платёж обрабатывается.')
+    payments_online_was_paid = T(emojize(
+        'Твой счёт на {amount} руб. только что оплатили :star_struck: Скоро средства поступят на твой баланс!'))
+    payments_after_for_guest = T(
+        'Ты можешь авторизоваться!\nДля этого отправь мне /start')
 
     backend_error = T(
         'Непредвиденная ошибка!')

@@ -8,17 +8,12 @@ payment_choice_btn = (
     ),
 )
 
-
-def get_payment_url_btn(url):
-    return (
-        (
-            {'text': 'Оплатить', 'url': url},
-            {'text': 'Изменить сумму', 'callback_data': 'payments-online-another-amount'},
-        ),
-        (
-            {'text': 'Отмена', 'callback_data': 'cancel'},
-        ),
-    )
+payment_btn = (
+    (
+        {'text': 'Изменить сумму', 'callback_data': 'payments-online-another-amount'},
+        {'text': 'Отменить платёж', 'callback_data': 'cancel'},
+    ),
+)
 
 
 async def get_promise_payment_agrms(chat_id=None, agrms=None):

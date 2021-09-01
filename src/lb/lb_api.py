@@ -65,3 +65,20 @@ async def get_payments(agrm_id, **kwargs):
     dtto = datetime.now()
     dtfrom = dtto - timedelta(**kwargs)
     return await lb.direct_request('getPayments', {'agrmid': agrm_id, 'dtfrom': get_datetime(dtfrom), 'dtto': get_datetime(dtto)})
+
+
+async def payment(agrm_id: int, amount: float, receipt: str, paydate: [str, datetime]):
+    lb.connect_api()
+    payment_obj = lb.factory.soapPayment(
+        agrmid=agrm_id,
+        currid=1,
+        classid=1,
+        amount=amount,
+        cashcode=1,
+        classname='Безналично',
+        receipt=receipt,
+        comment='IroBot via YooKassa',
+        localdate=lb.get_datetime(datetime.now()),
+        paydate=paydate if isinstance(paydate, str) else lb.get_datetime(paydate)
+    )
+    return await lb.direct_request('Payment', payment_obj)

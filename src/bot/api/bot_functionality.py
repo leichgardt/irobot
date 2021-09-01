@@ -17,8 +17,28 @@ def get_payment_hash(chat_id, agrmnum):
     return get_hash(f'{chat_id}&{agrmnum}')
 
 
-def get_payment_url(hash_code):
-    return 'https://{}/irobot/api/new_payment?hash={}'.format(config['paladin']['maindomain'], hash_code)
+def get_payment_price(agrm: str, amount: [int, float], tax: [int, float]):
+    return [types.LabeledPrice(label=Texts.payment_item_price.format(agrm=agrm), amount=int(amount * 100)),
+            types.LabeledPrice(label=Texts.payment_item_tax, amount=int(tax * 100))]
+
+
+def get_payment_tax(amount: [int, float]):
+    # комиссия до 4%
+    mul = 0.03626943005181345792
+    return round(amount * mul, 2)
+
+
+def get_invoice_params(chat_id, agrm, amount, tax, hash_code):
+    return dict(
+        chat_id=chat_id,
+        title=Texts.payment_title.format(agrm=agrm),
+        description=Texts.payment_description.format(agrm=agrm, amount=amount),
+        provider_token=config['yandex']['telegram-token-test'],  # config['yandex']['telegram-token']
+        currency='rub',
+        prices=get_payment_price(agrm, amount, tax),
+        start_parameter=f'payment-{hash_code}',
+        payload=hash_code
+    )
 
 
 def get_login_url(hash_code):

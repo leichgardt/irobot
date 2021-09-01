@@ -84,21 +84,21 @@ class SQLMaster(SQLCore):
         await self.execute('INSERT INTO irobot.reviews(chat_id, rating, comment) VALUES (%s, %s, %s)',
                            chat_id, rating, comment)
 
-    async def add_payment(self, hash_id: str, chat_id: int, url: str, agrm: str, amount: float, inline: int = None):
-        await self.execute('INSERT INTO irobot.payments(hash, chat_id, url, agrm, amount, inline) '
-                           'VALUES (%s, %s, %s, %s, %s, %s)', hash_id, chat_id, url, agrm, amount, inline)
+    async def add_payment(self, hash_code: str, chat_id: int, agrm: str, amount: float, inline: int = None):
+        await self.execute('INSERT INTO irobot.payments(hash, chat_id, agrm, amount, inline) '
+                           'VALUES (%s, %s, %s, %s, %s)', hash_code, chat_id, agrm, amount, inline)
 
-    async def upd_payment(self, hash_id, **kwargs):
+    async def upd_payment(self, hash_code, **kwargs):
         upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
-        await self.execute(f'UPDATE irobot.payments SET {upd}, datetime=now() WHERE hash=%s', *kwargs.values(), hash_id)
+        await self.execute(f'UPDATE irobot.payments SET {upd}, update_datetime=now() WHERE hash=%s', *kwargs.values(), hash_code)
 
     async def cancel_payment(self, chat_id, inline):
         await self.execute('UPDATE irobot.payments SET status= %s WHERE chat_id=%s AND inline=%s',
                            'canceled', chat_id, inline)
 
-    async def find_payment(self, hash_id):
-        res = await self.execute('SELECT id, chat_id, url, status, inline, agrm, amount, notified FROM irobot.payments '
-                                 'WHERE hash=%s', hash_id)
+    async def find_payment(self, hash_code):
+        res = await self.execute('SELECT id, chat_id, status, inline, agrm, amount FROM irobot.payments '
+                                 'WHERE hash=%s', hash_code, as_dict=True)
         return res[0] if res else res
 
     async def find_processing_payments(self):
