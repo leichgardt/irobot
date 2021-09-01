@@ -2,6 +2,7 @@ import aiopg
 import asyncio
 import psycopg2
 import psycopg2.errors
+import psycopg2.extensions
 
 from src.utils import config, is_async_logger
 
@@ -87,7 +88,7 @@ async def get_res(cur, dict_flag):
         ret = [list(line) for line in ret]
         for i in range(len(ret)):
             for y in range(len(ret[i])):
-                ret[i][y] = strip_res(ret[i][y])
+                ret[i][y] = strip_and_typing_res(ret[i][y])
         res = [tuple(line) for line in ret]
         if dict_flag:
             col_names = [col.name for col in cur.description]
@@ -95,15 +96,17 @@ async def get_res(cur, dict_flag):
         return res
 
 
-def strip_res(val):
-    if isinstance(val, str):
+def strip_and_typing_res(val):
+    if 'decimal' in str(type(val)):
+        return float(val)
+    elif isinstance(val, str):
         return val.strip()
     elif isinstance(val, (list, set, tuple)):
-        val = [strip_res(v) for v in val]
+        val = [strip_and_typing_res(v) for v in val]
         return val
     elif isinstance(val, dict):
         tmp = {}
         for k, v in val.items():
-            tmp.update({k: strip_res(v)})
+            tmp.update({k: strip_and_typing_res(v)})
         return val
     return val
