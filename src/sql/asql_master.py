@@ -5,7 +5,7 @@ class SQLMaster(SQLCore):
     async def get_sub(self, chat_id):
         data = 'mailing'
         res = await self.execute(f'SELECT {data} FROM irobot.subs WHERE subscribed=true AND chat_id=%s', chat_id)
-        return res[0] if res else res
+        return res[0] if res else []
 
     async def get_subs(self, mailing=False):
         flt = 'AND mailing=true' if mailing else ''
@@ -26,7 +26,7 @@ class SQLMaster(SQLCore):
 
     async def find_chat_by_hash(self, hash_code):
         res = await self.execute('SELECT chat_id FROM irobot.subs WHERE hash=%s', hash_code)
-        return res[0][0] if res else res
+        return res[0][0] if res else 0
 
     async def subscribe(self, chat_id):
         await self.execute('UPDATE irobot.subs SET subscribed=true WHERE chat_id=%s', chat_id)
@@ -62,7 +62,7 @@ class SQLMaster(SQLCore):
     async def get_inline(self, chat_id):
         res = await self.execute('SELECT inline_msg_id, inline_text, inline_parse_mode FROM irobot.subs '
                                  'WHERE chat_id=%s', chat_id)
-        return res[0] if res else (None, None, {})
+        return res[0] if res else (None, None, None)
 
     async def upd_inline(self, chat_id: int, inline: int, text: str, parse_mode: str = None):
         await self.execute('UPDATE irobot.subs SET inline_msg_id= %s, inline_text= %s, inline_parse_mode= %s '
@@ -87,7 +87,7 @@ class SQLMaster(SQLCore):
     async def find_payment(self, hash_code):
         res = await self.execute('SELECT id, chat_id, status, inline, agrm, amount FROM irobot.payments '
                                  'WHERE hash=%s', hash_code, as_dict=True)
-        return res[0] if res else res
+        return res[0] if res else []
 
     async def find_processing_payments(self):
         return await self.execute('SELECT id, hash, chat_id, datetime, agrm, amount, notified, inline '
