@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from aiogram import Bot
@@ -97,8 +98,6 @@ telegram_api = TelegramAPI()
 
 
 if __name__ == '__main__':
-    import asyncio
-
     async def main():
         res = await telegram_api.send_message(config['irobot']['me'], 'lmao')
         print(res)
