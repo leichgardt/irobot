@@ -71,16 +71,16 @@ async def get_agrm_balances(chat_id):
 
 async def get_all_agrm_data(chat_id, *, only_numbers=False):
     """ Получить список всех договоров (только номера договоров или полные данные) """
-    tmp = {}
+    output = {}
     accounts = await sql.get_accounts(chat_id)
     for account in accounts:
         agrms = await get_account_agrms(account)
         for agrm in agrms:
             if only_numbers:
-                tmp[account] = [agrm['agrm'] for agrm in agrms]
+                output[account] = [agrm['agrm'] for agrm in agrms]
             else:
-                tmp[agrm['agrm_id']] = agrm
-    return tmp if only_numbers else list(tmp.values())
+                output[agrm['agrm_id']] = agrm
+    return output if only_numbers else list(output.values())
 
 
 async def get_promise_payment_agrms(*, chat_id: int = None, agrms: list = None):
@@ -90,7 +90,10 @@ async def get_promise_payment_agrms(*, chat_id: int = None, agrms: list = None):
     from src.lb import promise_available, get_account_agrms
     output = []
     if chat_id:
-        agrms = await get_account_agrms(chat_id)
+        agrms = []
+        accounts = await sql.get_accounts(chat_id)
+        for account in accounts:
+            agrms += await get_account_agrms(account)
     if agrms:
         for agrm in agrms:
             if await promise_available(agrm):

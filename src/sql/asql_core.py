@@ -114,3 +114,16 @@ def strip_and_typing_res(val):
             tmp.update({k: strip_and_typing_res(v)})
         return val
     return val
+
+
+if __name__ == '__main__':
+    from src.utils import logger
+
+    async def main():
+        sql = SQLCore()
+        sql.logger = logger
+        res = await sql.execute('SELECT * FROM irobot.subs WHERE chat_id=%s', config['irobot']['me'], as_dict=True)
+        if res:
+            [print(f'{column:20}: {value}') for row in res for column, value in row.items()]
+
+    asyncio.run(main())

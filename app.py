@@ -1,26 +1,24 @@
 __author__ = 'leichgardt'
 
-import asyncio
 import uvicorn
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
-from starlette.responses import Response, RedirectResponse
+from starlette.responses import Response
 from pydantic import BaseModel
 
 from src.sql import sql
 from src.utils import config, init_logger
 from src.web import (
-    get_query_params, get_request_data, lan_require,
+    lan_require,
     SoloWorker, Table,
     telegram_api, broadcast, logining,
-    handle_new_payment_request, handle_payment_response,
     auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor)
 from src.lb import lb, check_account_pass
 from guni import workers
 
-VERSION = '0.3.1'
+VERSION = '1.0.0'
 ABOUT = """Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @{},
 а так же для обработки запросов платежей от системы Yoomoney.
 Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении завершенного 
@@ -233,51 +231,6 @@ async def send_mailing(request: Request,
     else:
         response.status_code = 400
         return {'response': 0, 'error': 'wrong mail_type'}
-
-
-# @app.get('/api/new_payment')
-# async def new_yoomoney_payment(request: Request, hash: str = None):
-#     """Перевести платёж в состояние "processing" для отслеживания монитором payment_monitor"""
-#     if hash:
-#         sql_data = await sql.find_payment(hash)
-#         res = await handle_new_payment_request(hash, sql_data)
-#         if res == 1:  # это новый платёж - перенаправить на страницу оплаты
-#             return RedirectResponse(sql_data[2], 302)
-#         elif res == 0:  # это старый платёж - вернуться к телеграм боту
-#             await asyncio.sleep(0.8)
-#             return Response(back_url, 301)
-#         else:  # непредвиденная ошибка
-#             return Response('Backend error', 500)
-#     return Response('Hash code not found', 400)
-#
-#
-# @app.get('/api/payment')
-# @app.post('/api/payment')
-# async def get_yoomoney_payment(request: Request):
-#     """
-#     Обработчик ответов от yoomoney
-#
-#     В платеже есть параметры shopSuccessURL и shopFailURL.
-#     В зависимости от ответа меняется текст ответа пользователю и запись в БД.
-#     """
-#     data = await get_request_data(request)
-#     if data:
-#         print('data', data)
-#         if 'res' in data and data['res'] in ['success', 'fail']:
-#             hash_code = None
-#             if 'hash' in data:
-#                 hash_code = data['hash']
-#             elif 'shopSuccessURL' in data or 'shopFailURL' in data:
-#                 url = data.get('shopSuccessURL') or data.get('shopFailURL') or ''
-#                 params = get_query_params(url)
-#                 if 'hash' in params:
-#                     hash_code = params['hash'][0]
-#             if hash_code:
-#                 await handle_payment_response(logger, data['res'], hash_code)
-#                 return Response(back_url, 301)
-#             return RedirectResponse(config['yandex']['fallback-url'] + data['res'], 301)
-#     logger.warning(f'Bad payment request from {request.client.host}')
-#     return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
 
 
 @app.post('/api/status')

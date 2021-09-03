@@ -156,3 +156,13 @@ class SQLMaster(SQLCore):
 
 
 sql = SQLMaster()
+
+if __name__ == '__main__':
+    import asyncio
+    from src.utils import config
+
+    async def main():
+        res = await sql.get_accounts(config['irobot']['me'])
+        print(res)
+
+    asyncio.run(main())

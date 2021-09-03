@@ -94,3 +94,13 @@ async def send_chat_action(chat_id, action):
 
 
 telegram_api = TelegramAPI()
+
+
+if __name__ == '__main__':
+    import asyncio
+
+    async def main():
+        res = await telegram_api.send_message(config['irobot']['me'], 'lmao')
+        print(res)
+
+    asyncio.run(main())

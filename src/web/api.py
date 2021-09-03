@@ -16,6 +16,7 @@ from src.web.telegram_api import send_message, edit_inline_message, delete_messa
 
 
 async def get_request_data(request: Request):
+    """ Получить переданные данные из запроса (типа: JSON, FORM, QUERY_PARAMS)"""
     if request.method == 'GET':
         data = dict(request.query_params)
     else:
@@ -27,6 +28,7 @@ async def get_request_data(request: Request):
 
 
 def lan_require(func):
+    """ Декоратор-ограничитель: разрешает доступ, если IP-адрес запроса из локальной сети или от сервера """
     @wraps(func)
     async def wrapper(request: Request, *args, **kwargs):
         ip = request.client.host
@@ -39,10 +41,12 @@ def lan_require(func):
 
 
 def get_query_params(url):
+    """ Парсинг параметров URL запроса """
     return parse_qs(urlparse(url).query)
 
 
 async def logining(chat_id: int, login: str):
+    """ Авторизация пользователя по chat_id и логину от Личного Кабинета (ЛК) """
     await send_chat_action(chat_id, 'typing')
     await sql.add_account(chat_id, login)
     await sql.upd_hash(chat_id, None)
@@ -63,43 +67,11 @@ async def logining(chat_id: int, login: str):
         await send_message(chat_id, text.format(accounts=Texts.get_account_agrm_list(data)), parse, reply_markup=kb)
 
 
-async def handle_payment_response(logger, result, hash_id):
-    data = await sql.find_payment(hash_id)
-    if data:
-        payment_id, chat_id, url, status, inline, agrm, amount, notified = data
-        if status == 'processing':
-            if result == 'success':
-                text, parse, res = Texts.payments_online_success, Texts.payments_online_success.parse_mode, 'finished'
-            elif result == 'fail':
-                text, parse, res = Texts.payments_online_fail, Texts.payments_online_fail.parse_mode, 'fail'
-            else:
-                logger.fatal(f'Payment error!!! Incorrect result. Payment_id: {payment_id}')
-                text, parse, res = Texts.payment_error, Texts.payment_error.parse_mode, 'error'
-            if not notified:
-                await send_message(chat_id, text, parse, reply_markup=main_menu)
-                await sql.upd_payment(hash_id, status=res, notified=True)
-            else:
-                await sql.upd_payment(hash_id, status=res)
-        return 1  # платёж найден и сообщение в телеграм отправлено
-    return 0
-
-
-async def handle_new_payment_request(hash_code, sql_data):
-    if sql_data:
-        if sql_data[3] in ['new', 'processing']:
-            if sql_data[3] == 'new':
-                await sql.upd_payment(hash_code, status='processing')
-            return 1
-        elif sql_data[3] == 'finished':
-            text, parse = Texts.payments_online_already_have, Texts.payments_online_already_have.parse_mode
-        else:
-            text, parse = Texts.payment_error, Texts.payment_error.parse_mode
-        await send_message(sql_data[1], text, parse, reply_markup=main_menu)
-        return 0
-    return -1
-
-
 async def broadcast(logger: Logger):
+    """
+    Функция массовой рассылки сообщений пользователям бота. Запускается через Web-интерфейс
+    Сообщение для рассылки загружается из БД
+    """
     count = 0
     res = await sql.get_new_mailings()
     if res:
