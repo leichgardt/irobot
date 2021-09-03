@@ -212,6 +212,8 @@ class Texts:
         'Этот счёт уже был оплачен.')
     payments_online_already_canceled = T(
         'Этот счёт был отменён.')
+    payments_online_already_processing = T(
+        'Подождите, этот счёт уже обрабатывается.')
     payment_item_price = T(
         'Услуги доступа к сети Интернет по договору №{agrm}')
     payment_item_tax = T(
@@ -225,9 +227,9 @@ class Texts:
     payments_on_process = T(
         'Платёж обрабатывается.')
     payments_online_was_paid = T(emojize(
-        'Твой счёт на {amount} руб. только что оплатили :star_struck: Скоро средства поступят на твой баланс!'))
+        'Твой счёт на {amount} руб. только что оплатили :star-struck: Скоро средства поступят на твой баланс!'))
     payments_after_for_guest = T(
-        'Ты можешь авторизоваться!\nДля этого отправь мне /start')
+        'Ты можешь авторизоваться!\nДля этого отправь мне /start\nЧтобы узнать, что я умею отправь /help')
 
     backend_error = T(
         'Непредвиденная ошибка!')
