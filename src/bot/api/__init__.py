@@ -3,4 +3,4 @@ from .bot_api import (private_and_login_require, delete_message, clear_inline_me
 from .bot_functionality import (get_payment_hash, get_agrm_balances, get_hash, get_login_url, get_payment_price,
                                 get_invoice_params, get_payment_tax, get_all_agrm_data,
                                 get_promise_payment_agrms)
-from .bot_keyboard_master import get_keyboard
+from .bot_keyboard_master import get_keyboard, get_custom_button

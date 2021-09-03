@@ -74,7 +74,7 @@ async def help_message_h(message: types.Message, state: FSMContext):
 async def review_inline_h(message: types.Message, state: FSMContext):
     await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     await state.finish()
-    kb = get_keyboard(keyboards.get_review_btn(), keyboards.cancel_btn, keyboard_type='inline', row_size=5)
+    kb = get_keyboard(keyboards.get_review_btn(), keyboards.back_to_main, keyboard_type='inline', row_size=5)
     await ReviewFSM.rating.set()
     res = await run_cmd(bot.send_message(message.chat.id, Texts.review, Texts.review.parse_mode, reply_markup=kb))
     await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.review.parse_mode)

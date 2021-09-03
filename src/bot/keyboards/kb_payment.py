@@ -4,7 +4,13 @@ payment_choice_btn = (
         {'text': 'Обещанный платёж', 'callback_data': 'payments-promise'},
     ),
     (
-        {'text': 'Назад', 'callback_data': 'cancel'},
+        {'text': 'Назад', 'callback_data': 'main-menu'},
+    ),
+)
+
+back_to_payments_btn = (
+    (
+        {'text': 'Назад', 'callback_data': 'payments'},
     ),
 )
 

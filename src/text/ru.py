@@ -21,7 +21,7 @@ class T(str):
         """ Вернуть текст и его параметры. Формат вывода: (answer, text, parse_mode) """
         return (map_format(self.answer, **kwargs),
                 map_format(self.__str__, **kwargs),
-                map_format(self.parse_mode, **kwargs))
+                self.parse_mode)
 
 
 class Texts:
@@ -33,9 +33,13 @@ class Texts:
     non_auth = T(
         'Чтобы использовать бота, тебе надо авторизоваться.\nОтправь мне команду /start')
     cancel = T(
-        'Отменено.')
+        'Отменено')
     cancel.answer = \
         'Отмена'
+    back = T(
+        'Назад')
+    back.answer = \
+        'Назад'
 
     auth_success = T(emojize(
         'Ты успешно авторизовался под учётной записью {account} :tada:\nДобро пожаловать! :smile:\n\n'
@@ -206,6 +210,8 @@ class Texts:
         'Ошибка платежа. Попробуй ещё раз или обратись в службу технической поддержки')
     payments_online_already_have = T(
         'Этот счёт уже был оплачен.')
+    payments_online_already_canceled = T(
+        'Этот счёт был отменён.')
     payment_item_price = T(
         'Услуги доступа к сети Интернет по договору №{agrm}')
     payment_item_tax = T(

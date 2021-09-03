@@ -52,3 +52,7 @@ def get_keyboard(*args, keyboard_type='inline', lining=True, row_size=2, **kwarg
         if row:
             kb.row(*row)
     return kb
+
+
+def get_custom_button(text: str, query_path: str):
+    return (dict(text=text, callback_data=query_path),),
