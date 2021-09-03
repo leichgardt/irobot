@@ -3,7 +3,7 @@ import hashlib
 from aiogram import types
 from datetime import datetime
 
-from src.bot.text import Texts
+from src.text import Texts
 from src.lb import get_balance, get_account_agrms
 from src.sql import sql
 from src.utils import alogger, config

@@ -9,7 +9,7 @@ from src.sql import sql
 from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, delete_message,\
     update_inline_query, private_and_login_require, run_cmd
 from src.bot import keyboards
-from src.bot.text import Texts
+from src.text import Texts
 from .l2_settings import bot, dp
 
 

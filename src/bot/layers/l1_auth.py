@@ -9,7 +9,7 @@ from src.sql import sql
 from src.bot.api import (main_menu, private_and_login_require, get_keyboard, get_hash, get_login_url, run_cmd,
                          get_invoice_params, get_payment_tax)
 from src.bot import keyboards
-from src.bot.text import Texts
+from src.text import Texts
 
 try:
     from .l0_test import bot, dp

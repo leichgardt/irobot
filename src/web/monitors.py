@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from src.bot.text import Texts
+from src.text import Texts
 from src.bot.api import main_menu
 from src.lb import get_payments
 from src.sql import sql

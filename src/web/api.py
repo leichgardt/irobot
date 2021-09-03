@@ -8,7 +8,7 @@ from starlette.responses import Response
 from urllib.parse import urlparse, parse_qs
 
 from src.bot import keyboards
-from src.bot.text import Texts
+from src.text import Texts
 from src.bot.api import main_menu, get_keyboard, get_all_agrm_data
 from src.sql import sql
 from src.utils import config

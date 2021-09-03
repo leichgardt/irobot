@@ -5,7 +5,7 @@ from aiogram.utils import exceptions
 
 from src.bot.api import get_keyboard
 from src.bot import keyboards
-from src.bot.text import Texts
+from src.text import Texts
 from src.sql import sql
 from src.utils import config
 

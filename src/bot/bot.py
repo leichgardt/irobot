@@ -2,7 +2,7 @@ import uvloop
 import asyncio
 from aiogram.utils.executor import start_webhook
 
-from src.bot.text import Texts
+from src.text import Texts
 from src.bot.layers import bot, dp
 from src.lb import lb
 from src.sql import sql

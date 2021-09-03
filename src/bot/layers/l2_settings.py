@@ -7,7 +7,7 @@ from src.bot.api import (main_menu, get_keyboard, update_inline_query, delete_me
                          get_hash, get_login_url, run_cmd)
 from src.bot import keyboards
 from src.bot.api import get_all_agrm_data
-from src.bot.text import Texts
+from src.text import Texts
 from src.sql import sql
 from src.utils import alogger
 

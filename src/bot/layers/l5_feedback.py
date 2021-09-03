@@ -7,7 +7,7 @@ from src.utils import alogger
 from src.sql import sql
 from src.bot.api import main_menu, get_keyboard, update_inline_query, edit_inline_message, run_cmd
 from src.bot import keyboards
-from src.bot.text import Texts
+from src.text import Texts
 from .l4_payment import bot, dp
 
 

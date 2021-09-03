@@ -10,7 +10,7 @@ from src.bot import keyboards
 from src.bot.api import (main_menu, cancel_menu, edit_inline_message, update_inline_query, get_keyboard, delete_message,
                          private_and_login_require, get_payment_hash, run_cmd, get_invoice_params, get_payment_tax,
                          get_all_agrm_data, get_promise_payment_agrms, get_agrm_balances)
-from src.bot.text import Texts
+from src.text import Texts
 from src.lb import promise_payment, get_balance, payment
 from src.sql import sql
 from src.utils import alogger, map_format

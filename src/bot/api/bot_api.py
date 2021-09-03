@@ -7,7 +7,7 @@ from aiogram.dispatcher import FSMContext
 from src.sql import sql
 from src.bot.bot_core import bot
 from src.bot import keyboards
-from src.bot.text import Texts
+from src.text import Texts
 from src.bot.api.bot_keyboard_master import get_keyboard
 from src.utils import alogger
 
