@@ -7,17 +7,20 @@ account_settings_btn = (
 
 
 async def get_agrms_btn(chat_id=None, custom=None, prefix='agrm'):
-    from src.sql import sql
+    from src.bot.api import get_all_agrm_data
     rows, row = [], []
     if chat_id:
-        data = await sql.get_agrms(chat_id)
+        data = await get_all_agrm_data(chat_id, only_numbers=True)
     else:
         data = custom
     for agrm in data:
-        params = {'text': str(agrm), 'callback_data': f'{prefix}-{agrm}'}
+        if isinstance(agrm, dict):
+            params = dict(text=str(agrm['agrm']), callback_data='{}-{}'.format(prefix, agrm['agrm']))
+        else:
+            params = dict(text=str(agrm), callback_data=f'{prefix}-{agrm}')
         row.append(params)
         if len(row) == 2:
-            rows.append(row)
+            rows.append(tuple(row))
             row = []
     if row:
         rows.append(row)

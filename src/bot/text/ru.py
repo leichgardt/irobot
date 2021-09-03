@@ -1,7 +1,7 @@
 from aiogram.types import ParseMode
 from aiogram.utils.emoji import emojize
 
-from src.utils import config
+from src.utils import map_format
 
 
 class T(str):
@@ -11,14 +11,17 @@ class T(str):
         self.parse_mode = None
 
     def __call__(self, new_str: str):
-        """обновить значение переменной T"""
+        """ Обновить значение переменной текста T внутри класса Texts """
         new_t = T(new_str)
         new_t.parse_mode = self.parse_mode
         new_t.answer = self.answer
         return new_t
 
-    def full(self):
-        return self.answer, self.__str__, self.parse_mode
+    def full(self, **kwargs):
+        """ Вернуть текст и его параметры. Формат вывода: (answer, text, parse_mode) """
+        return (map_format(self.answer, **kwargs),
+                map_format(self.__str__, **kwargs),
+                map_format(self.parse_mode, **kwargs))
 
 
 class Texts:
@@ -28,7 +31,7 @@ class Texts:
     non_private = T(
         'Извини, я работаю только в приватном чате.')
     non_auth = T(
-        'Чтобы использовать бота, тебе надо авторизоваться, отправив команду /start')
+        'Чтобы использовать бота, тебе надо авторизоваться.\nОтправь мне команду /start')
     cancel = T(
         'Отменено.')
     cancel.answer = \
@@ -88,42 +91,53 @@ class Texts:
     settings_exited.answer = \
         'Успешный выход'
 
-    main_menu = T(
-        '{}\nВыбери пункт меню снизу.')
+    main_menu = T(emojize(
+        'Чем {} может тебе помочь?\nВыбери пункт меню снизу :point_down:'))
     main_menu.answer = \
         'Главное меню'
 
     balance = T(
-        'Баланс договора №{agrm}:\n{summ} руб.\n')
+        'Баланс договора <b>№{agrm}</b>:\n{summ} руб.\n')
+    balance.parse_mode = ParseMode.HTML
     balance.answer = \
         'Баланс'
     balance_credit = T(
         'Обещанный платёж:\n{cre} руб. до {date}\n')
+    balance_credit.parse_mode = balance.parse_mode
     balance_no_agrms = T(
-        'У тебя удалены все договоры. Добавь их в Настройках Договоров /settings')
+        'У тебя нет добавленных договоров. Добавь их в Настройках Учётных записей /settings')
 
     review = T(
         'Отзыв\n\nНа сколько звёзд от 1 до 5 меня оценишь? Или можешь просто написать, что обо мне думаешь.')
     review.answer = \
-        'Отзыв'
+        'Оставить отзыв'
     review_rate = T(
         'Отзыв\n\n<b>Оценка</b>: {rating}\nНапиши отзыв или отправь оценку.')
-    review_rate.parse_mode = ParseMode.HTML
     review_rate.answer = \
         'Оценил на {rating}!'
     review_with_comment = T(
-        '<b>Отзыв</b>: {comment}\n\n\nНапиши новое сообщение, чтобы изменить свой отзыв, или отправь это.')
-    review_with_comment.parse_mode = ParseMode.HTML
+        'Отзыв\n\n<b>Отзыв</b>: {comment}\n\nНапиши новое сообщение, чтобы изменить свой отзыв, или отправь этот.')
     review_full = T(
-        '<b>Отзыв</b>: {comment}\n\n<b>Оценка</b>: {rating}\n\nНапиши новое сообщение, чтобы изменить свой отзыв, '
-        'или отправь это.')
-    review_full.parse_mode = ParseMode.HTML
+        'Отзыв\n\n<b>Оценка</b>: {rating}\n<b>Отзыв</b>: {comment}\n\nНапиши новое сообщение, чтобы изменить свой '
+        'отзыв, или отправь это.')
+    review_result_full = T(
+        '<b>Оценка</b>: {rating}\n<b>Отзыв</b>: {comment}')
+    review_result_rate = T(
+        '<b>Оценка</b>: {rating}')
+    review_result_comment = T(
+        '<b>Отзыв</b>: {comment}')
+    review_rate.parse_mode = ParseMode.HTML
+    review_with_comment.parse_mode = review_rate.parse_mode
+    review_full.parse_mode = review_rate.parse_mode
+    review_result_full.parse_mode = review_rate.parse_mode
+    review_result_rate.parse_mode = review_rate.parse_mode
+    review_result_comment.parse_mode = review_rate.parse_mode
     review_done = T(emojize(
-        'Отзыв успешно отправлен! Спасибо огромное! Мы обязательно учтём твоё мнение :blush:'))
+        'Отзыв успешно отправлен!\nСпасибо тебе! Мы обязательно учтём твоё мнение :blush:'))
     review_done.answer = \
         'Отзыв отправлен'
     review_done_best = T(emojize(
-        'Отзыв успешно отправлен! Спасибо огромное! Мы стараемся изо всех сил :blush:'))
+        'Отзыв успешно отправлен :party:\nСпасибо огромное! Мы стараемся изо всех сил :blush:'))
     review_done_best.answer = review_done.answer
 
     help = T(

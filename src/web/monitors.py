@@ -12,12 +12,12 @@ async def auto_payment_monitor(logger):
     payments = await sql.find_processing_payments()
     if payments:
         await sql.cancel_old_new_payments()
-        for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified, inline, agrm_id in payments:
+        for pay_id, hash_code, chat_id, upd_date, agrm, amount, notified, inline in payments:
             if datetime.now() - upd_date > timedelta(hours=24):
                 await sql.upd_payment(hash_code, status='canceled')
                 logger.info(f'Payment monitor: canceled [{pay_id}]')
             else:
-                for lb_payment in await get_payments(agrm_id, days=1):  # загрузить из биллинга платежи за 1 сутки
+                for lb_payment in await get_payments(agrm, days=1):  # загрузить из биллинга платежи за 1 сутки
                     if not await sql.find_payments_by_record_id(lb_payment.pay.recordid):
                         if abs(float(lb_payment.amountcurr) - float(amount)) <= 0.01:
                             text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode

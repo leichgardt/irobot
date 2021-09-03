@@ -1,3 +1,5 @@
+import ujson
+
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -59,10 +61,11 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
                                        reply_markup=main_menu))
     else:
         await alogger.info(f'Start [{message.chat.id}]')
-        text = Texts.start.format(name=message.from_user.first_name)
+        text = Texts.start.format(name=(message.from_user.first_name or message.from_user.last_name
+                                        or message.from_user.username))
         hash_code = get_hash(message.chat.id)
         url = get_login_url(hash_code)
         res = await run_cmd(bot.send_message(message.chat.id, text, Texts.start.parse_mode,
                                              reply_markup=get_keyboard(keyboards.get_login_btn(url))))
         await sql.add_chat(message.chat.id, res.message_id, text, Texts.start.parse_mode, hash_code,
-                           message.from_user.as_json())
+                           ujson.loads(message.from_user.as_json()))

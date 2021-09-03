@@ -39,37 +39,25 @@ class SQLMaster(SQLCore):
         status = not status[0][0]
         await self.execute(f'UPDATE irobot.subs SET {field} = %s WHERE chat_id=%s', status, chat_id)
 
-    async def get_agrms(self, chat_id):
-        res = await self.execute('SELECT agrm FROM irobot.agrms WHERE chat_id=%s AND active=true', chat_id)
-        return [line[0] for line in res] if res else []
+    async def get_accounts(self, chat_id):
+        res = await self.execute('SELECT login FROM irobot.accounts WHERE chat_id=%s AND active=true', chat_id)
+        return [acc[0] for acc in res] if res else []
 
-    async def get_account_agrms(self, chat_id):
-        res = await self.execute('SELECT agrm, account FROM irobot.agrms WHERE chat_id=%s AND active=true', chat_id)
-        output = {}
+    async def add_account(self, chat_id, login):
+        res = await self.execute('SELECT active FROM irobot.accounts WHERE chat_id=%s AND login=%s AND active=false',
+                                 chat_id, login)
         if res:
-            for agrm, account in res:
-                if account not in output:
-                    output[account] = [agrm]
-                else:
-                    output[account].append(agrm)
-        return output
-
-    async def get_agrm_id(self, chat_id, agrm):
-        res = await self.execute('SELECT agrm_id FROM irobot.agrms WHERE chat_id=%s and agrm=%s', chat_id, agrm)
-        return res[0][0] if res else []
-
-    async def add_agrm(self, chat_id, agrm, agrm_id, login):
-        res = await self.execute('SELECT active FROM irobot.agrms WHERE chat_id=%s and agrm=%s', chat_id, agrm)
-        if res and not res[0][0]:
-            await self.execute('UPDATE irobot.agrms SET active=true, update_datetime=now() '
-                               'WHERE chat_id=%s AND agrm=%s', chat_id, agrm)
+            await self.execute('UPDATE irobot.accounts SET active=true WHERE chat_id=%s AND login=%s', chat_id, login)
         else:
-            await self.execute('INSERT INTO irobot.agrms(chat_id, agrm, agrm_id, account) VALUES (%s, %s, %s, %s)',
-                               chat_id, agrm, agrm_id, login)
+            await self.execute('INSERT INTO irobot.accounts (chat_id, login) VALUES (%s, %s)', chat_id, login)
 
-    async def deactivate_account(self, chat_id, account):
-        await self.execute('UPDATE irobot.agrms SET active=false, update_datetime=now() '
-                           'WHERE chat_id=%s AND account=%s', chat_id, account)
+    async def deactivate_account(self, chat_id: int, account: str = None):
+        if account:
+            await self.execute('UPDATE irobot.accounts SET active=false, update_datetime=now() '
+                               'WHERE chat_id=%s AND login=%s', chat_id, account)
+        else:
+            await self.execute('UPDATE irobot.accounts SET active=false, update_datetime=now() WHERE chat_id=%s',
+                               chat_id)
 
     async def get_inline(self, chat_id):
         res = await self.execute('SELECT inline_msg_id, inline_text, inline_parse_mode FROM irobot.subs '
@@ -102,10 +90,8 @@ class SQLMaster(SQLCore):
         return res[0] if res else res
 
     async def find_processing_payments(self):
-        return await self.execute(
-            'SELECT p.id, p.hash, p.chat_id, p.datetime, p.agrm, p.amount, p.notified, p.inline, a.agrm_id '
-            'FROM irobot.payments p JOIN irobot.agrms a ON p.agrm=a.agrm '
-            'WHERE p.status=%s OR p.status=%s', 'processing', 'success')
+        return await self.execute('SELECT id, hash, chat_id, datetime, agrm, amount, notified, inline '
+                                  'FROM irobot.payments WHERE status=%s OR status=%s', 'processing', 'success')
 
     async def cancel_old_new_payments(self):
         return await self.execute('UPDATE irobot.payments SET status= %s WHERE status=%s AND '
@@ -136,7 +122,7 @@ class SQLMaster(SQLCore):
         return res[0][0] if res else 0
 
     async def get_sub_agrms(self):
-        return await self.execute('SELECT s.chat_id, a.agrm, s.mailing FROM irobot.subs s JOIN irobot.agrms a '
+        return await self.execute('SELECT s.chat_id, a.login, s.mailing FROM irobot.subs s JOIN irobot.accounts a '
                                   'ON s.chat_id=a.chat_id WHERE s.subscribed=true ORDER BY s.chat_id')
 
     async def get_mailings(self):

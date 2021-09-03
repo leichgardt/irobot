@@ -3,8 +3,9 @@ import re
 
 
 def map_format(text: str, **kwargs):
-    for key, value in kwargs.items():
-        text = text.replace('{%s}' % key, str(value))
+    if text and kwargs:
+        for key, value in kwargs.items():
+            text = text.replace('{%s}' % key, str(value))
     return text
 
 

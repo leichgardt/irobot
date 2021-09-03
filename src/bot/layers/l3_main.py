@@ -18,6 +18,8 @@ class ReviewFSM(StatesGroup):
     comment = State()
 
 
+# _______________ Помощь _______________
+
 @dp.message_handler(Text('⛑ Помощь', ignore_case=True), state='*')
 @dp.message_handler(commands='help', state='*')
 @private_and_login_require(do_not_check_sub=True)
@@ -53,6 +55,8 @@ async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
+# _______________ Баланс _______________
+
 @dp.message_handler(commands='balance', state='*')
 @dp.message_handler(Text(emojize(':scales: Баланс'), ignore_case=True), state='*')
 @dp.async_task
@@ -60,8 +64,10 @@ async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
 async def help_message_h(message: types.Message, state: FSMContext):
     await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     text = await get_agrm_balances(message.chat.id)
-    await run_cmd(bot.send_message(message.chat.id, text, reply_markup=main_menu))
+    await run_cmd(bot.send_message(message.chat.id, text, Texts.balance.parse_mode, reply_markup=main_menu))
 
+
+# _______________ Отзыв _______________
 
 @dp.message_handler(Text('💩 Оставить отзыв', ignore_case=True), state='*')
 @private_and_login_require()
@@ -93,15 +99,15 @@ async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
 @dp.message_handler(state=[ReviewFSM.rating, ReviewFSM.comment])
 async def review_comment_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        await message.delete()
         data['comment'] = message.text
         rating = data['rating'] if 'rating' in data.keys() else 0
         kb = get_keyboard(keyboards.get_review_btn(rating), keyboards.review_btn, keyboard_type='inline', row_size=5)
-        if 'rating' in data.keys():
-            text = Texts.review_full.format(comment=data['comment'], rating=data['rating'])
+        if rating:
+            _, text, parse = Texts.review_full.full(comment=data['comment'], rating=data['rating'])
         else:
-            text = Texts.review_with_comment.format(comment=data['comment'])
-        await edit_inline_message(message.chat.id, text, reply_markup=kb)
+            _, text, parse = Texts.review_with_comment.full(comment=data['comment'])
+        await delete_message(message)
+        await edit_inline_message(message.chat.id, text, parse, reply_markup=kb)
 
 
 @dp.callback_query_handler(text='send-review', state=[ReviewFSM.rating, ReviewFSM.comment])
@@ -110,14 +116,19 @@ async def review_send_inline_h(query: types.CallbackQuery, state: FSMContext):
         rating = data['rating'] if 'rating' in data.keys() else None
         comment = data['comment'] if 'comment' in data.keys() else None
         await sql.add_review(query.message.chat.id, rating, comment)
-        await state.finish()
-        text = query.message.text.rsplit('\n\n', 1)[0]
-        await edit_inline_message(query.message.chat.id, text)
+        if rating and comment:
+            _, text, parse = Texts.review_result_full.full(comment=data['comment'], rating=data['rating'])
+        elif rating and not comment:
+            _, text, parse = Texts.review_result_rate.full(rating=data['rating'])
+        else:
+            _, text, parse = Texts.review_result_comment.full(comment=data['comment'])
+        await edit_inline_message(query.message.chat.id, text, parse)
         await query.answer(Texts.review_done.answer)
         if rating and rating == 5:
             text, parse = Texts.review_done_best, Texts.review_done_best.parse_mode
         else:
             text, parse = Texts.review_done, Texts.review_done.parse_mode
         await run_cmd(bot.send_message(query.message.chat.id, text, parse, reply_markup=main_menu))
-        await alogger.info(f'New review saved [{query.message.chat.id}]')
+        await state.finish()
         await sql.upd_inline(query.message.chat.id, 0, '')
+        await alogger.info(f'New review saved [{query.message.chat.id}]')

@@ -163,15 +163,15 @@ async def login_try(response: Response,
     response: -2 - не переданы данные (agrm/password/hash)
     """
     if item.login and item.pwd and item.hash:
-        res, agrms_data = await check_account_pass(item.login, item.pwd)
+        res = await check_account_pass(item.login, item.pwd)
         if res == 1:
             chat_id = await sql.find_chat_by_hash(item.hash)
             if chat_id:
-                if item.login in await sql.get_agrms(chat_id):
-                    logger.info(f'Login: agrm already added [{chat_id}]')
+                if item.login in await sql.get_accounts(chat_id):
+                    logger.info(f'Login: account already added [{chat_id}]')
                     return {'response': 2}
                 logger.info(f'Logining [{chat_id}]')
-                background_tasks.add_task(logining, chat_id, item.login, agrms_data)
+                background_tasks.add_task(logining, chat_id, item.login)
                 response.status_code = 202
                 return {'response': 1}
             else:
@@ -235,48 +235,49 @@ async def send_mailing(request: Request,
         return {'response': 0, 'error': 'wrong mail_type'}
 
 
-@app.get('/api/new_payment')
-async def new_yoomoney_payment(request: Request, hash: str = None):
-    """Перевести платёж в состояние "processing" для отслеживания монитором payment_monitor"""
-    if hash:
-        sql_data = await sql.find_payment(hash)
-        res = await handle_new_payment_request(hash, sql_data)
-        if res == 1:  # это новый платёж - перенаправить на страницу оплаты
-            return RedirectResponse(sql_data[2], 302)
-        elif res == 0:  # это старый платёж - вернуться к телеграм боту
-            await asyncio.sleep(0.8)
-            return Response(back_url, 301)
-        else:  # непредвиденная ошибка
-            return Response('Backend error', 500)
-    return Response('Hash code not found', 400)
-
-
-@app.get('/api/payment')
-@app.post('/api/payment')
-async def get_yoomoney_payment(request: Request):
-    """
-    Обработчик ответов от yoomoney
-
-    В платеже есть параметры shopSuccessURL и shopFailURL.
-    В зависимости от ответа меняется текст ответа пользователю и запись в БД.
-    """
-    data = await get_request_data(request)
-    if data:
-        if 'res' in data and data['res'] in ['success', 'fail']:
-            hash_code = None
-            if 'hash' in data:
-                hash_code = data['hash']
-            elif 'shopSuccessURL' in data or 'shopFailURL' in data:
-                url = data.get('shopSuccessURL') or data.get('shopFailURL') or ''
-                params = get_query_params(url)
-                if 'hash' in params:
-                    hash_code = params['hash'][0]
-            if hash_code:
-                await handle_payment_response(logger, data['res'], hash_code)
-                return Response(back_url, 301)
-            return RedirectResponse(config['yandex']['fallback-url'] + data['res'], 301)
-    logger.warning(f'Bad payment request from {request.client.host}')
-    return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
+# @app.get('/api/new_payment')
+# async def new_yoomoney_payment(request: Request, hash: str = None):
+#     """Перевести платёж в состояние "processing" для отслеживания монитором payment_monitor"""
+#     if hash:
+#         sql_data = await sql.find_payment(hash)
+#         res = await handle_new_payment_request(hash, sql_data)
+#         if res == 1:  # это новый платёж - перенаправить на страницу оплаты
+#             return RedirectResponse(sql_data[2], 302)
+#         elif res == 0:  # это старый платёж - вернуться к телеграм боту
+#             await asyncio.sleep(0.8)
+#             return Response(back_url, 301)
+#         else:  # непредвиденная ошибка
+#             return Response('Backend error', 500)
+#     return Response('Hash code not found', 400)
+#
+#
+# @app.get('/api/payment')
+# @app.post('/api/payment')
+# async def get_yoomoney_payment(request: Request):
+#     """
+#     Обработчик ответов от yoomoney
+#
+#     В платеже есть параметры shopSuccessURL и shopFailURL.
+#     В зависимости от ответа меняется текст ответа пользователю и запись в БД.
+#     """
+#     data = await get_request_data(request)
+#     if data:
+#         print('data', data)
+#         if 'res' in data and data['res'] in ['success', 'fail']:
+#             hash_code = None
+#             if 'hash' in data:
+#                 hash_code = data['hash']
+#             elif 'shopSuccessURL' in data or 'shopFailURL' in data:
+#                 url = data.get('shopSuccessURL') or data.get('shopFailURL') or ''
+#                 params = get_query_params(url)
+#                 if 'hash' in params:
+#                     hash_code = params['hash'][0]
+#             if hash_code:
+#                 await handle_payment_response(logger, data['res'], hash_code)
+#                 return Response(back_url, 301)
+#             return RedirectResponse(config['yandex']['fallback-url'] + data['res'], 301)
+#     logger.warning(f'Bad payment request from {request.client.host}')
+#     return RedirectResponse(config['yandex']['fallback-url'] + 'fail', 301)
 
 
 @app.post('/api/status')

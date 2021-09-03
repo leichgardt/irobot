@@ -8,7 +8,8 @@ from aiogram.utils.emoji import emojize
 
 from src.bot import keyboards
 from src.bot.api import (main_menu, cancel_menu, edit_inline_message, update_inline_query, get_keyboard, delete_message,
-                         private_and_login_require, get_payment_hash, run_cmd, get_invoice_params, get_payment_tax)
+                         private_and_login_require, get_payment_hash, run_cmd, get_invoice_params, get_payment_tax,
+                         get_all_agrm_data, get_promise_payment_agrms, get_agrm_balances)
 from src.bot.text import Texts
 from src.lb import promise_payment, get_balance, payment
 from src.sql import sql
@@ -18,12 +19,15 @@ from .l3_main import bot, dp
 
 
 class PaymentFSM(StatesGroup):
+    # доп. данные
+    hash = State()
+    agrm_data = State()
+    balance = State()
+    # этапы
     operation = State()
     agrm = State()
-    balance = State()
     amount = State()
     payment = State()
-    hash = State()
 
 
 @dp.message_handler(Text(emojize(':moneybag: Платежи')), state='*')
@@ -42,54 +46,60 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
     async with state.proxy() as data:
         await PaymentFSM.next()
         data['operation'] = 'online'
-        agrms = await sql.get_agrms(query.message.chat.id)
-        if len(agrms) == 0:
+        data['agrm_data'] = await get_all_agrm_data(query.message.chat.id)
+        if len(data['agrm_data']) == 0:
             answer, text, parse = Texts.balance_no_agrms.full()
             kb = main_menu
             await state.finish()
-        elif len(agrms) == 1:
-            data['agrm'] = agrms[0]
+        elif len(data['agrm_data']) == 1:
+            data['agrm'] = data['agrm_data'][0]['agrm']
             answer, text, parse = Texts.payments_online_amount.full()
-            balance = await get_balance(data['agrm'])
-            data['balance'] = balance['balance']
+            res = await get_balance(agrm_data=data['agrm_data'][0])
+            data['balance'] = res['balance']
             text = map_format(text, balance=data['balance'])
             kb = cancel_menu['inline']
             await PaymentFSM.amount.set()
             answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'])
         else:
             answer, text, parse = Texts.payments_online.full()
-            kb = get_keyboard(await keyboards.get_agrms_btn(custom=agrms), keyboards.back_to_main)
+            kb = get_keyboard(await keyboards.get_agrms_btn(custom=data['agrm_data']), keyboards.back_to_main)
+            await PaymentFSM.agrm.set()
         await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
 
 @dp.callback_query_handler(text='payments-promise', state=PaymentFSM.operation)
+@dp.async_task
 async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
-    """ Обещанный платёж """
+    """
+    Обещанный платёж
+
+    Функция проверяет к каким договорам можно подключить обещанный платёж, и показывает только их.
+    """
     async with state.proxy() as data:
-        await PaymentFSM.next()
         data['operation'] = 'promise'
-        agrms = await sql.get_agrms(query.message.chat.id)
-        if len(agrms) == 0:
+        data['agrm_data'] = await get_all_agrm_data(query.message.chat.id)
+        data['amount'] = 100
+        if len(data['agrm_data']) == 0:
             answer, text, parse = Texts.balance_no_agrms.full()
             kb = main_menu
             await state.finish()
-        elif len(agrms) == 1:
-            data['agrm'] = agrms[0]
-            agrms = await keyboards.get_promise_payment_agrms(query.message.chat.id, agrms)
-            if agrms:
-                data['amount'] = 100
+        else:
+            agrms = await get_promise_payment_agrms(agrms=data['agrm_data'])
+            if len(agrms) == 1:
+                data['agrm'] = agrms[0]['agrm']
                 answer, text, parse = Texts.payments_promise_offer.full()
                 kb = get_keyboard(keyboards.confirm_btn)
-                await PaymentFSM.amount.set()
+                answer = answer.format(agrm=data['agrm'])
+                text = text.format(agrm=data['agrm'])
+                await PaymentFSM.payment.set()
+            elif len(agrms) > 1:
+                answer, text, parse = Texts.payments_promise.full()
+                kb = get_keyboard(await keyboards.get_agrms_btn(custom=agrms), keyboards.back_to_main)
+                await PaymentFSM.next()
             else:
                 answer, text, parse = Texts.payments_promise_already_have.full()
                 kb = main_menu
                 await state.finish()
-            answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'])
-        else:
-            answer, text, parse = Texts.payments_promise.full()
-            kb = get_keyboard(await keyboards.get_promise_payment_btn(query.message.chat.id, agrms),
-                              keyboards.back_to_main)
         await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
 
@@ -100,12 +110,11 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
         await PaymentFSM.amount.set()
         data['agrm'] = query.data[5:]
         if data['operation'] == 'promise':
-            data['amount'] = 100
             answer, text, parse = Texts.payments_promise_offer.full()
             kb = get_keyboard(keyboards.confirm_btn)
         else:
             answer, text, parse = Texts.payments_online_amount.full()
-            balance = await get_balance(data['agrm'])
+            balance = await get_balance(agrmnum=data['agrm'])
             data['balance'] = balance['balance']
             text = map_format(text, balance=data['balance'])
             kb = cancel_menu['inline']
@@ -196,66 +205,77 @@ async def got_payment(message: types.Message, state: FSMContext):
     Сотрудники должны сверить входящие платежи в личном кабинете YooKassa, данные о платежах в Биллинге и
     состояние платежа в БД "iccup". И, в случае обнаружения ошибки, они должны провести платёж вручную.
     """
-    payment_hash = message.successful_payment.invoice_payload
     payment_receipt = message.successful_payment.provider_payment_charge_id
-    payment_data = await sql.find_payment(payment_hash)
-    if payment_data:
-        extra_payment_upd = {}
-        await delete_message(payment_data['chat_id'])
-        if message.chat.id == payment_data['chat_id']:
-            # оплатил тот же кто и создал платёж
-            _, text, parse = Texts.payments_online_success.full()
-            await run_cmd(bot.send_message(payment_data['chat_id'], text, parse, reply_markup=main_menu))
-        else:
-            # оплатил другой пользователь
-            extra_payment_upd['user_data'] = ujson.loads(message.from_user.as_json())
-            await run_cmd(bot.send_message(
-                payment_data['chat_id'], Texts.payments_online_was_paid.format(amount=payment_data['amount']),
-                Texts.payments_online_was_paid.parse_mode, reply_markup=main_menu
-            ))
-            _, text, parse = Texts.payments_online_success_short.full()
-            await run_cmd(bot.send_message(message.chat.id, text, parse))
-            if not await sql.get_sub(message.chat.id):
-                _, text, parse = Texts.payments_after_for_guest.full()
+    payment_hash = message.successful_payment.invoice_payload
+    if payment_hash:
+        payment_data = await sql.find_payment(payment_hash)
+        if payment_data:
+            extra_payment_upd = {}
+            await delete_message(payment_data['chat_id'])
+            if message.chat.id == payment_data['chat_id']:
+                # оплатил тот же кто и создал платёж
+                _, text, parse = Texts.payments_online_success.full()
+                await run_cmd(bot.send_message(payment_data['chat_id'], text, parse, reply_markup=main_menu))
+            else:
+                # оплатил другой пользователь
+                extra_payment_upd['payer'] = ujson.loads(message.from_user.as_json())
+                await run_cmd(bot.send_message(
+                    payment_data['chat_id'], Texts.payments_online_was_paid.format(amount=payment_data['amount']),
+                    Texts.payments_online_was_paid.parse_mode, reply_markup=main_menu
+                ))
+                _, text, parse = Texts.payments_online_success_short.full()
                 await run_cmd(bot.send_message(message.chat.id, text, parse))
-        try:
-            # TODO: agrm to agrm_id !!!
-            rec_id = await payment(payment_data['agrm'], payment_data['amount'], payment_receipt, message.date)
-        except Exception as e:
-            await sql.upd_payment(payment_hash, status='error')
-            await alogger.info('Payment Bad attempt [{}]: {}'.format(payment_data['payment_id'], e))
+                if not await sql.get_sub(message.chat.id):
+                    _, text, parse = Texts.payments_after_for_guest.full()
+                    await run_cmd(bot.send_message(message.chat.id, text, parse))
+            try:
+                rec_id = await payment(payment_data['agrm'], payment_data['amount'], payment_receipt, message.date)
+            except Exception as e:
+                await sql.upd_payment(payment_hash, status='error')
+                await alogger.info('Payment Bad attempt [{}]: {}'.format(payment_data['payment_id'], e))
+            else:
+                if rec_id:
+                    await sql.upd_payment(payment_hash, status='finished', record_id=rec_id, receipt=payment_receipt,
+                                          **extra_payment_upd)
         else:
-            await sql.upd_payment(payment_hash, status='finished', record_id=rec_id)#, **extra_payment_upd)
+            await alogger.error(f'Cannot find a payment. Payment receipt: {payment_receipt}')  # ошибка платежа, manual handling required
     else:
-        await alogger.error(f'Cannot find a payment, strange payment PAYLOAD: "{payment_hash}". Payment receipt: {payment_receipt}')  # ошибка платежа, manual handling required
+        await alogger.error(f'Cannot find a payment, strange payment PAYLOAD: "{payment_hash}". '
+                            f'Payment receipt: {payment_receipt}')  # ошибка платежа, manual handling required
     if await state.get_state() == PaymentFSM.payment.state:
         await state.finish()
 
 
-@dp.callback_query_handler(text='yes', state=PaymentFSM.amount)
+@dp.callback_query_handler(text='yes', state=PaymentFSM.payment)
 @dp.async_task
 async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
     """ Обещанный платеж """
     async with state.proxy() as data:
-        agrm_id = await sql.get_agrm_id(query.message.chat.id, data['agrm'])
-        res = await promise_payment(agrm_id, data['amount'])
-        if res:
-            answer, text, parse = Texts.payments_promise_success.full()
-            await alogger.info(f'Payment success [{query.message.chat.id}]')
+        agrm_id = [agrm['agrm_id'] for agrm in data['agrm_data'] if agrm['agrm'] == data['agrm']]
+        if not agrm_id:
+            await alogger.error(f'Promise payment error! Cannot get agrm_id from agrm "{data["agrm"]}": {data["agrm_data"]}')
+            await run_cmd(bot.send_message(query.message.chat.id, Texts.backend_error, Texts.backend_error.parse_mode,
+                                           reply_markup=main_menu))
         else:
-            answer, text, parse = Texts.payments_promise_fail.full()
-            await alogger.warning(f'Payment failure [{query.message.chat.id}]')
-        await update_inline_query(query, answer, text, parse, alert=True)
+            res = await promise_payment(agrm_id[0], data['amount'])
+            if res:
+                answer, text, parse = Texts.payments_promise_success.full()
+                await alogger.info(f'Payment success [{query.message.chat.id}]')
+            else:
+                answer, text, parse = Texts.payments_promise_fail.full()
+                await alogger.warning(f'Payment failure [{query.message.chat.id}]')
+            await update_inline_query(query, answer, text, parse, alert=True)
+            text = await get_agrm_balances(query.message.chat.id)
+            await run_cmd(bot.send_message(query.message.chat.id, text, Texts.balance.parse_mode,
+                                           reply_markup=main_menu))
         await state.finish()
-        await run_cmd(bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode,
-                                       reply_markup=main_menu))
 
 
-@dp.callback_query_handler(text='no', state=PaymentFSM.amount)  # обещанный платёж
+@dp.callback_query_handler(text='no', state=PaymentFSM.payment)  # обещанный платёж
 @dp.callback_query_handler(text='cancel', state=PaymentFSM.states)  # онлайн оплата
-async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
+async def inline_h_payments_cancel(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         await update_inline_query(query, *Texts.cancel.full(), reply_markup=main_menu)
-        if data['operation'] == 'online' and 'hash' in data.keys():
+        if 'operation' in data.keys() and data['operation'] == 'online' and 'hash' in data.keys():
             await sql.upd_payment(data['hash'], status='canceled')
         await state.finish()

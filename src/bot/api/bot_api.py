@@ -145,7 +145,8 @@ async def update_inline_query(
         btn_list: list = None,
         reply_markup: types.InlineKeyboardMarkup = None):
     """
-    Обновить inline query сообщение, его текст, клавиатуру и т.д., а так же вызвать Ответ на этот inline запрос
+    Обновить inline query сообщение, его текст, клавиатуру и т.д., а так же вызвать Ответ на этот inline запрос.
+    Используйте, когда нужно обработать нажатие inline кнопки сообщения для изменения содержания этого сообщения.
 
     :param query: Объект запроса
     :param answer: Текст ответа на запрос
@@ -168,7 +169,7 @@ async def update_inline_query(
         await run_cmd(bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=reply_markup))
     else:
         await query.answer(answer, show_alert=alert)
-        await sql.upd_inline(query.message.chat.id, query.message.message_id, query.message.text, parse_mode=parse_mode)
+        await sql.upd_inline(query.message.chat.id, query.message.message_id, text, parse_mode=parse_mode)
 
 
 main_menu = get_keyboard(keyboards.main_menu_btn, keyboard_type='reply', one_time_keyboard=True)
