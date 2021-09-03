@@ -5,7 +5,7 @@ from aiogram.dispatcher import Dispatcher
 
 from src.utils import config
 
-API_TOKEN = config['tesseract']['token-iro-mega-bot']
+API_TOKEN = config['irobot']['token']  # config['irobot']['token-test']
 
 storage = MongoStorage(host=config['paladin']['cup'], port=27017, db_name='aiogram_fsm')
 
