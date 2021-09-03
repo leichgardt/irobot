@@ -88,7 +88,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
     Функция проверяет к каким договорам можно подключить обещанный платёж, и показывает только их.
     """
     async with state.proxy() as data:
-        if query.data != 'no':
+        if query.data == 'payments-promise':
             data['operation'] = 'promise'
             data['agrm_data'] = await get_all_agrm_data(query.message.chat.id)
             data['amount'] = 100
@@ -255,19 +255,21 @@ async def got_payment(message: types.Message, state: FSMContext):
     """
     Обработчик успешного платежа (перевода)
 
-    Telegram Платежи 2.0 не поддерживают передачу данных для Платёжных систем (например, YooKassa),
-    чтобы эти системы автоматически проводили пополнение счёта абонента (то есть запрос от YooKassa в LanBilling),
+    Telegram Платежи 2.0 не поддерживают передачу данных напрямую в Платёжную систему (например, YooKassa), чтобы
+    эта система автоматически проводила пополнение счёта абонента (то есть посылала запрос на LanBilling),
     так как "платежи" здесь являются скорее "переводом средств" (но все равно с формированием чеков).
-    Поэтому функционал пополнения счёта Договров был реализован здесь, который выполняется после "получения перевода".
+    Поэтому функционал пополнения счётов Договров был реализован здесь, который выполняется после получения "перевода".
 
-    С платежом в Payload передаётся hash_code записи в БД (iccup.irobot.payments), по нему находятся данные о платеже,
-    такие как Договор, Сумма, Время и т.д. По этим данным уже выполняется запрос в систему LanBilling для
-    пополнения счёта договра.
+    Вместе с SUCCESSFUL_PAYMENT в Payload передаётся hash_code платежа (записи в БД iccup.irobot.payments), по нему
+    находятся сохранённые данные о платеже, такие как Номер Договора, Сумма, Время создания и т.д. По этим данным
+    уже выполняется запрос в систему LanBilling для пополнения счёта договора.
 
-    Если hash_code не был распознан, то необходимо вручную провести платёж - запускается протокол
-    ручного проведения платежа: уведомляется отдел по работе с клиентами.
+    Если hash_code не был распознан, то необходимо вручную провести платёж, так как средства поступили, а платёж в БД
+    определить не удастся. Поэтому запускается протокол ручного проведения платежа: уведомляется отдел по работе
+    с клиентами.
     Сотрудники должны сверить входящие платежи в личном кабинете YooKassa, данные о платежах в Биллинге и
-    состояние платежа в БД "iccup". И, в случае обнаружения ошибки, они должны провести платёж вручную.
+    состояние платежа в БД "iccup". И, в случае обнаружения ошибки, они должны провести платёж вручную или вернуть
+    средства.
     """
     payment_receipt = message.successful_payment.provider_payment_charge_id
     payment_hash = message.successful_payment.invoice_payload
@@ -278,6 +280,8 @@ async def got_payment(message: types.Message, state: FSMContext):
             await delete_message(payment_data['chat_id'])
             if message.chat.id == payment_data['chat_id']:
                 # оплатил тот же кто и создал платёж
+                if await state.get_state() == PaymentFSM.payment.state:
+                    await state.finish()
                 _, text, parse = Texts.payments_online_success.full()
                 await run_cmd(bot.send_message(payment_data['chat_id'], text, parse, reply_markup=main_menu))
             else:
@@ -292,19 +296,16 @@ async def got_payment(message: types.Message, state: FSMContext):
                 if not await sql.get_sub(message.chat.id):
                     _, text, parse = Texts.payments_after_for_guest.full()
                     await run_cmd(bot.send_message(message.chat.id, text, parse))
-            try:
-                rec_id = await payment(payment_data['agrm'], payment_data['amount'], payment_receipt, message.date)
-            except Exception as e:
-                await sql.upd_payment(payment_hash, status='error')
-                await alogger.info('Payment Bad attempt [{}]: {}'.format(payment_data['payment_id'], e))
+            rec_id = await payment(payment_data['agrm'], payment_data['amount'], payment_receipt, message.date)
+            if rec_id:
+                await sql.upd_payment(payment_hash, status='finished' if rec_id else 'error', record_id=rec_id,
+                                      receipt=payment_receipt, **extra_payment_upd)
             else:
-                if rec_id:
-                    await sql.upd_payment(payment_hash, status='finished', record_id=rec_id, receipt=payment_receipt,
-                                          **extra_payment_upd)
+                await sql.upd_payment(payment_hash, status='error')
+                await alogger.info('Bad Payment [{}]: payment ID: {}'.format(payment_data['chat_id'],
+                                                                             payment_data['payment_id']))
         else:
             await alogger.error(f'Cannot find a payment. Payment receipt: {payment_receipt}')  # ошибка платежа, manual handling required
     else:
         await alogger.error(f'Cannot find a payment, strange payment PAYLOAD: "{payment_hash}". '
                             f'Payment receipt: {payment_receipt}')  # ошибка платежа, manual handling required
-    if await state.get_state() == PaymentFSM.payment.state:
-        await state.finish()

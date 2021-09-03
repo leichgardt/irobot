@@ -46,9 +46,6 @@ class CustomAsyncClient(AsyncClient):
 
 
 class LBZeepCore:
-    get_datetime = get_datetime
-    get_phone_number = get_phone_number
-
     def __init__(self, logger=alogger):
         self.user = config['lanbilling']['user']
         self.__password = config['lanbilling']['password']
@@ -61,6 +58,9 @@ class LBZeepCore:
         self._httpx_client: httpx.AsyncClient = httpx.AsyncClient(auth=(self.user, self.__password))
         self._wsdl_client: httpx.Client = httpx.Client(auth=(self.user, self.__password))
         self.logger = logger
+        # extra methods
+        self.get_datetime = get_datetime
+        self.get_phone_number = get_phone_number
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
