@@ -15,7 +15,7 @@ from src.web import (
     SoloWorker, Table,
     telegram_api, broadcast, logining,
     auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor)
-from src.lb import lb, check_account_pass
+from src.lb import lb
 from guni import workers
 
 VERSION = '1.0.0'
@@ -161,7 +161,7 @@ async def login_try(response: Response,
     response: -2 - не переданы данные (agrm/password/hash)
     """
     if item.login and item.pwd and item.hash:
-        res = await check_account_pass(item.login, item.pwd)
+        res = await lb.check_account_pass(item.login, item.pwd)
         if res == 1:
             chat_id = await sql.find_chat_by_hash(item.hash)
             if chat_id:

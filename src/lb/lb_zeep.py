@@ -140,10 +140,3 @@ class LBZeepCore:
                 return []
         else:
             return res
-
-
-lb = LBZeepCore()
-
-
-async def lb_request(*args, **kwargs):
-    return await lb.direct_request(*args, **kwargs)

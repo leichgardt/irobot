@@ -11,7 +11,7 @@ from src.bot.api import (main_menu, edit_inline_message, update_inline_query, ge
                          private_and_login_require, get_payment_hash, run_cmd, get_invoice_params, get_payment_tax,
                          get_all_agrm_data, get_promise_payment_agrms, get_agrm_balances, get_custom_button)
 from src.text import Texts
-from src.lb import promise_payment, get_balance, payment
+from src.lb import lb
 from src.sql import sql
 from src.utils import alogger, map_format
 
@@ -66,7 +66,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
             await PaymentFSM.amount.set()
             data['agrm'] = data['agrm_data'][0]['agrm']
             answer, text, parse = Texts.payments_online_amount.full()
-            res = await get_balance(agrm_data=data['agrm_data'][0])
+            res = await lb.get_balance(agrm_data=data['agrm_data'][0])
             data['balance'] = res['balance']
             text = map_format(text, balance=data['balance'])
             kb = get_keyboard(keyboards.back_to_payments_btn)
@@ -131,7 +131,7 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
         else:
             await PaymentFSM.amount.set()
             answer, text, parse = Texts.payments_online_amount.full()
-            balance = await get_balance(agrmnum=data['agrm'])
+            balance = await lb.get_balance(agrmnum=data['agrm'])
             data['balance'] = balance['balance']
             text = map_format(text, balance=data['balance'])
             kb = get_keyboard(get_custom_button(Texts.back, 'payments-online'))
@@ -152,7 +152,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
             await run_cmd(bot.send_message(query.message.chat.id, Texts.backend_error, Texts.backend_error.parse_mode,
                                            reply_markup=main_menu))
         else:
-            res = await promise_payment(agrm_id[0], data['amount'])
+            res = await lb.promise_payment(agrm_id[0], data['amount'])
             if res:
                 answer, text, parse = Texts.payments_promise_success.full()
                 await alogger.info(f'Payment success [{query.message.chat.id}]')
@@ -302,7 +302,7 @@ async def got_payment(message: types.Message, state: FSMContext):
                 if not await sql.get_sub(message.chat.id):
                     _, text, parse = Texts.payments_after_for_guest.full()
                     await run_cmd(bot.send_message(message.chat.id, text, parse))
-            rec_id = await payment(payment_data['agrm'], payment_data['amount'], params['receipt'], message.date)
+            rec_id = await lb.new_payment(payment_data['agrm'], payment_data['amount'], params['receipt'], message.date)
             if rec_id:
                 params['status'] = 'success'
                 params['record_id'] = rec_id

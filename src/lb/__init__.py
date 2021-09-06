@@ -1,2 +1,1 @@
-from .lb_api import *
-from .lb_zeep import lb
+from .lb_api import lb

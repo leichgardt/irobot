@@ -4,7 +4,7 @@ from aiogram import types
 from datetime import datetime
 
 from src.text import Texts
-from src.lb import get_balance, get_account_agrms
+from src.lb import lb
 from src.sql import sql
 from src.utils import alogger, config
 
@@ -58,7 +58,7 @@ async def get_agrm_balances(chat_id):
     if data:
         for agrms in data.values():
             for agrm in agrms:
-                bal = await get_balance(agrmnum=agrm)
+                bal = await lb.get_balance(agrmnum=agrm)
                 if bal:
                     text.append(Texts.balance.format(agrm=agrm, summ=bal['balance']))
                     if 'credit' in bal:
@@ -74,7 +74,7 @@ async def get_all_agrm_data(chat_id, *, only_numbers=False):
     output = {}
     accounts = await sql.get_accounts(chat_id)
     for account in accounts:
-        agrms = await get_account_agrms(account)
+        agrms = await lb.get_account_agrms(account)
         for agrm in agrms:
             if only_numbers:
                 output[account] = [agrm['agrm'] for agrm in agrms]
@@ -87,15 +87,14 @@ async def get_promise_payment_agrms(*, chat_id: int = None, agrms: list = None):
     """
     Договоры, доступные для обещанного платежа для определённого чата `chat_id` или из предоставленного списка `agrms`
     """
-    from src.lb import promise_available, get_account_agrms
     output = []
     if chat_id:
         agrms = []
         accounts = await sql.get_accounts(chat_id)
         for account in accounts:
-            agrms += await get_account_agrms(account)
+            agrms += await lb.get_account_agrms(account)
     if agrms:
         for agrm in agrms:
-            if await promise_available(agrm):
+            if await lb.promise_available(agrm):
                 output.append(agrm)
     return output

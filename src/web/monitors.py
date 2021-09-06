@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from src.text import Texts
 from src.bot.api import main_menu
-from src.lb import get_payments
+from src.lb import lb
 from src.sql import sql
 from src.web.userside import USPipe
 from src.web.telegram_api import send_feedback, send_message, delete_message
@@ -17,7 +17,7 @@ async def auto_payment_monitor(logger):
                 await sql.upd_payment(hash_code, status='canceled')
                 logger.info(f'Payment monitor: canceled [{pay_id}]')
             else:
-                for lb_payment in await get_payments(agrm, days=1):  # загрузить из биллинга платежи за 1 сутки
+                for lb_payment in await lb.get_payments(agrm, days=1):  # загрузить из биллинга платежи за 1 сутки
                     if not await sql.find_payments_by_record_id(lb_payment.pay.recordid):
                         if abs(float(lb_payment.amountcurr) - float(amount)) <= 0.01:
                             text, parse = Texts.payments_online_success, Texts.payments_online_success.parse_mode
