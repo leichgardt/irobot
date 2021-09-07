@@ -14,7 +14,8 @@ from src.web import (
     lan_require,
     SoloWorker, Table,
     telegram_api, broadcast, logining,
-    auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor)
+    auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor
+)
 from src.lb import lb
 from guni import workers
 
@@ -55,12 +56,7 @@ async def update_params():
 @repeat_every(seconds=30)
 @sw.solo_worker(task='monitor')
 async def payment_monitor():
-    """
-    Поиск незавершенных платежей.
-
-    Чтобы завершить платёж, пользователь должен нажать на кнопку "Вернуться в магазин"  на странице оплаты.
-    Если он этого не сделает, то эта функция автоматически найдет платёж в БД и в Биллинге, сопоставит
-    их и уведомит абонента об успешной платеже."""
+    """ Поиск платежей с ошибками и попытка провести платёж еще раз """
     await auto_payment_monitor(logger)
 
 

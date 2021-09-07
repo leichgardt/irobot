@@ -90,8 +90,8 @@ class SQLMaster(SQLCore):
         return res[0] if res else []
 
     async def find_processing_payments(self):
-        return await self.execute('SELECT id, hash, chat_id, datetime, agrm, amount, notified, inline '
-                                  'FROM irobot.payments WHERE status=%s OR status=%s', 'processing', 'success')
+        return await self.execute('SELECT id, hash, chat_id, status, update_datetime, agrm, amount, inline, receipt '
+                                  'FROM irobot.payments WHERE status=ANY(%s)', ['processing', 'error'], as_dict=True)
 
     async def cancel_old_new_payments(self):
         return await self.execute('UPDATE irobot.payments SET status= %s WHERE status=%s AND '
