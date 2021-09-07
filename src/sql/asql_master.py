@@ -73,8 +73,9 @@ class SQLMaster(SQLCore):
                            chat_id, rating, comment)
 
     async def add_payment(self, hash_code: str, chat_id: int, agrm: str, amount: float, inline: int = None):
-        await self.execute('INSERT INTO irobot.payments(hash, chat_id, agrm, amount, inline) '
-                           'VALUES (%s, %s, %s, %s, %s)', hash_code, chat_id, agrm, amount, inline)
+        res = await self.execute('INSERT INTO irobot.payments(hash, chat_id, agrm, amount, inline) '
+                                 'VALUES (%s, %s, %s, %s, %s) RETURNING id', hash_code, chat_id, agrm, amount, inline)
+        return res[0][0] if res else 0
 
     async def upd_payment(self, hash_code, **kwargs):
         upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
@@ -129,7 +130,8 @@ class SQLMaster(SQLCore):
         return await self.execute('SELECT id, datetime, type, text FROM irobot.mailing ORDER BY id DESC LIMIT 10')
 
     async def add_mailing(self, mail_type, text):
-        return await self.execute('INSERT INTO irobot.mailing (type, text) VALUES (%s, %s) RETURNING id', mail_type, text)
+        res = await self.execute('INSERT INTO irobot.mailing (type, text) VALUES (%s, %s) RETURNING id', mail_type, text)
+        return res[0][0] if res else 0
 
     async def get_new_mailings(self):
         return await self.execute("SELECT id, type, text FROM irobot.mailing WHERE status='new'")

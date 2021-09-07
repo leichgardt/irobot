@@ -206,8 +206,6 @@ class Texts:
         'Оплата успешно прошла!')
     payments_online_fail = T(
         'Не удалось провести платёж.')
-    payment_error = T(
-        'Ошибка платежа. Попробуй ещё раз или обратись в службу технической поддержки')
     payments_online_already_have = T(
         'Этот счёт уже был оплачен.')
     payments_online_already_canceled = T(
@@ -223,7 +221,7 @@ class Texts:
     payment_description = T(
         'Пополнить счёт договора №{agrm} на {amount} руб.')
     payment_error_message = T(
-        'Не удалось провести платёж. Попробуйте ещё раз.')
+        'Не удалось провести платёж. Попробуй ещё раз.')
     payments_on_process = T(
         'Платёж обрабатывается.')
     payments_online_was_paid = T(emojize(

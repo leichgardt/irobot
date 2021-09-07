@@ -9,6 +9,6 @@ try:
     loop.run_forever()
 except Exception as e:
     print(e)
-    with open('/tmp/bot.log', 'a') as f:
+    with open('/tmp/irobot.log', 'a') as f:
         date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         f.write(f'[{date}] Exception: {e}\n\n{traceback.format_exc()}\n{"#" * 40}\n')

@@ -214,12 +214,12 @@ async def send_mailing(request: Request,
                        item: MailingItem):
     """Добавить новую рассылку"""
     if item.type in ('notify', 'mailing'):
-        res = await sql.add_mailing(item.type, item.text)
-        if res:
+        mail_id = await sql.add_mailing(item.type, item.text)
+        if mail_id:
             background_tasks.add_task(broadcast, logger)
-            logger.info(f'New mailing added [{res[0][0]}]')
+            logger.info(f'New mailing added [{mail_id}]')
             response.status_code = 202
-            return {'response': 1, 'id': res[0][0]}
+            return {'response': 1, 'id': mail_id}
         else:
             response.status_code = 500
             logger.error(f'Error of New mailing. Data: {item}')

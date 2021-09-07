@@ -200,8 +200,9 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
             message.chat.id, data['agrm'], data['amount'], tax, data['hash']
         )))
         if 'payment' not in data.keys():
-            await sql.add_payment(data['hash'], message.chat.id, data['agrm'], data['amount'], inline_msg.message_id)
-            await alogger.info(f'New payment [{message.chat.id}]')
+            payment_id = await sql.add_payment(data['hash'], message.chat.id, data['agrm'], data['amount'],
+                                               inline_msg.message_id)
+            await alogger.info(f'New payment [{message.chat.id}]: ID={payment_id}')
         else:
             await sql.upd_payment(data['hash'], amount=data['amount'], inline=inline_msg.message_id)
         data['payment'] = dict(chat_id=inline_msg.chat.id, message_id=inline_msg.message_id)
@@ -236,22 +237,21 @@ async def inline_h_payments_cancel(query: types.CallbackQuery, state: FSMContext
 async def checkout(pre_checkout_query: types.PreCheckoutQuery, state: FSMContext):
     """ Обработчик для подтверждения платежа - запускается при нажатии на кнопку "Оплатить" """
     ok = False
-    msg = Texts.payment_error
+    msg = Texts.payment_error_message
     payment_hash = pre_checkout_query.invoice_payload
     if payment_hash:
-        payment_data = await sql.find_payment(payment_hash)
-        if payment_data:
-            if payment_data['status'] in ['success', 'canceled', 'processing']:
+        payment = await sql.find_payment(payment_hash)
+        if payment:
+            if payment['status'] in ['success', 'canceled', 'processing', 'error', 'failure', 'timed_out']:
                 ok = False
-                if payment_data['status'] == 'success':
+                if payment['status'] == 'success':
                     msg = Texts.payments_online_already_have
-                elif payment_data['status'] == 'canceled':
+                elif payment['status'] == 'canceled':
                     msg = Texts.payments_online_already_canceled
-                else:
+                elif payment['status'] == 'processing':
                     msg = Texts.payments_online_already_processing
             else:
                 ok = True
-                msg = Texts.payment_error_message
                 await sql.upd_payment(payment_hash, status='processing')
     await run_cmd(bot.answer_pre_checkout_query(pre_checkout_query.id, ok=ok, error_message=msg))
 
@@ -281,20 +281,20 @@ async def got_payment(message: types.Message, state: FSMContext):
     params = dict(receipt=message.successful_payment.provider_payment_charge_id, status='error')
     payment_hash = message.successful_payment.invoice_payload
     if payment_hash:
-        payment_data = await sql.find_payment(payment_hash)
-        if payment_data:
-            await delete_message(payment_data['chat_id'])
-            if message.chat.id == payment_data['chat_id']:
+        payment = await sql.find_payment(payment_hash)
+        if payment:
+            await delete_message(payment['chat_id'])
+            if message.chat.id == payment['chat_id']:
                 # оплатил тот же кто и создал платёж
                 if await state.get_state() == PaymentFSM.payment.state:
                     await state.finish()
                 _, text, parse = Texts.payments_online_success.full()
-                await run_cmd(bot.send_message(payment_data['chat_id'], text, parse, reply_markup=main_menu))
+                await run_cmd(bot.send_message(payment['chat_id'], text, parse, reply_markup=main_menu))
             else:
                 # оплатил другой пользователь
                 params['payer'] = ujson.loads(message.from_user.as_json())
                 await run_cmd(bot.send_message(
-                    payment_data['chat_id'], Texts.payments_online_was_paid.format(amount=payment_data['amount']),
+                    payment['chat_id'], Texts.payments_online_was_paid.format(amount=payment['amount']),
                     Texts.payments_online_was_paid.parse_mode, reply_markup=main_menu
                 ))
                 _, text, parse = Texts.payments_online_success_short.full()
@@ -302,13 +302,13 @@ async def got_payment(message: types.Message, state: FSMContext):
                 if not await sql.get_sub(message.chat.id):
                     _, text, parse = Texts.payments_after_for_guest.full()
                     await run_cmd(bot.send_message(message.chat.id, text, parse))
-            rec_id = await lb.new_payment(payment_data['agrm'], payment_data['amount'], params['receipt'], message.date)
+            rec_id = await lb.new_payment(payment['agrm'], payment['amount'], params['receipt'], message.date)
             if rec_id:
                 params['status'] = 'success'
                 params['record_id'] = rec_id
+                await alogger.info(f'Successful Payment: ID={payment["id"]}')
             else:
-                await alogger.info('Bad Payment [{}]: payment ID: {}'.format(payment_data['chat_id'],
-                                                                             payment_data['payment_id']))
+                await alogger.info(f'Bad Payment: ID={payment["id"]}')
         else:
             await alogger.error(f'Cannot find a payment. Payment receipt: {params["receipt"]}')
         await sql.upd_payment(payment_hash, **params)
