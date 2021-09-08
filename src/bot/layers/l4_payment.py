@@ -154,12 +154,12 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
             res = await lb.promise_payment(agrm_id[0], data['amount'])
             if res:
                 answer, text, parse = Texts.payments_promise_success.full()
-                await alogger.info(f'Payment success [{query.message.chat.id}]')
+                await alogger.info(f'Promise Payment success [{query.message.chat.id}]')
             else:
                 answer, text, parse = Texts.payments_promise_fail.full()
                 await alogger.warning(f'Payment failure [{query.message.chat.id}]')
-            await update_inline_query(query, answer, text, parse, alert=True)
             text = await get_agrm_balances(query.message.chat.id)
+            await update_inline_query(query, answer, text, parse, alert=True)
             await run_cmd(bot.send_message(query.message.chat.id, text, Texts.balance.parse_mode,
                                            reply_markup=main_menu))
         await state.finish()
