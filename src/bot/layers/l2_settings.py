@@ -49,8 +49,7 @@ async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await query.answer(Texts.settings_done.answer, show_alert=True)
     await delete_message(query.message)
-    await run_cmd(bot.send_message(query.message.chat.id, Texts.main_menu, parse_mode=Texts.main_menu.parse_mode,
-                                   reply_markup=main_menu))
+    await run_cmd(bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu))
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
@@ -59,8 +58,7 @@ async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
 async def inline_h_account_settings(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['accounts'] = await get_all_agrm_data(query.message.chat.id, only_numbers=True)
-        ans, txt, prs = Texts.settings_accounts.full()
-        txt = txt.format(accounts=Texts.get_account_agrm_list(data['accounts']))
+        ans, txt, prs = Texts.settings_accounts.full(accounts=Texts.get_account_agrm_list(data['accounts']))
         btn_list = [await keyboards.get_agrms_btn(custom=data['accounts'], prefix='account'), keyboards.account_settings_btn]
         await update_inline_query(query, ans, txt, prs, btn_list=btn_list)
 
@@ -69,8 +67,7 @@ async def inline_h_account_settings(query: types.CallbackQuery, state: FSMContex
 async def inline_h_account_control(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['acc'] = query.data.replace('account-', '')
-        await update_inline_query(query, Texts.settings_account.answer.format(account=data['acc']),
-                                  Texts.settings_account.format(account=data['acc']), Texts.settings_account.parse_mode,
+        await update_inline_query(query, *Texts.settings_account.full(account=data['acc']),
                                   btn_list=[keyboards.account_control_btn])
 
 
@@ -115,9 +112,9 @@ async def inline_h_switch_notify(query: types.CallbackQuery, state: FSMContext):
         await sql.switch_sub(query.message.chat.id, 'mailing')
         btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id), keyboards.back_to_settings]
         data['mailing'] = not data['mailing']
-        _, text, parse = Texts.settings_notify.full() if data['mailing'] else Texts.settings_notify_enable.full()
-        answer = Texts.settings_mailing_switch_answer
-        await update_inline_query(query, answer, text, parse, reply_markup=get_keyboard(btn_list, lining=False))
+        text, parse = Texts.settings_notify.pair() if data['mailing'] else Texts.settings_notify_enable.pair()
+        await update_inline_query(query, Texts.settings_mailing_switch_answer, text, parse,
+                                  reply_markup=get_keyboard(btn_list, lining=False))
         await alogger.info(f'Switching notify settings [{query.message.chat.id}]')
 
 

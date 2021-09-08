@@ -27,10 +27,10 @@ async def help_message_h(message: types.Message, state: FSMContext):
     await run_cmd(bot.send_chat_action(message.chat.id, 'typing'))
     if await sql.get_sub(message.chat.id):
         kb = get_keyboard(keyboards.help_btn, keyboard_type='inline', lining=True)
-        res = await run_cmd(bot.send_message(message.chat.id, Texts.help, parse_mode=Texts.help.parse_mode, reply_markup=kb))
-        await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.help.parse_mode)
+        res = await run_cmd(bot.send_message(message.chat.id, *Texts.help.pair(), reply_markup=kb))
+        await sql.upd_inline(message.chat.id, res.message_id, *Texts.help.pair())
     else:
-        await run_cmd(bot.send_message(message.chat.id, Texts.help_auth, parse_mode=Texts.help_auth.parse_mode))
+        await run_cmd(bot.send_message(message.chat.id, *Texts.help_auth.pair()))
 
 
 @dp.callback_query_handler(text='about')
@@ -41,8 +41,7 @@ async def about_inline_h(query: types.CallbackQuery):
 
 @dp.callback_query_handler(text='cancel')
 async def inline_h_payments_choice(query: types.CallbackQuery):
-    await update_inline_query(query, Texts.cancel.answer, Texts.main_menu, Texts.main_menu.parse_mode,
-                              reply_markup=main_menu)
+    await update_inline_query(query, *Texts.cancel.full(), reply_markup=main_menu)
 
 
 @dp.callback_query_handler(text='cancel', state=[ReviewFSM.rating, ReviewFSM.comment])
@@ -51,7 +50,7 @@ async def main_inline_h(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await delete_message(query.message)
     await query.answer(Texts.cancel.answer)
-    await run_cmd(bot.send_message(query.message.chat.id, Texts.main_menu, Texts.main_menu.parse_mode, reply_markup=main_menu))
+    await run_cmd(bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu))
     await sql.upd_inline(query.message.chat.id, 0, '')
 
 
@@ -76,8 +75,8 @@ async def review_inline_h(message: types.Message, state: FSMContext):
     await state.finish()
     kb = get_keyboard(keyboards.get_review_btn(), keyboards.back_to_main, keyboard_type='inline', row_size=5)
     await ReviewFSM.rating.set()
-    res = await run_cmd(bot.send_message(message.chat.id, Texts.review, Texts.review.parse_mode, reply_markup=kb))
-    await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.review.parse_mode)
+    res = await run_cmd(bot.send_message(message.chat.id, *Texts.review.pair(), reply_markup=kb))
+    await sql.upd_inline(message.chat.id, res.message_id, *Texts.review.pair())
     await alogger.info(f'Start review [{message.chat.id}]')
 
 
@@ -87,11 +86,9 @@ async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
         data['rating'] = int(query.data[-1])
         kb = get_keyboard(keyboards.get_review_btn(data['rating']), keyboards.review_btn, keyboard_type='inline', row_size=5)
         if 'comment' in data.keys():
-            text = Texts.review_full.format(comment=data['comment'], rating=data['rating'])
-            parse = Texts.review_full.parse_mode
+            text, parse = Texts.review_full.pair(comment=data['comment'], rating=data['rating'])
         else:
-            text = Texts.review_rate.format(rating=data['rating'])
-            parse = Texts.review_rate.parse_mode
+            text, parse = Texts.review_rate.pair(rating=data['rating'])
         await edit_inline_message(query.message.chat.id, text, parse, reply_markup=kb)
         await query.answer(Texts.review_rate.answer.format(rating=data['rating']))
 
@@ -103,9 +100,9 @@ async def review_comment_message_h(message: types.Message, state: FSMContext):
         rating = data['rating'] if 'rating' in data.keys() else 0
         kb = get_keyboard(keyboards.get_review_btn(rating), keyboards.review_btn, keyboard_type='inline', row_size=5)
         if rating:
-            _, text, parse = Texts.review_full.full(comment=data['comment'], rating=data['rating'])
+            text, parse = Texts.review_full.pair(comment=data['comment'], rating=data['rating'])
         else:
-            _, text, parse = Texts.review_with_comment.full(comment=data['comment'])
+            text, parse = Texts.review_with_comment.pair(comment=data['comment'])
         await delete_message(message)
         await edit_inline_message(message.chat.id, text, parse, reply_markup=kb)
 
@@ -117,17 +114,17 @@ async def review_send_inline_h(query: types.CallbackQuery, state: FSMContext):
         comment = data['comment'] if 'comment' in data.keys() else None
         await sql.add_review(query.message.chat.id, rating, comment)
         if rating and comment:
-            _, text, parse = Texts.review_result_full.full(comment=data['comment'], rating=data['rating'])
+            text, parse = Texts.review_result_full.pair(comment=data['comment'], rating=data['rating'])
         elif rating and not comment:
-            _, text, parse = Texts.review_result_rate.full(rating=data['rating'])
+            text, parse = Texts.review_result_rate.pair(rating=data['rating'])
         else:
-            _, text, parse = Texts.review_result_comment.full(comment=data['comment'])
+            text, parse = Texts.review_result_comment.pair(comment=data['comment'])
         await edit_inline_message(query.message.chat.id, text, parse)
         await query.answer(Texts.review_done.answer)
         if rating and rating == 5:
-            text, parse = Texts.review_done_best, Texts.review_done_best.parse_mode
+            text, parse = Texts.review_done_best.pair()
         else:
-            text, parse = Texts.review_done, Texts.review_done.parse_mode
+            text, parse = Texts.review_done.pair()
         await run_cmd(bot.send_message(query.message.chat.id, text, parse, reply_markup=main_menu))
         await state.finish()
         await sql.upd_inline(query.message.chat.id, 0, '')

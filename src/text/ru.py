@@ -19,9 +19,11 @@ class T(str):
 
     def full(self, **kwargs):
         """ Вернуть текст и его параметры. Формат вывода: (answer, text, parse_mode) """
-        return (map_format(self.answer, **kwargs),
-                map_format(self.__str__, **kwargs),
-                self.parse_mode)
+        return map_format(self.answer, **kwargs), map_format(self.__str__, **kwargs), self.parse_mode
+
+    def pair(self, **kwargs):
+        """ Вернуть текст и его parse_mode. Формат вывода: (text, parse_mode) """
+        return map_format(self.__str__, **kwargs), self.parse_mode
 
 
 class Texts:

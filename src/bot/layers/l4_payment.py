@@ -38,8 +38,8 @@ async def message_h_payments(message: types.Message, state: FSMContext):
     await state.finish()
     await PaymentFSM.operation.set()
     kb = get_keyboard(keyboards.payment_choice_btn, keyboard_type='inline')
-    res = await run_cmd(bot.send_message(message.chat.id, Texts.payments, Texts.payments.parse_mode, reply_markup=kb))
-    await sql.upd_inline(message.chat.id, res.message_id, res.text, Texts.payments.parse_mode)
+    res = await run_cmd(bot.send_message(message.chat.id, *Texts.payments.pair(), reply_markup=kb))
+    await sql.upd_inline(message.chat.id, res.message_id, *Texts.payments.pair())
 
 
 @dp.callback_query_handler(text='payments', state=PaymentFSM.states)
@@ -149,8 +149,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
         agrm_id = [agrm['agrm_id'] for agrm in data['agrm_data'] if agrm['agrm'] == data['agrm']]
         if not agrm_id:
             await alogger.error(f'Promise payment error! Cannot get agrm_id from agrm "{data["agrm"]}": {data["agrm_data"]}')
-            await run_cmd(bot.send_message(query.message.chat.id, Texts.backend_error, Texts.backend_error.parse_mode,
-                                           reply_markup=main_menu))
+            await run_cmd(bot.send_message(query.message.chat.id, *Texts.backend_error.pair(), reply_markup=main_menu))
         else:
             res = await lb.promise_payment(agrm_id[0], data['amount'])
             if res:
@@ -176,8 +175,7 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
             kb = get_custom_button(Texts.back, 'payments-online')
         else:
             kb = get_custom_button(Texts.back, 'payments')
-        await edit_inline_message(message.chat.id, Texts.payments_online_amount_is_not_digit,
-                                  Texts.payments_online_amount_is_not_digit.parse_mode, kb)
+        await edit_inline_message(message.chat.id, *Texts.payments_online_amount_is_not_digit.pair(), kb)
         await delete_message(message)
 
 
@@ -191,11 +189,13 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
         summ = round(data['amount'], 2) + tax
         if 'hash' not in data.keys():
             data['hash'] = get_payment_hash(message.chat.id, data['agrm'])
-        text = Texts.payments_online_offer.format(agrm=data['agrm'], amount=data['amount'], balance=data['balance'],
-                                                  tax=tax, res=summ)
         await delete_message(message)  # удалить сообщение от пользователя с суммой платежа
-        await edit_inline_message(message.chat.id, text, Texts.payments_online_offer.parse_mode,
-                                  reply_markup=get_keyboard(keyboards.payment_btn))
+        await edit_inline_message(
+            message.chat.id,
+            *Texts.payments_online_offer.pair(agrm=data['agrm'], amount=data['amount'], balance=data['balance'],
+                                              tax=tax, res=summ),
+            reply_markup=get_keyboard(keyboards.payment_btn)
+        )
         inline_msg = await run_cmd(bot.send_invoice(**get_invoice_params(
             message.chat.id, data['agrm'], data['amount'], tax, data['hash']
         )))
@@ -288,19 +288,19 @@ async def got_payment(message: types.Message, state: FSMContext):
                 # оплатил тот же кто и создал платёж
                 if await state.get_state() == PaymentFSM.payment.state:
                     await state.finish()
-                _, text, parse = Texts.payments_online_success.full()
+                text, parse = Texts.payments_online_success.pair()
                 await run_cmd(bot.send_message(payment['chat_id'], text, parse, reply_markup=main_menu))
             else:
                 # оплатил другой пользователь
                 params['payer'] = ujson.loads(message.from_user.as_json())
                 await run_cmd(bot.send_message(
-                    payment['chat_id'], Texts.payments_online_was_paid.format(amount=payment['amount']),
-                    Texts.payments_online_was_paid.parse_mode, reply_markup=main_menu
+                    payment['chat_id'], *Texts.payments_online_was_paid.pair(amount=payment['amount']),
+                    reply_markup=main_menu
                 ))
-                _, text, parse = Texts.payments_online_success_short.full()
+                text, parse = Texts.payments_online_success_short.pair()
                 await run_cmd(bot.send_message(message.chat.id, text, parse))
                 if not await sql.get_sub(message.chat.id):
-                    _, text, parse = Texts.payments_after_for_guest.full()
+                    text, parse = Texts.payments_after_for_guest.pair()
                     await run_cmd(bot.send_message(message.chat.id, text, parse))
             rec_id = await lb.new_payment(payment['agrm'], payment['amount'], params['receipt'], message.date)
             if rec_id:
