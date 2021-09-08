@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from src.lb.lb_zeep import LBZeepCore
-from src.utils import get_datetime, is_async_logger
+from src.utils import get_datetime
 
 
 
@@ -20,10 +20,7 @@ class LBAPI(LBZeepCore):
                     if acc:
                         return 1 if acc[0].account['pass'] == input_pass else 0
                     else:
-                        if is_async_logger(self.logger):
-                            await self.logger.warning(f'Getting account error: agrmnum={agrmnum}')
-                        else:
-                            self.logger.warning(f'Getting account error: agrmnum={agrmnum}')
+                        await self.logger.warning(f'Getting account error: agrmnum={agrmnum}')
                         return 0
         return -1
 
@@ -92,10 +89,7 @@ class LBAPI(LBZeepCore):
                 )
                 return await self.direct_request('Payment', payment_obj)
             except Exception as e:
-                if is_async_logger(self.logger):
-                    await self.logger.error(f'LB Payment error: {e}')
-                else:
-                    self.logger.error(f'LB Payment error: {e}')
+                await self.logger.error(f'LB Payment error: {e}')
         return 0
 
 

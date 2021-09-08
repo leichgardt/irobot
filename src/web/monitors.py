@@ -98,5 +98,5 @@ async def rates_feedback_monitor(logger):
 
 
 if __name__ == '__main__':
-    from src.utils import logger
-    asyncio.run(auto_payment_monitor(logger))
+    from src.utils import alogger
+    asyncio.run(auto_payment_monitor(alogger))

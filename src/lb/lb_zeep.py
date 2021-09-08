@@ -8,7 +8,7 @@ from zeep.client import Factory
 from zeep.wsdl import Document
 from zeep.transports import AsyncTransport
 
-from src.utils import config, alogger, is_async_logger, get_datetime, get_phone_number
+from src.utils import config, alogger, get_datetime, get_phone_number
 
 
 class CustomAsyncClient(AsyncClient):
@@ -98,10 +98,7 @@ class LBZeepCore:
         try:
             await self.client.service.Login(self.user, self.__password)
         except Exception as e:
-            if is_async_logger(self.logger):
-                await self.logger.warning(f'Logining: {e}')
-            else:
-                self.logger.warning(f'Logining: {e}')
+            await self.logger.warning(f'Logining: {e}')
             return False
         else:
             return True
@@ -133,10 +130,7 @@ class LBZeepCore:
             else:
                 if not pass_faults:
                     msg = f'"{function}" request error{f" [args: {args}]" if args else ""}: {e}'
-                    if is_async_logger(self.logger):
-                        await self.logger.warning(msg)
-                    else:
-                        self.logger.warning(msg)
+                    await self.logger.warning(msg)
                 return []
         else:
             return res

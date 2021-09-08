@@ -9,7 +9,7 @@ from starlette.responses import Response
 from pydantic import BaseModel
 
 from src.sql import sql
-from src.utils import config, init_logger
+from src.utils import config, aio_logger
 from src.web import (
     lan_require,
     SoloWorker, Table,
@@ -29,7 +29,7 @@ bot_name = ''
 back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
 cache_header = {'Cache-Control': 'max-age=86400, must-revalidate'}
 
-logger = init_logger('irobot-web', new_formatter=True)
+logger = aio_logger('irobot-web')
 sql.logger = logger
 lb.logger = logger
 templates = Jinja2Templates(directory='templates')

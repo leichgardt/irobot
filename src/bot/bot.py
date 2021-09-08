@@ -6,7 +6,7 @@ from src.text import Texts
 from src.bot.layers import bot, dp
 from src.lb import lb
 from src.sql import sql
-from src.utils import config, logger, alogger
+from src.utils import config, alogger
 from src.utils.logger import logfile
 
 CERTIFICATE = ''
@@ -39,18 +39,18 @@ async def on_startup(dp):
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
-    logger.info('Bot activated')
-    logger.info('See console output in file "{}"'.format(logfile.format(logger.name)))
+    await alogger.info('Bot activated')
+    await alogger.info('See console output in file "{}"'.format(logfile.format(alogger.name)))
 
 
 async def on_shutdown(dp):
-    logger.info('Shutting down..')
+    await alogger.info('Shutting down..')
     await dp.storage.close()
     await bot.delete_webhook()
     await sql.close_pool()
     await dp.storage.wait_closed()
     await alogger.shutdown()
-    logger.info('Bye!')
+    print('Bye!')
 
 
 def run_bot():

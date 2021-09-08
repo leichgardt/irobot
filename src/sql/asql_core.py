@@ -5,7 +5,7 @@ import psycopg2.errors
 import psycopg2.extensions
 import ujson
 
-from src.utils import config, is_async_logger
+from src.utils import config
 
 
 class SQLCore:
@@ -42,10 +42,7 @@ class SQLCore:
             self.pool.close()
             await self.pool.wait_closed()
             self.pool.terminate()
-            if is_async_logger(self.logger):
-                await self.logger.info('PSQL pool closed')
-            else:
-                self.logger.info('PSQL pool closed')
+            await self.logger.info('PSQL pool closed')
 
     async def execute(self, cmd, *args, retrying=False, log_faults=True, as_dict=False):
         res = []
@@ -66,11 +63,8 @@ class SQLCore:
                 return await self.execute(cmd, *args, retrying=True, log_faults=log_faults)
         except Exception as e:
             if log_faults and retrying:
-                msg = f'SQL exception: {e}CMD: {cmd}' + f'\nARGS: {args}\n' if args else '\n'
-                if is_async_logger(self.logger):
-                    await self.logger.warning(msg)
-                else:
-                    self.logger.warning(msg)
+                msg = f'SQL exception: {e}CMD: {cmd}' + f'\nARGS: {args}' if args else ''
+                await self.logger.warning(msg)
         else:
             need_to_retry = False
         if need_to_retry:
@@ -117,11 +111,11 @@ def strip_and_typing_res(val):
 
 
 if __name__ == '__main__':
-    from src.utils import logger
+    from src.utils import alogger
 
     async def main():
         sql = SQLCore()
-        sql.logger = logger
+        sql.logger = alogger
         res = await sql.execute('SELECT * FROM irobot.subs WHERE chat_id=%s', config['irobot']['me'], as_dict=True)
         if res:
             [print(f'{column:20}: {value}') for row in res for column, value in row.items()]
