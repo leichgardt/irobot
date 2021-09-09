@@ -3,6 +3,7 @@ import traceback
 
 from fastapi import Request
 from functools import wraps
+from ipaddress import ip_address, ip_network
 from logging import Logger
 from starlette.responses import Response
 from urllib.parse import urlparse, parse_qs
@@ -31,9 +32,10 @@ def lan_require(func):
     """ Декоратор-ограничитель: разрешает доступ, если IP-адрес запроса из локальной сети или от сервера """
     @wraps(func)
     async def wrapper(request: Request, *args, **kwargs):
-        ip = request.client.host
-        if (ip is None or (ip and (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or
-                                   ip[:8] == '192.168.' or ip == config['paladin']['ironnet-global']))):
+        ip = request.client.host or '127.0.0.1'
+        lan_networks = [ip_network('192.168.0.0/16'), ip_network('172.16.0.0/12'), ip_network('10.0.0.0/8')]
+        if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip == config['paladin']['ironnet-global'] or
+                [True for network in lan_networks if ip_address(ip) in network]):
             return await func(request, *args, **kwargs)
         else:
             return Response(status_code=403)
