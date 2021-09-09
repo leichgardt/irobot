@@ -60,9 +60,9 @@ class SQLCore:
                         args = [arg if not isinstance(arg, dict) else ujson.dumps(arg) for arg in args]
                     await cur.execute(cmd, args)
                     res = await get_res(cur, as_dict)
-        except psycopg2.errors.AdminShutdown:
+        except psycopg2.errors.lookup('57P01'):  # AdminShutdown
             if not retrying:
-                return await self.execute(cmd, *args, retrying=True, log_faults=log_faults)
+                return await self.execute(cmd, *args, retrying=True, log_faults=log_faults, as_dict=as_dict)
         except Exception as e:
             if log_faults and retrying and 'duplicate key value violates unique constraint' not in e:
                 msg = f'SQL exception: {e}CMD: {cmd}' + f'\nARGS: {args}' if args else ''
