@@ -59,23 +59,25 @@ class Configer:
             self.config_list[module].update({param: value})
         return self.config_list[module][param]
 
-    def config_params(self, filepath=os.path.dirname(os.path.abspath(__file__)) + '/config_params.txt'):
+    def config_params(self, filepath='config_params.txt'):
+        if not os.path.exists(filepath):
+            exit(1)
         with open(filepath, 'r') as f:
             text = [line.replace('\n', '').strip() for line in f.readlines()]
             self.url = text[0]
             self.user = text[1]
             self.__passwd = text[2]
 
-    def load(self, **kwargs):
-        self.config_params()
-        config_url = kwargs.get('url', self.url)
-        print('Uploading configuration from {}'.format(config_url))
+    def load(self):
+        if not self.user or not self.__passwd:
+            self.config_params()
+        print('Uploading configuration from {}'.format(self.url))
         self.config_list = {}
         try:
-            resp = requests.get(config_url, auth=(self.user, self.__passwd), timeout=5)
+            resp = requests.get(self.url, auth=(self.user, self.__passwd), timeout=5)
         except requests.Timeout:
-            print(f'Server doesn\'t respond: {config_url}')
-            exit()
+            print(f'Server doesn\'t respond: {self.url}')
+            exit(1)
         else:
             resp.encoding = resp.apparent_encoding
             text = re.split("([^\n]*\n)", resp.text)[1::2]
@@ -94,3 +96,5 @@ class Configer:
 
 
 config = Configer()
+path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '../../..') + '/config_params.txt'
+config.config_params(path)

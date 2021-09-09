@@ -11,9 +11,7 @@ from src.utils import config
 class SQLCore:
     """Ядро асинхронного класса соединения с postgresql. Работает через пул соединений"""
     def __init__(self):
-        self._dsn = 'dbname={name} user={user} host={host}'.format(name=config['postgres']['dbname'],
-                                                                   user=config['postgres']['dbuser'],
-                                                                   host=config['postgres']['dbhost'])
+        self._dsn = 'dbname={name} user={user} host={host}'
         self.pool = None
         self.pool_min_size = 3
         self.pool_max_size = 20
@@ -34,7 +32,11 @@ class SQLCore:
     async def init_pool(self):
         if self.pool is not None:  # re-init pool
             await self.close_pool()
-        self.pool = await aiopg.create_pool(self._dsn, minsize=self.pool_min_size, maxsize=self.pool_max_size)
+        self.pool = await aiopg.create_pool(self._dsn.format(name=config['postgres']['dbname'],
+                                                             user=config['postgres']['dbuser'],
+                                                             host=config['postgres']['dbhost']),
+                                            minsize=self.pool_min_size,
+                                            maxsize=self.pool_max_size)
 
     async def close_pool(self):
         if self.pool is not None:
