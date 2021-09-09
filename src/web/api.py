@@ -1,10 +1,10 @@
 import asyncio
 import traceback
 
+from aiologger import Logger
 from fastapi import Request
 from functools import wraps
 from ipaddress import ip_address, ip_network
-from logging import Logger
 from starlette.responses import Response
 from urllib.parse import urlparse, parse_qs
 
@@ -85,7 +85,7 @@ async def broadcast(logger: Logger):
                 elif mail_type == 'mailing':
                     targets = await sql.get_subs(mailing=True)
                 else:
-                    logger.warning(f'Wrong mail_type ID: {m_id}')
+                    await logger.warning(f'Wrong mail_type ID: {m_id}')
                     continue
                 if targets:
                     for chat_id, _ in targets:
@@ -93,7 +93,7 @@ async def broadcast(logger: Logger):
                             count += 1
                         await asyncio.sleep(.05)
             except Exception as e:
-                logger.error(f'Broadcast error: {e}\nMailing ID: [{m_id}]\n{traceback.format_exc()}')
+                await logger.error(f'Broadcast error: {e}\nMailing ID: [{m_id}]\n{traceback.format_exc()}')
                 await sql.upd_mailing_status(m_id, 'error')
             else:
                 await sql.upd_mailing_status(m_id, 'complete')

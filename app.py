@@ -48,7 +48,6 @@ async def update_params():
     bot_name = bot_name['username']
     ABOUT = ABOUT.format(bot_name)
     back_url = back_url.format(bot_name)
-    logger.info(f'Bot API is available. "{bot_name}" are greetings you!')
     await sw.clean_old_pid_list()
 
 
@@ -162,20 +161,20 @@ async def login_try(response: Response,
             chat_id = await sql.find_chat_by_hash(item.hash)
             if chat_id:
                 if item.login in await sql.get_accounts(chat_id):
-                    logger.info(f'Login: account already added [{chat_id}]')
+                    await logger.info(f'Login: account already added [{chat_id}]')
                     return {'response': 2}
-                logger.info(f'Logining [{chat_id}]')
+                await logger.info(f'Logining [{chat_id}]')
                 background_tasks.add_task(logining, chat_id, item.login)
                 response.status_code = 202
                 return {'response': 1}
             else:
-                logger.info(f'Login: chat_id not found [{item.login}]')
+                await logger.info(f'Login: chat_id not found [{item.login}]')
                 return {'response': -1}
         elif res == 0:
-            logger.info(f'Login: incorrect login or pwd [{item.login}]')
+            await logger.info(f'Login: incorrect login or pwd [{item.login}]')
             return {'response': 0}
         else:
-            logger.info(f'Login: error [{item.login}]')
+            await logger.info(f'Login: error [{item.login}]')
             return {'response': -1}
     return {'response': -2}
 
@@ -217,12 +216,12 @@ async def send_mailing(request: Request,
         mail_id = await sql.add_mailing(item.type, item.text)
         if mail_id:
             background_tasks.add_task(broadcast, logger)
-            logger.info(f'New mailing added [{mail_id}]')
+            await logger.info(f'New mailing added [{mail_id}]')
             response.status_code = 202
             return {'response': 1, 'id': mail_id}
         else:
             response.status_code = 500
-            logger.error(f'Error of New mailing. Data: {item}')
+            await logger.error(f'Error of New mailing. Data: {item}')
             return {'response': -1, 'error': 'backand error'}
     else:
         response.status_code = 400
@@ -243,7 +242,7 @@ async def api_status(request: Request):
         res1 = await sql.get_sub(config['irobot']['me'])
         res2 = await telegram_api.get_me()
     except Exception as e:
-        logger.error(e)
+        await logger.error(e)
     else:
         output -= 1 if not res1 else 0
         output -= 2 if not res2 else 0
