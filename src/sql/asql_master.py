@@ -141,12 +141,15 @@ class SQLMaster(SQLCore):
 
     async def add_pid(self, pid: int):
         await self.execute('INSERT INTO irobot.pids(pid) VALUES (%s)', pid, log_faults=False)
+        # await self.execute('INSERT INTO irobot.pids_test(pid) VALUES (%s)', pid, log_faults=False)
 
     async def get_pid_list(self):
         return await self.execute('SELECT pid, tasks FROM irobot.pids')
+        # return await self.execute('SELECT pid, tasks FROM irobot.pids_test')
 
     async def del_pid_list(self):
         await self.execute('DELETE FROM irobot.pids')
+        # await self.execute('DELETE FROM irobot.pids_test')
 
     async def find_uncompleted_task(self, task_id):
         return await self.execute('SELECT id FROM cardinalis.tasks WHERE task_id=%s AND NOT status '

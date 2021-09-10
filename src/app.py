@@ -39,6 +39,7 @@ sql.logger = logger
 lb.logger = logger
 templates = Jinja2Templates(directory='templates')
 app = FastAPI(debug=False, root_path='/irobot')
+# app = FastAPI(debug=False, root_path='')
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 sw = SoloWorker(logger=logger, workers=workers)
 
@@ -63,6 +64,7 @@ async def update_params():
 async def payment_monitor():
     """ Поиск платежей с ошибками и попытка провести платёж еще раз """
     await auto_payment_monitor(logger)
+    # await logger.info('monitor')
 
 
 @app.on_event('startup')
@@ -74,6 +76,7 @@ async def feedback_monitor():
     Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
     """
     await auto_feedback_monitor(logger)
+    # await logger.info('feedback')
 
 
 @app.on_event('startup')
@@ -85,6 +88,7 @@ async def feedback_monitor():
     Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
     """
     await rates_feedback_monitor(logger)
+    # await logger.info('feedback-rates')
 
 
 @app.on_event('shutdown')

@@ -37,7 +37,8 @@ def get_invoice_params(chat_id, agrm, amount, tax, hash_code):
         chat_id=chat_id,
         title=Texts.payment_title.format(agrm=agrm),
         description=Texts.payment_description.format(agrm=agrm, amount=amount),
-        provider_token=config['yandex']['telegram-token'],  # config['yandex']['telegram-token-test']
+        provider_token=config['yandex']['telegram-token'],
+        # provider_token=config['yandex']['telegram-token-test'],
         currency='rub',
         prices=get_payment_price(agrm, amount, tax),
         start_parameter=f'payment-{hash_code}',
@@ -48,6 +49,7 @@ def get_invoice_params(chat_id, agrm, amount, tax, hash_code):
 def get_login_url(hash_code):
     """ Получить URL для авторизации """
     return 'https://{}/irobot/login?hash={}'.format(config['paladin']['maindomain'], hash_code)
+    # return 'http://0.0.0.0:8000/login?hash={}'.format(hash_code)
 
 
 async def get_agrm_balances(chat_id):
