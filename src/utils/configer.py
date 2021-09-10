@@ -96,5 +96,5 @@ class Configer:
 
 
 config = Configer()
-path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '../../..') + '/config_params.txt'
+path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '../..') + '/config_params.txt'
 config.config_params(path)

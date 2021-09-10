@@ -1,13 +1,19 @@
-import uvloop
+__author__ = 'leichgardt'
+
 import asyncio
+import os
+import sys
+import uvloop
+
 from aiogram.utils.executor import start_webhook
 
-from src.text import Texts
+sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../'))
+
 from src.bot.layers import bot, dp
 from src.lb import lb
 from src.sql import sql
-from src.utils import config, alogger
-from src.utils.logger import logfile
+from src.text import Texts
+from src.utils import config, alogger, logfile, logdir
 
 CERTIFICATE = ''
 HOST = config['paladin']['maindomain']
@@ -15,7 +21,7 @@ WEBHOOK_HOST = f'https://{HOST}/irobot_webhook'
 WEBHOOK_PATH = '/'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 
-WEBAPP_HOST = '0.0.0.0'  # or ip
+WEBAPP_HOST = '0.0.0.0'
 WEBAPP_PORT = 5421
 
 
@@ -39,8 +45,7 @@ async def on_startup(dp):
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
-    await alogger.info('Bot activated')
-    await alogger.info('See console output in file "{}"'.format(logfile.format(alogger.name)))
+    await alogger.info(f'Bot activated. Look at the console output in file "{logdir + logfile.format(alogger.name)}"')
 
 
 async def on_shutdown(dp):

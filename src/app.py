@@ -1,12 +1,17 @@
 __author__ = 'leichgardt'
 
+import os
+import sys
 import uvicorn
+
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
 from starlette.responses import Response
 from pydantic import BaseModel
+
+sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../'))
 
 from src.sql import sql
 from src.utils import config, aio_logger
@@ -17,9 +22,9 @@ from src.web import (
     auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor
 )
 from src.lb import lb
-from guni import workers
+from src.guni import workers
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 ABOUT = """Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @{},
 а так же для обработки запросов платежей от системы Yoomoney.
 Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении завершенного 
@@ -49,6 +54,7 @@ async def update_params():
     ABOUT = ABOUT.format(bot_name)
     back_url = back_url.format(bot_name)
     await sw.clean_old_pid_list()
+    await logger.info(f'Irobot Web App [{sw.pid}] started. Hello there!')
 
 
 @app.on_event('startup')

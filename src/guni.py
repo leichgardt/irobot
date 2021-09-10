@@ -1,6 +1,6 @@
 # server
 bind = '0.0.0.0:8000'
-worker_class = 'uviworker.IrobotUviWorker'
+worker_class = 'src.uviworker.CustomUviWorker'
 workers = 4
 threads = 2
 user = 'www-data'  # remove on development

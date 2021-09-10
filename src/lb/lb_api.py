@@ -4,7 +4,6 @@ from src.lb.lb_zeep import LBZeepCore
 from src.utils import get_datetime
 
 
-
 class LBAPI(LBZeepCore):
     async def check_account_pass(self, agrmnum: str, input_pass: str):
         """
