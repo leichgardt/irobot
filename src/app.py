@@ -5,6 +5,7 @@ import sys
 import uvicorn
 
 from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
@@ -40,6 +41,7 @@ lb.logger = logger
 templates = Jinja2Templates(directory='templates')
 app = FastAPI(debug=False, root_path='/irobot')
 # app = FastAPI(debug=False, root_path='')
+app.add_middleware(HTTPSRedirectMiddleware)
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 sw = SoloWorker(logger=logger, workers=workers)
 

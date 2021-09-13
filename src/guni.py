@@ -10,6 +10,9 @@ max_requests_jitter = 50
 timeout = 60
 keepalive = 5
 preload_app = False
+forwarded_allow_ips = '*'
+proxy_protocol = True
+proxy_allow_ips = '*'
 
 # security
 limit_request_line = 8190
