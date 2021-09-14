@@ -54,7 +54,7 @@ def get_invoice_params(chat_id, agrm, amount, tax, hash_code):
                         description=Texts.payment_description.format(agrm=agrm, amount=amount),
                         quantity='1.0',
                         amount=dict(
-                            value=amount,
+                            value=amount + tax,
                             currency='RUB'
                         ),
                         vat_code=1,
