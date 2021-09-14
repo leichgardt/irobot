@@ -199,7 +199,7 @@ class Texts:
         'Платежи >> Оплата Онлайн\n\nНе понимаю, о чем ты :hmm: Введи сумму, на которую хочешь пополнить счёт.'))
     payments_online_offer = T(emojize(
         'Платежи >> Оплата онлайн >> Договор №{agrm}\n\nК зачислению: {amount} руб.\n'
-        'Комиссия (до 4%): {tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>\n\n'
+        'Комиссия (от 2.8%): {tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>\n\n'
         'Можешь переслать сообщение со счётом другу, чтобы он оплатил его тебе :smiley:'))
     payments_online_offer.parse_mode = ParseMode.HTML
     payments_online_success = T(
@@ -217,7 +217,7 @@ class Texts:
     payment_item_price = T(
         'Услуги доступа к сети Интернет по договору №{agrm}')
     payment_item_tax = T(
-        'Комиссия (до 4%)')
+        'Комиссия (от 2.8%)')
     payment_title = T(
         'Пополнение счёта договора №{agrm}')
     payment_description = T(

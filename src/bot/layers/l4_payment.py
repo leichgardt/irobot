@@ -196,9 +196,8 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
                                               tax=tax, res=summ),
             reply_markup=get_keyboard(keyboards.payment_btn)
         )
-        inline_msg = await run_cmd(bot.send_invoice(**get_invoice_params(
-            message.chat.id, data['agrm'], data['amount'], tax, data['hash']
-        )))
+        params = get_invoice_params(message.chat.id, data['agrm'], data['amount'], tax, data['hash'])
+        inline_msg = await run_cmd(bot.send_invoice(**params))
         if 'payment' not in data.keys():
             payment_id = await sql.add_payment(data['hash'], message.chat.id, data['agrm'], data['amount'],
                                                inline_msg.message_id)

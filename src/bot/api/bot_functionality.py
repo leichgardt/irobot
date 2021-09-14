@@ -19,10 +19,10 @@ def get_payment_hash(chat_id, agrmnum):
     return get_hash(f'{chat_id}&{agrmnum}')
 
 
-def get_payment_price(agrm: str, amount: [int, float], tax: [int, float]):
+def get_payment_price(agrm: str, amount: [int, float], tax: [int, float] = None):
     """ Получить список товаров для онлайн оплаты (Telegram Payments 2.0 - for invoice) """
-    return [types.LabeledPrice(label=Texts.payment_item_price.format(agrm=agrm), amount=int(amount * 100)),
-            types.LabeledPrice(label=Texts.payment_item_tax, amount=int(tax * 100))]
+    return [types.LabeledPrice(label=Texts.payment_item_price.format(agrm=agrm), amount=int(amount * 100))] +  \
+           ([types.LabeledPrice(label=Texts.payment_item_tax, amount=int(tax * 100))] if tax else [])
 
 
 def get_payment_tax(amount: [int, float]):
@@ -39,10 +39,29 @@ def get_invoice_params(chat_id, agrm, amount, tax, hash_code):
         description=Texts.payment_description.format(agrm=agrm, amount=amount),
         provider_token=config['yandex']['telegram-token'],
         # provider_token=config['yandex']['telegram-token-test'],
-        currency='rub',
+        currency='RUB',
         prices=get_payment_price(agrm, amount, tax),
         start_parameter=f'payment-{hash_code}',
-        payload=hash_code
+        payload=hash_code,
+        provider_data=dict(
+            receipt=dict(
+                tax_system_code=2,
+                customer=dict(
+                    email=config['yandex']['email'],
+                ),
+                items=[
+                    dict(
+                        description=Texts.payment_description.format(agrm=agrm, amount=amount),
+                        quantity='1.0',
+                        amount=dict(
+                            value=amount,
+                            currency='RUB'
+                        ),
+                        vat_code=1,
+                    ),
+                ],
+            ),
+        )
     )
 
 
