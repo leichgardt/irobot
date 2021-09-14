@@ -27,7 +27,7 @@ def get_payment_price(agrm: str, amount: [int, float], tax: [int, float] = None)
 
 def get_payment_tax(amount: [int, float]):
     """ Рассчитать комиссию для YooKassa (до 4%) """
-    mul = 0.03626943005181345792
+    mul = float(config['yandex']['tax-percent'])
     return round(amount * mul, 2)
 
 
