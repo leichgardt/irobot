@@ -3,10 +3,8 @@ from aiogram.contrib.fsm_storage.mongo import MongoStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.dispatcher import Dispatcher
 
+from src.parameters import API_TOKEN
 from src.utils import config
-
-API_TOKEN = config['irobot']['token']
-# API_TOKEN = config['irobot']['token-test']
 
 storage = MongoStorage(host=config['paladin']['cup'], port=27017, db_name='aiogram_fsm')
 

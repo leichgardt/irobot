@@ -3,6 +3,7 @@ import hashlib
 from aiogram import types
 from datetime import datetime
 
+from src.parameters import HOST_URL
 from src.text import Texts
 from src.lb import lb
 from src.sql import sql
@@ -70,13 +71,11 @@ def get_payment_tax(amount: [int, float]):
 
 def get_login_url(hash_code):
     """ Получить URL для авторизации """
-    return 'https://{}/irobot/login?hash={}'.format(config['paladin']['maindomain'], hash_code)
-    # return 'http://0.0.0.0:8000/login?hash={}'.format(hash_code)
+    return '{}login?hash={}'.format(HOST_URL, config['paladin']['maindomain'], hash_code)
 
 
 def get_payment_url(hash_code):
-    return 'https://{}/irobot/api/new_payment?hash_code={}'.format(config['paladin']['maindomain'], hash_code)
-    # return 'http://0.0.0.0:8000/new_payment?hash_code={}'.format(hash_code)
+    return '{}api/new_payment?hash_code={}'.format(HOST_URL, config['paladin']['maindomain'], hash_code)
 
 
 async def get_agrm_balances(chat_id):

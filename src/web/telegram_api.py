@@ -6,6 +6,7 @@ from aiogram.utils import exceptions
 
 from src.bot.api import get_keyboard
 from src.bot import keyboards
+from src.parameters import API_TOKEN
 from src.text import Texts
 from src.sql import sql
 from src.utils import config
@@ -14,8 +15,7 @@ from src.utils import config
 class TelegramAPI(Bot):
     def __init__(self, **kwargs):
         if 'token' not in kwargs:
-            kwargs.update({'token': config['tesseract']['token-iro-mega-bot']})
-            # kwargs.update({'token': config['tesseract']['token-test-bot']})
+            kwargs.update({'token': API_TOKEN})
         super().__init__(**kwargs)
 
     def __del__(self):

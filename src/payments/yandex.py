@@ -6,11 +6,12 @@ from threading import Thread, Lock
 from yookassa import Payment
 from yookassa import Configuration
 
+from src.parameters import SHOP_ID, SECRET_KEY, HOST_URL, RECEIPT_EMAIL
 from src.text import Texts
-from src.utils import get_phone_number, alogger, config
+from src.utils import get_phone_number, alogger
 
-Configuration.account_id = config['yandex']['shop-id']
-Configuration.secret_key = config['yandex']['secret-key']
+Configuration.account_id = SHOP_ID
+Configuration.secret_key = SECRET_KEY
 
 tmp = {}
 
@@ -55,7 +56,7 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
         capture=True,
         confirmation=dict(
             type='redirect',
-            return_url=f'https://{config["maindomain"]}/irobot/payment?hash_code={hash_code}',
+            return_url=f'{HOST_URL}payment?hash_code={hash_code}',
         ),
         metadata=dict(
             payment_id=-1,  # для совместимости с платежами через сайт
@@ -84,7 +85,7 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
     elif phone:
         params['receipt']['customer']['phone'] = f'7{get_phone_number(phone)}'
     else:
-        params['receipt']['customer']['email'] = config['yandex']['email']
+        params['receipt']['customer']['email'] = RECEIPT_EMAIL
     return Payment.create(params, idempotence_key)
 
 

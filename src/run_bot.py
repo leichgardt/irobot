@@ -11,15 +11,12 @@ sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/.
 
 from src.bot.layers import bot, dp
 from src.lb import lb
+from src.parameters import WEBHOOK_HOST
 from src.sql import sql
 from src.text import Texts
 from src.utils import config, alogger, logfile, logdir
 
 CERTIFICATE = ''
-HOST = config['paladin']['maindomain']
-WEBHOOK_HOST = f'https://{HOST}/irobot_webhook'
-# HOST = config['paladin']['userside']
-# WEBHOOK_HOST = f'https://{HOST}/bot1'
 WEBHOOK_PATH = '/'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 
