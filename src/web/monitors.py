@@ -3,8 +3,10 @@ from datetime import datetime, timedelta
 
 from src.lb import lb
 from src.sql import sql
+from src.text import Texts
 from src.web.userside import USPipe
-from src.web.telegram_api import send_feedback
+from src.web.telegram_api import send_feedback, send_message
+from src.utils import post_request, config
 
 
 async def auto_payment_monitor(logger, tries_num=5):
@@ -24,14 +26,24 @@ async def auto_payment_monitor(logger, tries_num=5):
     if payments:
         lb_payments = {}
         for payment in payments:
-            if payment['status'] == 'error':
-                logger.info(f'Payment monitor: processing Error Payment (ID={payment["id"]})')
+            if payment['status'] == 'success':
+                if datetime.now() - payment['update_datetime'] > timedelta(hours=12):
+                    await sql.upd_payment(payment['hash'], status='finished')
+                else:
+                    msg = await send_message(payment['chat_id'], *Texts.payments_online_success.pair())
+                    if msg:
+                        await sql.upd_payment(payment['hash'], status='finished')
+            elif payment['status'] == 'error':
+                await logger.info(f'Payment monitor: processing Error Payment (ID={payment["id"]})')
                 # обработка платежа, у которого не прошёл платёж в биллинг
                 while tries_num > 0:
-                    rec_id = await lb.new_payment(payment['agrm'], payment['amount'], payment['receipt'], datetime.now())
+                    rec_id = await lb.new_payment(payment['agrm'], payment['amount'], payment['receipt'])
                     if rec_id:
-                        await sql.upd_payment(payment['hash'], status='success', record_id=rec_id)
-                        logger.info(f'Payment monitor: Successful Payment (ID={payment["id"]})')
+                        msg = await send_message(payment['chat_id'], *Texts.payments_online_success.pair())
+                        status = 'finished' if msg else 'success'
+                        await sql.upd_payment(payment['hash'], status=status, record_id=rec_id)
+                        text = 'Payment monitor: Error Payment successful done [{}] (ID={})'
+                        await logger.info(text.format(payment['chat_id'], payment['id']))
                         break
                     else:
                         tries_num -= 1
@@ -39,21 +51,23 @@ async def auto_payment_monitor(logger, tries_num=5):
                             await asyncio.sleep(60)
                 else:
                     await sql.upd_payment(payment['hash'], status='failure')
-                    logger.warning(f'Payment FAILURE! Payment ID={payment["id"]}')
-            else:
+                    await logger.warning(f'Payment monitor: FAILURE! Payment ID={payment["id"]}')
+                    text = f'Irobot Payment Monitor [FAILURE]\nTries ended\nPayment ID = {payment["id"]}'
+                    url = config['paladin']['domain'] + '/tesseract/api/notify'
+                    await post_request('json', url, json=dict(chat_id=config['irobot']['me'], text=text))
+            elif payment['status'] == 'processing':
                 # обработка платежа, который висит в состоянии 'processing' более часа
-                # (то есть нет ответа от Телеграма с объектом SUCCESSFUL_PAYMENT)
-                if datetime.now() - payment['update_datetime'] > timedelta(hours=1):
-                    # загрузить платежи из биллинга за последние 1.5 часа и сверить с ними
-                    lb_payments[payment['agrm']] = await lb.get_payments(payment['agrm'], hours=1, minutes=30) \
-                        if payment['agrm'] not in lb_payments else []
-                    for lb_payment in lb_payments[payment['agrm']]:
-                        if payment['receipt'] in lb_payment.pay.receipt:
-                            await sql.upd_payment(payment['hash'], status='success', record_id=lb_payment.pay.recordid)
-                            break
-                    else:
-                        logger.warning(f'Payment Timed out. Payment ID={payment["id"]}')
-                        await sql.upd_payment(payment['hash'], status='timed_out')
+                # загрузить платежи из биллинга за последние 1.5 часа и сверить с ними
+                if payment['agrm'] not in lb_payments:
+                    lb_payments[payment['agrm']] = await lb.get_payments(payment['agrm'], hours=1, minutes=30)
+                for lb_pmt in lb_payments[payment['agrm']]:
+                    if payment['receipt'] in lb_pmt.pay.receipt:
+                        msg = await send_message(payment['chat_id'], *Texts.payments_online_success.pair())
+                        status = 'finished' if msg else 'success'
+                        await sql.upd_payment(payment['hash'], status=status, record_id=lb_pmt.pay.recordid)
+                        break
+                else:
+                    await sql.upd_payment(payment['hash'], status='timed_out')
 
 
 async def auto_feedback_monitor(logger):

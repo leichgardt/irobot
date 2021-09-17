@@ -70,8 +70,8 @@ async def update_params():
 
 
 @app.on_event('startup')
-@repeat_every(seconds=30)
-@sw.solo_worker(task='monitor')
+@repeat_every(seconds=300)
+@sw.solo_worker(task='payments')
 async def payment_monitor():
     """ Поиск платежей с ошибками и попытка провести платёж еще раз """
     await auto_payment_monitor(logger)
