@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../'))
 
-from src.bot.api import main_menu
+from src.bot.api import main_menu, get_payment_tax
 from src.guni import workers
 from src.lb import lb
 from src.payments import yoomoney_pay
@@ -262,7 +262,8 @@ async def new_payment(background_tasks: BackgroundTasks, hash_code: str = None):
         payment = await sql.find_payment(hash_code)
         if payment:
             if not payment['url'] and payment['status'] == 'new':
-                yoo_payment = await yoomoney_pay(payment['agrm'], payment['amount'], hash_code)
+                yoo_payment = await yoomoney_pay(payment['agrm'], payment['amount'], get_payment_tax(payment['amount']),
+                                                 hash_code)
                 if yoo_payment:
                     url = yoo_payment['url']
                     await sql.upd_payment(hash_code, status='processing', url=yoo_payment['url'],

@@ -16,21 +16,21 @@ Configuration.secret_key = SECRET_KEY
 tmp = {}
 
 
-async def yoomoney_pay(agrm: str, amount: [int, float], hash_code: str) -> dict:
+async def yoomoney_pay(agrm: str, amount: [int, float], tax: [int, float], hash_code: str) -> dict:
     """
     :return словарь с ключами {url, id}
     """
     global tmp
     lock = Lock()
 
-    def await_payment_url(agrm, amount, hash_code):
+    def await_payment_url(agrm, amount, tax, hash_code):
         global tmp
         with lock:
-            payment = new_payment(agrm, amount, hash_code)
+            payment = create_payment(agrm, amount, tax, hash_code)
             tmp[hash_code] = dict(url=payment.confirmation.confirmation_url, id=payment.id)
 
     start = datetime.now()
-    thr = Thread(target=await_payment_url, args=(agrm, amount, hash_code))
+    thr = Thread(target=await_payment_url, args=(agrm, amount, tax, hash_code))
     thr.daemon = True
     thr.start()
     while thr.is_alive() or datetime.now() - start > timedelta(seconds=5):
@@ -44,12 +44,13 @@ async def yoomoney_pay(agrm: str, amount: [int, float], hash_code: str) -> dict:
     return payment
 
 
-def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = None, phone: str = None):
+def create_payment(agrm: str, amount: [int, float], tax: [int, float], hash_code: str,
+                   email: str = None, phone: str = None):
     idempotence_key = str(uuid.uuid4())
     params = dict(
         amount=dict(
-          value=amount,
-          currency="RUB"
+          value=amount + tax,
+          currency='RUB'
         ),
         description=Texts.payment_description.format(agrm=agrm, amount=amount),
         capture=True,
@@ -67,7 +68,7 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
                     description=Texts.payment_description_item.format(agrm=agrm),
                     quantity='1.0',
                     amount=dict(
-                        value=amount,
+                        value=amount + tax,
                         currency='RUB'
                     ),
                     vat_code=1,
@@ -89,7 +90,7 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
 
 if __name__ == '__main__':
     print(start := datetime.now())
-    kek = asyncio.run(yoomoney_pay('05275', 100, '123'))
+    kek = asyncio.run(yoomoney_pay('05275', 100, 3, '123'))
     # kek = new_payment('05275', 100, '123')
     print(datetime.now() - start)
     print(kek)
