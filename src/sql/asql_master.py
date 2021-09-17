@@ -81,12 +81,8 @@ class SQLMaster(SQLCore):
         upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
         await self.execute(f'UPDATE irobot.payments SET {upd}, update_datetime=now() WHERE hash=%s', *kwargs.values(), hash_code)
 
-    async def cancel_payment(self, chat_id, inline):
-        await self.execute('UPDATE irobot.payments SET status= %s WHERE chat_id=%s AND inline=%s',
-                           'canceled', chat_id, inline)
-
     async def find_payment(self, hash_code):
-        res = await self.execute('SELECT id, chat_id, status, inline, agrm, amount FROM irobot.payments '
+        res = await self.execute('SELECT id, chat_id, status, inline, agrm, amount, url, receipt FROM irobot.payments '
                                  'WHERE hash=%s', hash_code, as_dict=True)
         return res[0] if res else []
 

@@ -3,6 +3,7 @@ import traceback
 
 from aiologger import Logger
 from fastapi import Request
+from fastapi.templating import Jinja2Templates
 from functools import wraps
 from ipaddress import ip_address, ip_network
 from starlette.responses import Response
@@ -98,3 +99,28 @@ async def broadcast(logger: Logger):
             else:
                 await sql.upd_mailing_status(m_id, 'complete')
     return count
+
+
+class WebM:
+    def __init__(self):
+        self.templates: Jinja2Templates = None
+        self.back_link = ''
+        self.bot_name = ''
+        self.headers = {}
+
+    def update(self, link, name, headers, templates):
+        self.templates = templates
+        self.back_link = link
+        self.bot_name = name
+        self.headers = headers
+
+    def page(self, request: Request, data: dict, *, template: str = 'page.html', **kwargs):
+        return self.templates.TemplateResponse(template,
+                                               dict(request=request,
+                                                    domain=config['paladin']['domain'],
+                                                    back_link=self.back_link,
+                                                    bot_name=self.bot_name,
+                                                    support_bot_name=config['irobot']['chatbot'],
+                                                    **data),
+                                               headers=self.headers,
+                                               **kwargs)

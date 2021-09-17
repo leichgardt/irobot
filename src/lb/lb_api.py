@@ -70,9 +70,10 @@ class LBAPI(LBZeepCore):
                                                                  dtfrom=get_datetime(dtfrom),
                                                                  dtto=get_datetime(dtto)))
 
-    async def new_payment(self, agrm: str, amount: float, receipt: str, paydate: [str, datetime]):
+    async def new_payment(self, agrm: str, amount: float, receipt: str, paydate: [str, datetime] = None):
         res = await self.direct_request('getAgreements', dict(agrmnum=agrm))
         if res:
+            paydate = datetime.now() if not paydate else paydate
             try:
                 payment_obj = self.factory.soapPayment(
                     agrmid=res[0].agrmid,

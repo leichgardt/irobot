@@ -26,7 +26,29 @@ class T(str):
         return map_format(self.__str__, **kwargs), self.parse_mode
 
 
+class Web:
+    auth = 'Авторизация'
+    error = 'Ошибка'
+    login_try_again = [
+        'Пожалуйста, начни авторизацию из <a href="https://t.me/{bot_name}">бота</a> заново.<br/>'
+        'Если ошибка повторяется, <a href="https://t.me/{support}">напиши нам в поддержку</a>.'
+    ]
+    auth_success = 'Успешная авторизация!'
+    payment_error = 'Ошибка платежа'
+    payment_err_detail = ['Не удалось обработать платёж.<br/>Создай новый платёж и попробуй снова.']
+    payment_success = 'Успешный платёж!'
+    payment_processing = 'Платёж обрабатывается'
+    payment_process_detail = ['Деньги поступят на счёт в ближайшие пару минут']
+    backend_error = 'Ой, что-то пошло не так...<br/><small>(Ошибка 500)</small>'
+    backend_err_detail = ['<center>Попробуй повторить операцию позже.</center>']
+
+
 class Texts:
+    web = Web
+
+    me = T(
+        '{name}')
+
     start = T(
         'Привет, {name}!\nС помощью этого бота ты сможешь проверять баланс, пополнять счета и ещё многое '
         'другое!\nНо сначала давай авторизуемся!')
@@ -221,7 +243,9 @@ class Texts:
     payment_title = T(
         'Пополнение счёта договора №{agrm}')
     payment_description = T(
-        'Пополнить счёт договора №{agrm} на {amount} руб.')
+        'Пополнение счёта для {agrm} на {amount}')
+    payment_description_item = T(
+        'Телекоммуникационные услуги связи по договору {agrm}')
     payment_error_message = T(
         'Не удалось провести платёж. Попробуй ещё раз.')
     payments_on_process = T(

@@ -29,10 +29,9 @@ WEBAPP_PORT = 5421
 
 async def upd_texts():
     me = await bot.get_me()
-    new = Texts.main_menu.format(f'@{me["username"]}')
-    Texts.main_menu = Texts.main_menu(new)
-    new = Texts.about_us.format(f'@{me["username"]}')
-    Texts.about_us = Texts.about_us(new)
+    Texts.me = Texts.me(Texts.me.format(name=me['username']))
+    Texts.main_menu = Texts.main_menu(Texts.main_menu.format(f'@{me["username"]}'))
+    Texts.about_us = Texts.about_us(Texts.about_us.format(f'@{me["username"]}'))
 
 
 async def on_startup(dp):
