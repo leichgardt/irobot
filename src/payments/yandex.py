@@ -44,7 +44,6 @@ async def yoomoney_pay(agrm: str, amount: [int, float], hash_code: str) -> dict:
     return payment
 
 
-
 def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = None, phone: str = None):
     idempotence_key = str(uuid.uuid4())
     params = dict(

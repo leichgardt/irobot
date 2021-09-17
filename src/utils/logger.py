@@ -15,7 +15,7 @@ logfile = '{}.log'
 def aio_logger(name, loop=None):
     s_handler = AsyncStreamHandler(level=logging.INFO, formatter=Formatter(s_format1))
     f_handler = AsyncFileHandler(logdir + logfile.format(name))
-    f_handler.level = logging.WARNING
+    f_handler.level = logging.INFO
     f_handler.formatter = Formatter(f_format)
     logger = Logger(name=name, loop=loop)
     logger.add_handler(s_handler)
