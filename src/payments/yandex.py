@@ -9,10 +9,8 @@ from yookassa import Configuration
 from src.text import Texts
 from src.utils import get_phone_number, alogger, config
 
-# Configuration.account_id = '49124'
-# Configuration.secret_key = 'live_b12p4fSI7FvO0JLrvdBqA8gpvEXreFFuxwNMqOjJIgk'
-Configuration.account_id = '809934'
-Configuration.secret_key = 'test_-wD7cvH_7kakhuXHMPFmpiVVcRCEdlX31Yo3SIb1MWo'
+Configuration.account_id = config['yandex']['shop-id']
+Configuration.secret_key = config['yandex']['secret-key']
 
 tmp = {}
 
@@ -57,8 +55,7 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
         capture=True,
         confirmation=dict(
             type='redirect',
-            # return_url=f'https://{config["maindomain"]}/irobot/payment?hash_code={hash_code}',
-            return_url=f'https://0.0.0.0:8000/payment?hash_code={hash_code}',
+            return_url=f'https://{config["maindomain"]}/irobot/payment?hash_code={hash_code}',
         ),
         metadata=dict(
             payment_id=-1,  # для совместимости с платежами через сайт
@@ -87,8 +84,7 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
     elif phone:
         params['receipt']['customer']['phone'] = f'7{get_phone_number(phone)}'
     else:
-        # params['receipt']['customer']['email'] = config['yandex']['email']
-        params['receipt']['customer']['email'] = 'imigeev@ironnet.info'
+        params['receipt']['customer']['email'] = config['yandex']['email']
     return Payment.create(params, idempotence_key)
 
 
