@@ -172,10 +172,10 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
     """ Если текст сообщения НЕ число - попросить ввести ещё раз """
     async with state.proxy() as data:
         if len(data['agrm_data']) > 1:
-            kb = get_custom_button(Texts.back, 'payments-online')
+            btn = get_custom_button(Texts.back, 'payments-online')
         else:
-            kb = get_custom_button(Texts.back, 'payments')
-        await edit_inline_message(message.chat.id, *Texts.payments_online_amount_is_not_digit.pair(), kb)
+            btn = get_custom_button(Texts.back, 'payments')
+        await edit_inline_message(message.chat.id, *Texts.payments_online_amount_is_not_digit.pair(), btn_list=btn)
         await delete_message(message)
 
 

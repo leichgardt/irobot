@@ -113,12 +113,14 @@ async def edit_inline_message(chat_id: int,
                                                          types.ReplyKeyboardMarkup,
                                                          types.ReplyKeyboardRemove,
                                                          None] = None,
-                              btn_list: list = None,
                               inline: int = None,
-                              disable_web_page_preview: bool = False):
+                              disable_web_page_preview: bool = False,
+                              btn_list: list = None):
     if inline is None:
         inline, _, _ = await sql.get_inline(chat_id)
     if not reply_markup and btn_list:
+        if not isinstance(btn_list, (list, tuple, set)):
+            btn_list = [btn_list]
         reply_markup = get_keyboard(*btn_list)
     if inline:
         try:
