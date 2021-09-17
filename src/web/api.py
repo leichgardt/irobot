@@ -35,7 +35,7 @@ def lan_require(func):
     async def wrapper(request: Request, *args, **kwargs):
         ip = request.client.host or '127.0.0.1'
         lan_networks = [ip_network('192.168.0.0/16'), ip_network('172.16.0.0/12'), ip_network('10.0.0.0/8')]
-        if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip == config['paladin']['ironnet-global'] or
+        if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip in config['paladin']['ironnet-global'] or
                 [True for network in lan_networks if ip_address(ip) in network]):
             return await func(request, *args, **kwargs)
         else:
