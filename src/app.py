@@ -286,7 +286,7 @@ async def get_payment(request: Request, hash_code: str = None, status: str = Non
         payment = await sql.find_payment(hash_code)
         if payment:
             if payment['status'] == 'processing':
-                return webm.page(request, dict(title=Texts.web.payment_success, message=dict(
+                return webm.page(request, dict(title=Texts.web.payment_processing, message=dict(
                     title=Texts.web.payment_processing,
                     textlines=Texts.web.payment_process_detail
                 )))
