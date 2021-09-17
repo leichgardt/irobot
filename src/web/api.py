@@ -11,7 +11,7 @@ from urllib.parse import urlparse, parse_qs
 
 from src.bot import keyboards
 from src.text import Texts
-from src.bot.api import main_menu, get_keyboard, get_all_agrm_data, get_payment_url
+from src.bot.api import main_menu, get_keyboard, get_all_agrm_data, get_payment_url, get_payment_tax
 from src.sql import sql
 from src.utils import config
 from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action, edit_message_text

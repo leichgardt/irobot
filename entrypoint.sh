@@ -22,7 +22,7 @@ if [ ! -f ./src/config_params.txt ]; then
       continue
     fi
     echo ""
-    echo "Confirm this data input? (Y/n)"
+    echo -n "Confirm this data input? (Y/n): "
     read -r res
     if [ "${res}" = "" ] || [ "${res}" = "y" ] || [ "${res}" = "Y" ]; then
       echo "$url" > src/config_params.txt

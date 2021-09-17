@@ -71,11 +71,11 @@ def get_payment_tax(amount: [int, float]):
 
 def get_login_url(hash_code):
     """ Получить URL для авторизации """
-    return '{}login?hash={}'.format(HOST_URL, config['paladin']['maindomain'], hash_code)
+    return '{}login?hash={}'.format(HOST_URL, hash_code)
 
 
 def get_payment_url(hash_code):
-    return '{}api/new_payment?hash_code={}'.format(HOST_URL, config['paladin']['maindomain'], hash_code)
+    return '{}new_payment?hash_code={}'.format(HOST_URL, hash_code)
 
 
 async def get_agrm_balances(chat_id):
