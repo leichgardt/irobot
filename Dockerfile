@@ -8,7 +8,7 @@ RUN chown -R www-data:www-data /app &&  \
     touch /var/log/irobot-web.log  && \
     chown www-data:www-data /var/log/irobot*
 RUN apt-get update &&  \
-    apt-get install -y bash git build-essential nano
+    apt-get install -y bash git build-essential nano tzdata
 RUN pip install -U pip setuptools wheel &&  \
     pip install -r /app/requirements.txt &&  \
     git clone https://github.com/carpedm20/emoji.git /tmp/emoji &&  \
@@ -16,6 +16,7 @@ RUN pip install -U pip setuptools wheel &&  \
     python setup.py install &&  \
     rm -rf /tmp/emoji
 # service parameters
+ENV TZ Asia/Irkutsk
 ENV PYTHONPATH "/app:/app/src:${PYTHONPATH}"
 EXPOSE 5421 8000
 WORKDIR /app
