@@ -14,7 +14,6 @@ from src.text import Texts
 from src.lb import lb
 from src.sql import sql
 from src.utils import alogger, map_format
-from src.payments import yoomoney_pay
 
 from .l3_main import bot, dp
 
@@ -208,11 +207,13 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
         # params = get_invoice_params(message.chat.id, data['agrm'], data['amount'], tax, data['hash'])
         # inline_msg = await run_cmd(bot.send_invoice(**params))
         if 'payment' not in data.keys():
-            payment_id = await sql.add_payment(data['hash'], message.chat.id, data['agrm'], data['amount'], inline)
+            payment_id = await sql.add_payment(data['hash'], message.chat.id, data['agrm'], data['amount'], inline,
+                                               int(data['balance']))
             data['payment'] = payment_id
             await alogger.info(f'New payment [{message.chat.id}] ID={payment_id}')
         else:
-            await sql.upd_payment(data['hash'], amount=data['amount'], inline=inline, status='new')
+            await sql.upd_payment(data['hash'], amount=data['amount'], inline=inline, status='new',
+                                  balance=int(data['balance']))
 
 
 @dp.callback_query_handler(text='payments-online-another-amount', state=PaymentFSM.payment)
@@ -234,7 +235,7 @@ async def inline_h_payments_cancel(query: types.CallbackQuery, state: FSMContext
             if res:
                 await delete_message((query.message.chat.id, res['inline']))
                 await sql.upd_payment(data['hash'], status='canceled')
-        await update_inline_query(query, *Texts.payments.full(), btn_list=(keyboards.payment_choice_btn,))
+        await update_inline_query(query, *Texts.payments.full(), btn_list=keyboards.payment_choice_btn)
 
 
 # @dp.pre_checkout_query_handler(lambda query: True, state='*')
