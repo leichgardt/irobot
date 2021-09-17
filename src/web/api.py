@@ -11,10 +11,17 @@ from urllib.parse import urlparse, parse_qs
 
 from src.bot import keyboards
 from src.text import Texts
-from src.bot.api import main_menu, get_keyboard, get_all_agrm_data
+from src.bot.api import main_menu, get_keyboard, get_all_agrm_data, get_payment_url
 from src.sql import sql
 from src.utils import config
-from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action
+from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action, edit_message_text
+
+
+async def edit_payment_message(hash_code, chat_id, agrm, amount, inline):
+    summ = amount + (tax := get_payment_tax(amount))
+    text, parse = Texts.payments_online_offer.pair(agrm=agrm, amount=amount, tax=tax, res=summ)
+    kb = get_keyboard(keyboards.payment_url_btn(get_payment_url(hash_code), summ))
+    await edit_message_text(text, chat_id, inline, parse_mode=parse, reply_markup=kb)
 
 
 async def get_request_data(request: Request):

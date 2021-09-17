@@ -22,13 +22,21 @@ back_to_payments_btn = (
 # )
 
 
-def get_payment_url_btn(url):
+def get_payment_url_btn(url, amount):
     return (
         (
-            {'text': 'Оплатить', 'url': url},
+            {'text': f'Заплатить {amount} RUB', 'url': url},
         ),
         (
             {'text': 'Изменить сумму', 'callback_data': 'payments-online-another-amount'},
             {'text': 'Отмена', 'callback_data': 'cancel'},
+        ),
+    )
+
+
+def payment_url_btn(url, amount):
+    return (
+        (
+            {'text': f'Заплатить {amount} RUB', 'url': url},
         ),
     )

@@ -37,8 +37,8 @@ class Web:
     payment_error = 'Ошибка платежа'
     payment_err_detail = ['Не удалось обработать платёж.<br/>Создай новый платёж и попробуй снова.']
     payment_success = 'Успешный платёж!'
-    payment_processing = 'Платёж обрабатывается'
-    payment_process_detail = ['Деньги поступят на счёт в ближайшие пару минут']
+    payment_processing = 'Подождите'
+    payment_process_detail = ['<center>Платёж обрабатывается.</center>']
     backend_error = 'Ой, что-то пошло не так...<br/><small>(Ошибка 500)</small>'
     backend_err_detail = ['<center>Попробуй повторить операцию позже.</center>']
 
@@ -221,8 +221,7 @@ class Texts:
         'Платежи >> Оплата Онлайн\n\nНе понимаю, о чем ты :hmm: Введи сумму, на которую хочешь пополнить счёт.'))
     payments_online_offer = T(emojize(
         'Платежи >> Оплата онлайн >> Договор №{agrm}\n\nК зачислению: {amount} руб.\n'
-        'Комиссия (от 2.8%): {tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>\n\n'
-        'Можешь переслать сообщение со счётом другу, чтобы он оплатил его тебе :smiley:'))
+        'Комиссия (до 4%): {tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>'))
     payments_online_offer.parse_mode = ParseMode.HTML
     payments_online_success = T(
         'Оплата успешно прошла! Деньги на счёт поступят в ближайшие пару минут!')
@@ -239,7 +238,7 @@ class Texts:
     payment_item_price = T(
         'Услуги доступа к сети Интернет по договору №{agrm}')
     payment_item_tax = T(
-        'Комиссия (от 2.8%)')
+        'Комиссия (до 4%)')
     payment_title = T(
         'Пополнение счёта договора №{agrm}')
     payment_description = T(
@@ -273,6 +272,7 @@ class Texts:
     end_feedback_answer = \
         'Спасибо за оценку!'
 
+    @staticmethod
     def get_account_agrm_list(data: dict):
         text = []
         for account, agrms in data.items():

@@ -190,20 +190,29 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
         summ = round(data['amount'], 2) + tax
         if 'hash' not in data.keys():
             data['hash'] = get_payment_hash(message.chat.id, data['agrm'])
+        else:
+            payment = await sql.find_payment(data['hash'])
+            if payment:
+                if payment['status'] != 'new':
+                    data['hash'] = get_payment_hash(message.chat.id, data['agrm'])
+                    if 'payment' in data.keys():
+                        data.pop('payment')
+            elif 'payment' in data.keys():
+                data.pop('payment')
         await delete_message(message)  # удалить сообщение от пользователя с суммой платежа
         url = get_payment_url(data['hash'])
         text, parse = Texts.payments_online_offer.pair(agrm=data['agrm'], amount=data['amount'],
                                                        balance=data['balance'], tax=tax, res=summ)
-        inline_msg = await edit_inline_message(message.chat.id, text, parse,
-                                               reply_markup=get_keyboard(keyboards.get_payment_url_btn(url)))
+        inline = await edit_inline_message(message.chat.id, text, parse,
+                                           btn_list=keyboards.get_payment_url_btn(url, summ))
         # params = get_invoice_params(message.chat.id, data['agrm'], data['amount'], tax, data['hash'])
         # inline_msg = await run_cmd(bot.send_invoice(**params))
         if 'payment' not in data.keys():
-            payment_id = await sql.add_payment(data['hash'], message.chat.id, data['agrm'], data['amount'], inline_msg)
+            payment_id = await sql.add_payment(data['hash'], message.chat.id, data['agrm'], data['amount'], inline)
+            data['payment'] = payment_id
             await alogger.info(f'New payment [{message.chat.id}] ID={payment_id}')
         else:
-            await sql.upd_payment(data['hash'], amount=data['amount'], inline=inline_msg, status='new')
-        data['payment'] = dict(chat_id=message.chat.id, message_id=inline_msg)
+            await sql.upd_payment(data['hash'], amount=data['amount'], inline=inline, status='new')
 
 
 @dp.callback_query_handler(text='payments-online-another-amount', state=PaymentFSM.payment)
@@ -211,8 +220,6 @@ async def inline_h_payment_another_amount(query: types.CallbackQuery, state: FSM
     """ Изменение суммы онлайн платежа """
     async with state.proxy() as data:
         await PaymentFSM.amount.set()
-        if 'payment' in data.keys():
-            await delete_message(data['payment'])
         answer, text, parse = Texts.payments_online_amount.full(agrm=data['agrm'], balance=data['balance'])
         await update_inline_query(query, answer, text, parse,
                                   reply_markup=get_keyboard(get_custom_button(Texts.back, 'payments-online')))

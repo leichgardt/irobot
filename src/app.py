@@ -24,7 +24,7 @@ from src.utils import config, aio_logger
 from src.web import (
     lan_require, get_request_data,
     SoloWorker, Table, WebM,
-    telegram_api, broadcast, logining, send_message,
+    telegram_api, broadcast, logining, send_message, edit_payment_message,
     auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor
 )
 
@@ -241,7 +241,7 @@ async def api_status(request: Request):
     response: 1  - OK
     response: 0  - SQL error
     response: -1 - telegram API error
-    response: -2 - SQL and API error
+    response: -2 - system fatal error
     """
     output = 1
     try:
@@ -256,7 +256,7 @@ async def api_status(request: Request):
 
 
 @app.get('/new_payment')
-async def new_payment(request: Request, hash_code: str = None):
+async def new_payment(background_tasks: BackgroundTasks, hash_code: str = None):
     url = 'payment?status=error'
     if hash_code:
         payment = await sql.find_payment(hash_code)
@@ -267,20 +267,27 @@ async def new_payment(request: Request, hash_code: str = None):
                     url = yoo_payment['url']
                     await sql.upd_payment(hash_code, status='processing', url=yoo_payment['url'],
                                           receipt=yoo_payment['id'])
+                background_tasks.add_task(edit_payment_message, hash_code, payment['chat_id'], payment['agrm'],
+                                          payment['amount'], payment['inline'])
             elif payment['url']:
                 url = payment['url']
     return RedirectResponse(url, 302)
 
 
 @app.get('/payment')
-async def get_payment(request: Request, hash_code: str = None):
+async def get_payment(request: Request, hash_code: str = None, status: str = None):
+    if status == 'error':
+        return webm.page(request, dict(title=Texts.web.payment_error, message=dict(
+            title=Texts.web.payment_error,
+            textlines=Texts.web.payment_err_detail
+        )))
     if hash_code:
         payment = await sql.find_payment(hash_code)
         if payment:
             if payment['status'] == 'processing':
                 return webm.page(request, dict(title=Texts.web.payment_success, message=dict(
                     title=Texts.web.payment_processing,
-                    message=Texts.web.payment_process_detail
+                    textlines=Texts.web.payment_process_detail
                 )))
             elif payment['status'] in ('success', 'finished'):
                 return webm.page(request, dict(title=Texts.web.payment_success,
