@@ -60,7 +60,7 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
         ),
         metadata=dict(
             payment_id=-1,  # для совместимости с платежами через сайт
-            hash=hash_code
+            hash_code=hash_code
         ),
         receipt=dict(
             items=[
@@ -73,7 +73,6 @@ def new_payment(agrm: str, amount: [int, float], hash_code: str, email: str = No
                     ),
                     vat_code=1,
                     payment_subject='service',
-                    payment_mode='full_prepayment'
                 ),
             ],
             tax_system_code=2,
