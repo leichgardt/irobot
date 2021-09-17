@@ -22,7 +22,7 @@ def get_datetime(date_str):
 
 
 def get_phone_number(num):
-    num = ''.join(re.findall(r'\d+', num))[-10:] if isinstance(num, str) else ''
+    num = ''.join(re.findall(r'\d+', str(num)))[-10:]
     num = num if len(num) == 10 else ''
     if len(num) > 0 and num[0] == '9':
         return num
