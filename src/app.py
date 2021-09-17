@@ -307,17 +307,16 @@ async def get_payment(request: Request, hash_code: str = None, status: str = Non
 async def payment_processing(request: Request):
     data = await get_request_data(request)
     payment_id = 0
-    if data and 'hash_code' in data and 'id' in data:
+    if data and 'hash_code' in data:
         payment = await sql.find_payment(data['hash_code'])
         if payment:
             payment_id = await lb.new_payment(payment['agrm'], payment['amount'], payment['receipt'])
             if payment_id:
                 res = await send_message(payment['chat_id'], *Texts.payments_online_success.pair(),
                                          reply_markup=main_menu)
-                await sql.upd_payment(data['hash_code'], status='finished' if res else 'success', receipt=data['id'],
-                                      record_id=payment_id)
+                await sql.upd_payment(data['hash_code'], status='finished' if res else 'success', record_id=payment_id)
             else:
-                await sql.upd_payment(data['hash_code'], status='error', receipt=data['id'])
+                await sql.upd_payment(data['hash_code'], status='error')
     return {'response': payment_id}
 
 
