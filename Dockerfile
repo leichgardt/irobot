@@ -1,4 +1,4 @@
-FROM python:3.8.12-buster
+FROM i386/python:3.8.12-buster
 MAINTAINER leichgardt
 # copy project files and install environment
 COPY . /app
