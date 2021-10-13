@@ -98,7 +98,7 @@ class LBZeepCore:
         try:
             await self.client.service.Login(self.user, self.__password)
         except Exception as e:
-            await self.logger.warning(f'Logining: {e}')
+            await self.logger.warning(f'LBZeepCore logining error: {e}')
             return False
         else:
             return True
@@ -129,7 +129,7 @@ class LBZeepCore:
                 return await self.direct_request(function, *args, try_again=True, pass_faults=pass_faults)
             else:
                 if not pass_faults:
-                    msg = f'"{function}" request error{f" [args: {args}]" if args else ""}: {e}'
+                    msg = f'LB request "{function}" error{f" [{args=}]" if args else ""}: {e}'
                     await self.logger.warning(msg)
                 return []
         else:
