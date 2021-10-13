@@ -158,3 +158,39 @@ class WebM:
                                                     **data),
                                                headers=self.headers,
                                                **kwargs)
+
+
+async def get_subscriber_table():
+    res = await sql.get_sub_accounts()
+    if res:
+        data = {}
+        for chat_id, login, mailing in res:
+            if chat_id not in data:
+                data[chat_id] = dict(login=str(login), mailing=mailing)
+            else:
+                data[chat_id]['login'] = data[chat_id]['login'] + '<br/>' + str(login)
+        res = []
+        for key, value in data.items():
+            res.append([key, value['mailing'], value['login']])
+        table = Table(res)
+        for line in table:
+            if not line[1].value:
+                line[1].style = 'background-color: red;'
+            else:
+                line[1].style = 'background-color: green; color: white;'
+        return table
+
+
+async def get_mailing_history():
+    res = await sql.get_mailings()
+    if res:
+        table = Table(res)
+        for line in table:
+            line[3].value = '\n'.join(line[3].value) if isinstance(line[3].value, Iterable) else line[3].value
+        return table
+
+
+if __name__ == '__main__':
+    import asyncio
+    res = asyncio.run(get_mailing_history())
+    print(res)

@@ -25,7 +25,8 @@ from src.web import (
     lan_require, get_request_data,
     SoloWorker, Table, WebM,
     telegram_api, broadcast, logining, send_message, edit_payment_message,
-    auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor
+    auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor,
+    get_subscriber_table, get_mailing_history
 )
 
 VERSION = '1.0.2'
@@ -113,29 +114,10 @@ async def close_connections():
 @app.get('/')
 @lan_require
 async def index(request: Request):
-    t_subs, t_history = '', ''
-    res = await sql.get_sub_agrms()
-    if res:
-        data = {}
-        for chat_id, agrm, mailing in res:
-            if chat_id not in data:
-                data[chat_id] = {'agrms': str(agrm), 'mailing': mailing}
-            else:
-                data[chat_id]['agrms'] = data[chat_id]['agrms'] + '<br/>' + str(agrm)
-        res = []
-        for key, value in data.items():
-            res.append([key, value['mailing'], value['agrms']])
-        t_subs = Table(res)
-        for line in t_subs:
-            if not line[1].value:
-                line[1].style = 'background-color: red;'
-            else:
-                line[1].style = 'background-color: green; color: white;'
-        t_subs = t_subs.get_html()
-    res = await sql.get_mailings()
-    if res:
-        t_history = Table(res).get_html()
-    context = dict(title='IroBot', about=ABOUT, version=VERSION, tables={'subs': t_subs, 'history': t_history})
+    table = await get_subscriber_table() or ''
+    history = await get_mailing_history() or ''
+    context = dict(title='IroBot', about=ABOUT, version=VERSION,
+                   tables=dict(subs=table.get_html(), history=history.get_html()))
     return webm.page(request, context, template='index.html')
 
 
@@ -197,7 +179,7 @@ async def login_page(request: Request):
 
 @app.get('/api/get_history')
 @lan_require
-async def history(request: Request):
+async def get_history(request: Request):  # lan_require decorator requires `Request` argument
     """Получить таблицу с последними 10 рассылками"""
     res = await sql.get_mailings()
     if res:
