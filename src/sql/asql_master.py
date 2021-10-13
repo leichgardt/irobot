@@ -40,6 +40,11 @@ class SQLMaster(SQLCore):
         status = not status[0][0]
         await self.execute(f'UPDATE irobot.subs SET {field} = %s WHERE chat_id=%s', status, chat_id)
 
+    async def find_user_chats(self, user_id):
+        res = await self.execute('SELECT a.chat_id FROM irobot.accounts a JOIN irobot.subs s ON s.chat_id=a.chat_id '
+                                 'WHERE a.user_id=%s AND a.active=true AND s.subscribed=true', user_id)
+        return [line[0] for line in res] if res else []
+
     async def get_accounts(self, chat_id):
         res = await self.execute('SELECT login FROM irobot.accounts WHERE chat_id=%s AND active=true', chat_id)
         return [acc[0] for acc in res] if res else []
@@ -132,12 +137,10 @@ class SQLMaster(SQLCore):
     async def get_mailings(self):
         return await self.execute('SELECT id, datetime, type, text FROM irobot.mailing ORDER BY id DESC LIMIT 10')
 
-    async def add_mailing(self, mail_type, text):
-        res = await self.execute('INSERT INTO irobot.mailing (type, text) VALUES (%s, %s) RETURNING id', mail_type, text)
+    async def add_mailing(self, mail_type: str, text: str, targets: list = None, parse_mode: str = None):
+        res = await self.execute('INSERT INTO irobot.mailing (type, text, targets, parse_mode) VALUES (%s, %s, %s, %s) '
+                                 'RETURNING id', mail_type, text, targets, parse_mode)
         return res[0][0] if res else 0
-
-    async def get_new_mailings(self):
-        return await self.execute("SELECT id, type, text FROM irobot.mailing WHERE status='new'")
 
     async def upd_mailing_status(self, mail_id, status):
         return await self.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', status, mail_id)

@@ -209,11 +209,12 @@ async def history(request: Request):
 class MailingItem(BaseModel):
     type: str = ''
     text: str = ''
+    parse_mode: str = None
 
 
 @app.post('/api/send_mail')
 @lan_require
-async def send_mailing(request: Request,
+async def send_mailing(request: Request,  # lan_require decorator requires `Request` argument
                        response: Response,
                        background_tasks: BackgroundTasks,
                        item: MailingItem):
@@ -221,7 +222,8 @@ async def send_mailing(request: Request,
     if item.type in ('notify', 'mailing'):
         mail_id = await sql.add_mailing(item.type, item.text)
         if mail_id:
-            background_tasks.add_task(broadcast, logger)
+            payload = dict(id=mail_id, type=item.type, text=item.text, parse_mode=item.parse_mode)
+            background_tasks.add_task(broadcast, payload, logger)
             await logger.info(f'New mailing added [{mail_id}]')
             response.status_code = 202
             return {'response': 1, 'id': mail_id}
@@ -232,6 +234,66 @@ async def send_mailing(request: Request,
     else:
         response.status_code = 400
         return {'response': 0, 'error': 'wrong mail_type'}
+
+
+@app.post('/api/send_message')
+@lan_require
+async def send_mailing(request: Request,
+                       response: Response,
+                       background_tasks: BackgroundTasks):
+    """
+    Отправить сообщение
+    если передан
+        chat_id - сообщение напрямую в конкретный чат
+        user_id - рассылка всем чатам (chat_id), у которых подключен этот user_id (billing)
+        agrm_id - рассылка всем чатам (chat_id), аккаунту которых (billing) принадлежит договор agrm_id
+        agrm    - тоже тамое, только по agrm (через login)
+    """
+    data = await get_request_data(request)
+    if data:
+        chat_id = data.get('chat_id', 0)
+        user_id = data.get('uid', data.get('userid', data.get('user_id', 0)))
+        agrm_id = data.get('aid', data.get('agrmid', data.get('agrm_id', 0)))
+        agrm = data.get('agrm', data.get('agrmnum', data.get('agrm_num', '')))
+        text = data.get('text', '')
+        parse_mode = data.get('parse_mode') or None
+        if text and (user_id or chat_id or agrm_id or agrm):
+            if user_id:
+                type_ = 'userid'
+                targets = [user_id]
+                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+            elif chat_id:
+                type_ = 'direct'
+                targets = [chat_id]
+                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+                msg = await send_message(chat_id, text, parse_mode=parse_mode)
+                if msg:
+                    await sql.upd_mailing_status(mail_id, 'complete')
+                    return {'response': 1, 'id': mail_id}
+            elif agrm_id:
+                type_ = 'agrmid'
+                targets = [agrm_id]
+                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+            elif agrm:
+                type_ = 'agrm'
+                targets = [agrm]
+                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+            else:
+                type_ = None
+                targets = []
+                mail_id = -1
+            if mail_id > 0 and type_:
+                payload = dict(id=mail_id, type=type_, targets=targets, text=text, parse_mode=parse_mode)
+                background_tasks.add_task(broadcast, payload, logger)
+                response.status_code = 202
+                return {'response': 1, 'id': mail_id}
+            elif mail_id == 0:
+                response.status_code = 500
+                return {'response': -1, 'error': 'Message registration error'}
+        response.status_code = 400
+        return {'response': 0, 'error': f'Target not exist: {user_id or chat_id or agrm_id or agrm=}'}
+    response.status_code = 400
+    return {'response': 0, 'error': 'Empty data'}
 
 
 @app.post('/api/status')

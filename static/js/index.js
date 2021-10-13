@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     let btn_update = document.getElementById('update-history');
     let textarea = document.getElementById('input-text');
     let table_history = document.getElementById('history-table');
+    let radio_parse = document.getElementsByName('parse-radio');
 
     btn_notify.onclick = function () {
         start_broadcast('notify');
@@ -18,8 +19,14 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function start_broadcast(type) {
+        let parse_mode = null;
+        for (let i = 0; i < radio_parse.length; i++) {
+            if (radio_parse[i].checked) {
+                parse_mode = radio_parse[i].value;
+            }
+        }
+        let data = {'type': type, 'text': textarea.value, 'parse_mode': parse_mode};
         let url = 'api/send_mail';
-        let data = {'type': type, 'text': textarea.value}
         fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},

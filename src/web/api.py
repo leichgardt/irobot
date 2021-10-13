@@ -2,6 +2,7 @@ import asyncio
 import traceback
 
 from aiologger import Logger
+from collections.abc import Iterable
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from functools import wraps
@@ -10,10 +11,12 @@ from starlette.responses import Response
 from urllib.parse import urlparse, parse_qs
 
 from src.bot import keyboards
-from src.text import Texts
 from src.bot.api import main_menu, get_keyboard, get_all_agrm_data, get_payment_url, get_payment_tax
+from src.lb import lb
 from src.sql import sql
+from src.text import Texts
 from src.utils import config
+from src.web.table import Table
 from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action, edit_message_text
 
 
@@ -77,34 +80,57 @@ async def logining(chat_id: int, login: str):
         await send_message(chat_id, text.format(accounts=Texts.get_account_agrm_list(data)), parse, reply_markup=kb)
 
 
-async def broadcast(logger: Logger):
+async def broadcast(data: dict, logger: Logger):
     """
-    Функция массовой рассылки сообщений пользователям бота. Запускается через Web-интерфейс
-    Сообщение для рассылки загружается из БД
+    Функция массовой рассылки сообщений пользователям бота. Запускается через web-интерфейс
+
+    Формат данных `data` {
+        id: int                 - ID записи в БД в таблице irobot.mailings,
+        type: str               - тип рассылка сообщения
+        targets: list or None,  - список целей (для типов "direct", "user_id", "agrm_id", "agrm")
+        text: str               - текст сообщения
+        parse_mode: str         - метод парсинга для форматирования текста (html, markdown, markdown_v2, ...)
+    }
     """
     count = 0
-    res = await sql.get_new_mailings()
-    if res:
-        for m_id, mail_type, text in res:
-            await sql.upd_mailing_status(m_id, 'processing')
-            try:
-                if mail_type == 'notify':
-                    targets = await sql.get_subs()
-                elif mail_type == 'mailing':
-                    targets = await sql.get_subs(mailing=True)
+    if data:
+        await sql.upd_mailing_status(data['id'], 'processing')
+        try:
+            if data['type'] == 'notify':
+                targets = [data[0] for data in await sql.get_subs() if data]
+            elif data['type'] == 'mailing':
+                targets = [data[0] for data in await sql.get_subs(mailing=True) if data]
+            elif data['type'] == 'direct':
+                targets = data['targets']
+            elif data['type'] == 'userid':
+                targets = [await sql.find_user_chats(uid) for uid in data['targets']]
+                targets = [chat_id for group in targets for chat_id in group]
+            elif data['type'] in ('agrmid', 'agrm'):
+                if data['type'] == 'agrmid':
+                    agrm_groups = [await lb.get_account_agrms(agrm_id=agrm_id) for agrm_id in data['targets']]
                 else:
-                    await logger.warning(f'Wrong mail_type ID: {m_id}')
-                    continue
-                if targets:
-                    for chat_id, _ in targets:
-                        if await send_message(chat_id, text):
-                            count += 1
-                        await asyncio.sleep(.05)
-            except Exception as e:
-                await logger.error(f'Broadcast error: {e}\nMailing ID: [{m_id}]\n{traceback.format_exc()}')
-                await sql.upd_mailing_status(m_id, 'error')
+                    agrm_groups = [await lb.get_account_agrms(agrm) for agrm in data['targets']]
+                groups = [await sql.find_user_chats(agrm['user_id']) for agrms in agrm_groups for agrm in agrms]
+                targets = [chat_id for chats in groups for chat_id in chats]
             else:
-                await sql.upd_mailing_status(m_id, 'complete')
+                await logger.warning(f'Broadcast error [{data["id"]}]: wrong mail type ID "{data["type"]}"')
+                await sql.upd_mailing_status(data['id'], 'error')
+                return 0
+            print(f'{data["targets"]=}, {targets=}')
+            if targets:
+                for chat_id in set(targets):
+                    if await send_message(chat_id, data['text'], parse_mode=data['parse_mode']):
+                        count += 1
+                    await asyncio.sleep(.05)
+            else:
+                await logger.warning(f'Broadcast error [{data["id"]}]: undefined targets {targets}')
+                await sql.upd_mailing_status(data['id'], 'missed')
+        except Exception as e:
+            await logger.error(f'Broadcast error [{data.get("id", 0)}]: {e}\n{traceback.format_exc()}')
+            if data.get('id', 0):
+                await sql.upd_mailing_status(data.get('id', 0), 'error')
+        else:
+            await sql.upd_mailing_status(data['id'], 'complete')
     return count
 
 

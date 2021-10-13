@@ -51,13 +51,42 @@ html {
             </div>
             <div class="col-9">
                 <div class="row">
-                    <div class="col-12 text-center">
+                    <div class="col-9 text-center">
                         <label for="input-text">Text</label>
+                    </div>
+                    <div class="col-3 text-center">
+                        <label for="input-text">Parse mode</label>
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-12">
-                        <textarea id="input-text" class="form-control form-control-sm" rows="3"></textarea>
+                    <div class="col-9">
+                        <textarea id="input-text" class="form-control form-control-sm" rows="5"></textarea>
+                    </div>
+                    <div class="col-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="parse-radio" id="parse-radio1" value="" checked>
+                            <label class="form-check-label" for="parse-radio1">
+                                None
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="parse-radio" id="parse-radio2" value="html">
+                            <label class="form-check-label" for="parse-radio2">
+                                HTML
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="parse-radio" id="parse-radio3" value="markdown">
+                            <label class="form-check-label" for="parse-radio3">
+                                Markdown
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="parse-radio" id="parse-radio4" value="markdownv2">
+                            <label class="form-check-label" for="parse-radio4">
+                                MarkdownV2
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="row">

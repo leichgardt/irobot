@@ -23,12 +23,15 @@ class LBAPI(LBZeepCore):
                         return 0
         return -1
 
-    async def get_account_agrms(self, login: str):
-        agrms = await self.direct_request('getAgreements', dict(login=login))
-        return [dict(agrm=agrm.number, agrm_id=agrm.agrmid, balance=round(agrm.balance, 2), credit=agrm.credit,
-                     promisecredit=agrm.promisecredit, user_id=agrm.uid)
-                for agrm in agrms if agrm.closedon is None]
-    
+    async def get_account_agrms(self, login: str = '', agrm_id: int = 0):
+        kwargs = dict(login=login) if login else dict(agrmid=agrm_id) if agrm_id else dict()
+        if kwargs:
+            agrms = await self.direct_request('getAgreements', dict(**kwargs))
+            return [dict(agrm=agrm.number, agrm_id=agrm.agrmid, balance=round(agrm.balance, 2), credit=agrm.credit,
+                         promisecredit=agrm.promisecredit, user_id=agrm.uid)
+                    for agrm in agrms if agrm.closedon is None]
+        return []
+
     async def get_balance(self, *, agrmnum: str = None, agrm_data: dict = None):
         if agrmnum:
             agrm = await self.direct_request('getAgreements', dict(agrmnum=agrmnum))
