@@ -49,13 +49,14 @@ class SQLMaster(SQLCore):
         res = await self.execute('SELECT login FROM irobot.accounts WHERE chat_id=%s AND active=true', chat_id)
         return [acc[0] for acc in res] if res else []
 
-    async def add_account(self, chat_id, login):
+    async def add_account(self, chat_id, login, user_id):
         res = await self.execute('SELECT active FROM irobot.accounts WHERE chat_id=%s AND login=%s AND active=false',
                                  chat_id, login)
         if res:
             await self.execute('UPDATE irobot.accounts SET active=true WHERE chat_id=%s AND login=%s', chat_id, login)
         else:
-            await self.execute('INSERT INTO irobot.accounts (chat_id, login) VALUES (%s, %s)', chat_id, login)
+            await self.execute('INSERT INTO irobot.accounts (chat_id, login, user_id) VALUES (%s, %s, %s)',
+                               chat_id, login, user_id)
 
     async def deactivate_account(self, chat_id: int, account: str = None):
         if account:

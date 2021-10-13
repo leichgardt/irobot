@@ -61,7 +61,8 @@ def get_query_params(url):
 async def logining(chat_id: int, login: str):
     """ Авторизация пользователя по chat_id и логину от Личного Кабинета (ЛК) """
     await send_chat_action(chat_id, 'typing')
-    await sql.add_account(chat_id, login)
+    user_id = await lb.get_user_id_by_login(login)
+    await sql.add_account(chat_id, login, user_id)
     await sql.upd_hash(chat_id, None)
     if not await sql.get_sub(chat_id):
         # если пользователь новый

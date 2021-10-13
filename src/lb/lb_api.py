@@ -23,6 +23,10 @@ class LBAPI(LBZeepCore):
                         return 0
         return -1
 
+    async def get_user_id_by_login(self, login: str):
+        acc = await self.direct_request('getAccounts', dict(login=login))
+        return acc[0].account.uid if acc else None
+
     async def get_account_agrms(self, login: str = '', agrm_id: int = 0):
         kwargs = dict(login=login) if login else dict(agrmid=agrm_id) if agrm_id else dict()
         if kwargs:
