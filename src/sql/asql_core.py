@@ -64,7 +64,7 @@ class SQLCore:
             if not retrying:
                 return await self.execute(cmd, *args, retrying=True, log_faults=log_faults, as_dict=as_dict)
         except Exception as e:
-            if log_faults and retrying and 'duplicate key value violates unique constraint' not in e:
+            if log_faults and retrying and 'duplicate key value violates unique constraint' not in str(e):
                 msg = f'SQL exception: {e}CMD: {cmd}' + f'\nARGS: {args}' if args else ''
                 await self.logger.warning(msg)
         else:
@@ -72,7 +72,7 @@ class SQLCore:
         if need_to_retry:
             if isinstance(args, dict):
                 args = (args,)
-            return await self.execute(cmd, *args, retrying=True)
+            return await self.execute(cmd, *args, retrying=True, log_faults=log_faults, as_dict=as_dict)
         return res
 
 
