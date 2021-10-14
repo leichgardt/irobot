@@ -184,6 +184,8 @@ async def get_history(request: Request):  # lan_require decorator requires `Requ
     res = await sql.get_mailings()
     if res:
         table = Table(res)
+        for line in table:
+            line[4].value = '\n'.join(line[4].value) if isinstance(line[4].value, list) else line[4].value
         return {'response': 1, 'table': table.get_html()}
     return {'response': 0}
 

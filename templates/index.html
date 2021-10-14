@@ -41,7 +41,7 @@ html {
                             <tr>
                                 <th>chat_id</th>
                                 <th>mailing</th>
-                                <th>agrms</th>
+                                <th>accounts</th>
                             </tr>
                             </thead>
                             <tbody id="table">{{ tables.subs|safe }}</tbody>
@@ -101,16 +101,8 @@ html {
                         <label for="input-text">History</label>
                     </div>
                     <div class="col-12">
-                        <table class="table table-sm">
-                            <thead>
-                            <tr>
-                                <th>id</th>
-                                <th>datetime</th>
-                                <th>type</th>
-                                <th>text</th>
-                            </tr>
-                            </thead>
-                            <tbody id="history-table">{{ tables.history|safe }}</tbody>
+                        <table id="history-table" class="table table-sm">
+                            {{ tables.history|safe }}
                         </table>
                     </div>
                 </div>

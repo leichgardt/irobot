@@ -133,11 +133,11 @@ class SQLMaster(SQLCore):
 
     async def get_sub_accounts(self):
         return await self.execute('SELECT s.chat_id, a.login, s.mailing FROM irobot.subs s JOIN irobot.accounts a '
-                                  'ON s.chat_id=a.chat_id WHERE s.subscribed=true ORDER BY s.chat_id')
+                                  'ON s.chat_id=a.chat_id WHERE s.subscribed=true AND a.active=true ORDER BY s.chat_id')
 
     async def get_mailings(self):
-        return await self.execute('SELECT id, datetime, type, targets, text FROM irobot.mailing ORDER BY id DESC '
-                                  'LIMIT 10')
+        return await self.execute('SELECT id, datetime, status, type, targets, text FROM irobot.mailing '
+                                  'ORDER BY id DESC LIMIT 10', as_dict=True)
 
     async def add_mailing(self, mail_type: str, text: str, targets: list = None, parse_mode: str = None):
         res = await self.execute('INSERT INTO irobot.mailing (type, text, targets, parse_mode) VALUES (%s, %s, %s, %s) '

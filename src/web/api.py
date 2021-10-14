@@ -160,18 +160,15 @@ class WebM:
 
 
 async def get_subscriber_table():
-    res = await sql.get_sub_accounts()
-    if res:
+    accs = await sql.get_sub_accounts()
+    if accs:
         data = {}
-        for chat_id, login, mailing in res:
+        for chat_id, login, mailing in accs:
             if chat_id not in data:
-                data[chat_id] = dict(login=str(login), mailing=mailing)
+                data[chat_id] = dict(accounts=login, mailing=mailing)
             else:
-                data[chat_id]['login'] = data[chat_id]['login'] + '<br/>' + str(login)
-        res = []
-        for key, value in data.items():
-            res.append([key, value['mailing'], value['login']])
-        table = Table(res)
+                data[chat_id]['accounts'] = data[chat_id]['accounts'] + '<br/>' + login
+        table = Table([[key, value['mailing'], value['accounts']] for key, value in data.items()])
         for line in table:
             if not line[1].value:
                 line[1].style = 'background-color: red;'
@@ -185,7 +182,7 @@ async def get_mailing_history():
     if res:
         table = Table(res)
         for line in table:
-            line[3].value = '\n'.join(line[3].value) if isinstance(line[3].value, Iterable) else line[3].value
+            line[4].value = '\n'.join(line[4].value) if isinstance(line[4].value, list) else line[4].value
         return table
 
 
