@@ -118,9 +118,9 @@ async def broadcast(data: dict, logger: Logger):
                 await sql.upd_mailing_status(data['id'], 'error')
                 return 0
         except Exception as e:
-            await logger.error(f'Broadcast error [{data.get("id", 0)}]: {e}\n{traceback.format_exc()}')
+            await logger.error(f'Broadcast error [{data.get("id", 0) or data}]: {e}\n{traceback.format_exc()}')
             if data.get('id', 0):
-                await sql.upd_mailing_status(data.get('id', 0), 'error')
+                await sql.upd_mailing_status(data.get('id', 0), 'failed')
         else:
             if targets:
                 for chat_id in set(targets):

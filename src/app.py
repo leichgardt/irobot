@@ -244,8 +244,11 @@ async def send_mailing(request: Request,
         if text and (user_id or chat_id or agrm_id or agrm):
             if user_id:
                 type_ = 'userid'
-                targets = [user_id]
-                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+                if await sql.find_user_chats(user_id):
+                    targets = [user_id]
+                    mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+                else:
+                    targets, mail_id = [], 0
             elif chat_id:
                 type_ = 'direct'
                 targets = [chat_id]
