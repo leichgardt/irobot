@@ -117,21 +117,20 @@ async def broadcast(data: dict, logger: Logger):
                 await logger.warning(f'Broadcast error [{data["id"]}]: wrong mail type ID "{data["type"]}"')
                 await sql.upd_mailing_status(data['id'], 'error')
                 return 0
-            print(f'{data["targets"]=}, {targets=}')
-            if targets:
-                for chat_id in set(targets):
-                    if await send_message(chat_id, data['text'], parse_mode=data['parse_mode']):
-                        count += 1
-                    await asyncio.sleep(.05)
-            else:
-                await logger.warning(f'Broadcast error [{data["id"]}]: undefined targets {targets}')
-                await sql.upd_mailing_status(data['id'], 'missed')
         except Exception as e:
             await logger.error(f'Broadcast error [{data.get("id", 0)}]: {e}\n{traceback.format_exc()}')
             if data.get('id', 0):
                 await sql.upd_mailing_status(data.get('id', 0), 'error')
         else:
-            await sql.upd_mailing_status(data['id'], 'complete')
+            if targets:
+                for chat_id in set(targets):
+                    if await send_message(chat_id, data['text'], parse_mode=data['parse_mode']):
+                        count += 1
+                    await asyncio.sleep(.05)
+                await sql.upd_mailing_status(data['id'], 'complete')
+            else:
+                await logger.warning(f'Broadcast error [{data["id"]}]: failed to get targets {data["targets"]}')
+                await sql.upd_mailing_status(data['id'], 'missed')
     return count
 
 
