@@ -2,13 +2,13 @@ import aiohttp
 from .logger import alogger
 
 
-async def post_request(output, *args, **kwargs):
+async def post_request(*args, _as_json=True, **kwargs):
     res = None
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(*args, **kwargs) as resp:
                 if resp.status == 200:
-                    if output == 'json':
+                    if _as_json:
                         res = await resp.json()
                     else:
                         res = resp

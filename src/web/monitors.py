@@ -54,7 +54,7 @@ async def auto_payment_monitor(logger, tries_num=5):
                     await logger.warning(f'Payment monitor: FAILURE! Payment ID={payment["id"]}')
                     text = f'Irobot Payment Monitor [FAILURE]\nTries ended\nPayment ID = {payment["id"]}'
                     url = config['paladin']['domain'] + '/tesseract/api/notify'
-                    await post_request('json', url, json=dict(chat_id=config['irobot']['me'], text=text))
+                    await post_request(url, json=dict(chat_id=config['irobot']['me'], text=text))
             elif payment['status'] == 'processing':
                 # обработка платежа, который висит в состоянии 'processing' более часа
                 # загрузить платежи из биллинга за последние 1.5 часа и сверить с ними

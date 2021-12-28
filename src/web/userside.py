@@ -13,7 +13,7 @@ class USPipe:
 
     async def _api(self, category, action, **kwargs):
         payload = {'cat': category, 'action': action, 'key': self.__key, **kwargs}
-        return await post_request('json', self.url, data=payload)
+        return await post_request(self.url, data=payload)
 
     async def get_feedback_task(self, task_id):
         output = {}
