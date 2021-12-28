@@ -1,3 +1,4 @@
+import aiologger
 import aiopg
 import asyncio
 import psycopg2
@@ -37,6 +38,9 @@ class SQLCore:
                                                              host=config['postgres']['dbhost']),
                                             minsize=self.pool_min_size,
                                             maxsize=self.pool_max_size)
+        if not self.logger:
+            self.logger = aiologger.Logger(name='sql')
+            self.logger.add_handler(aiologger.logger.AsyncStreamHandler())
 
     async def close_pool(self):
         if self.pool is not None:
@@ -54,10 +58,7 @@ class SQLCore:
         try:
             async with self.pool.acquire() as conn:
                 async with conn.cursor() as cur:
-                    if len(args) == 1 and isinstance(args[0], dict):
-                        args = args[0]
-                    else:
-                        args = [arg if not isinstance(arg, dict) else ujson.dumps(arg) for arg in args]
+                    args = [arg if not isinstance(arg, dict) else ujson.dumps(arg) for arg in args]
                     await cur.execute(cmd, args)
                     res = await get_res(cur, as_dict)
         except psycopg2.errors.lookup('57P01'):  # AdminShutdown
@@ -65,7 +66,7 @@ class SQLCore:
                 return await self.execute(cmd, *args, retrying=True, log_faults=log_faults, as_dict=as_dict)
         except Exception as e:
             if log_faults and retrying and 'duplicate key value violates unique constraint' not in str(e):
-                msg = f'SQL exception: {e}CMD: {cmd}' + f'\nARGS: {args}' if args else ''
+                msg = f'SQL exception: {e}CMD: {cmd}' + (f'\nARGS: {args}' if args else '')
                 await self.logger.warning(msg)
         else:
             need_to_retry = False
@@ -74,6 +75,15 @@ class SQLCore:
                 args = (args,)
             return await self.execute(cmd, *args, retrying=True, log_faults=log_faults, as_dict=as_dict)
         return res
+
+    async def insert(self, cmd, *args, log_faults=True, as_dict=False):
+        res = await self.execute(cmd, *args, log_faults=log_faults, as_dict=as_dict)
+        return res[0][0] if res else None
+
+    async def update(self, table, flt, upd_time=None, **kwargs):
+        upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
+        dtm = f', {upd_time}=now()' if upd_time else ''
+        await self.execute(f'UPDATE {table} SET {upd}{dtm} WHERE {flt}', *kwargs.values())
 
 
 async def get_res(cur, dict_flag):
