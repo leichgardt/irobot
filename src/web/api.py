@@ -30,13 +30,13 @@ async def edit_payment_message(hash_code, chat_id, agrm, amount, inline):
 async def get_request_data(request: Request):
     """ Получить переданные данные из запроса (типа: JSON, FORM, QUERY_PARAMS)"""
     if request.method == 'GET':
-        data = dict(request.query_params)
+        data = request.query_params
     else:
         try:
             data = await request.json()
         except:
             data = await request.form()
-    return data if data else {}
+    return dict(data) if data else {}
 
 
 def lan_require(func):
