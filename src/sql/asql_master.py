@@ -12,15 +12,20 @@ class SQLMaster(SQLCore):
         flt = 'AND mailing=true' if mailing else ''
         return await self.execute(f'SELECT chat_id, mailing FROM irobot.subs WHERE subscribed=true {flt}')
 
-    async def add_chat(self, chat_id, msg_id, text, parse_mode=None, hash_line=None, userdata=None):
+    async def add_chat(self, chat_id, msg_id, text, parse_mode=None, hash_line=None, username=None, first_name=None,
+                       last_name=None):
         res = await self.execute('SELECT chat_id FROM irobot.subs WHERE chat_id=%s', chat_id)
-        payload = msg_id, text, parse_mode, hash_line, userdata
+        payload = msg_id, text, parse_mode, hash_line, username, first_name, last_name
         if not res:
-            await self.execute('INSERT INTO irobot.subs(chat_id, inline_msg_id, inline_text, inline_parse_mode, hash, '
-                               'userdata) VALUES (%s, %s, %s, %s, %s, %s)', chat_id, *payload)
+            await self.execute(
+                'INSERT INTO irobot.subs(chat_id, inline_msg_id, inline_text, inline_parse_mode, hash, username, '
+                'first_name, last_name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', chat_id, *payload)
+
         else:
-            await self.execute('UPDATE irobot.subs SET inline_msg_id= %s, inline_text= %s, inline_parse_mode= %s, '
-                               'hash= %s, userdata= %s WHERE chat_id=%s', *payload, chat_id)
+            await self.execute(
+                'UPDATE irobot.subs SET inline_msg_id= %s, inline_text= %s, inline_parse_mode= %s, hash= %s, '
+                'username= %s, first_name= %s, last_name= %s WHERE chat_id=%s', *payload, chat_id
+            )
 
     async def upd_hash(self, chat_id, hash_code):
         await self.execute('UPDATE irobot.subs SET hash= %s WHERE chat_id=%s', hash_code, chat_id)
