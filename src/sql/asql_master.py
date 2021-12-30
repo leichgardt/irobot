@@ -115,6 +115,10 @@ class SQLMaster(SQLCore):
     async def find_payments_by_record_id(self, record_id):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
 
+    async def add_feedback(self, chat_id, type_, object_=None, rating=None, comment=None):
+        return await self.insert('INSERT INTO irobot.feedback (chat_id, type, object, rating, comment) VALUES ('
+                                 '%s, %s, %s, %s, %s) RETURNING id', chat_id, type_, object_, rating, comment)
+
     async def get_feedback(self, status, interval):
         """
         селект фидбеков у которых либо нету upd_dt и СОЗДАНЫ они более interval времени,

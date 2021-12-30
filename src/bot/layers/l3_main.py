@@ -110,22 +110,21 @@ async def review_comment_message_h(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text='send-review', state=[ReviewFSM.rating, ReviewFSM.comment])
 async def review_send_inline_h(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        rating = data['rating'] if 'rating' in data.keys() else None
-        comment = data['comment'] if 'comment' in data.keys() else None
-        await sql.add_review(query.message.chat.id, rating, comment)
+        await alogger.info(f'New review [{query.message.chat.id}]')
+        rating = data.get('rating')
+        comment = data.get('comment')
+        await sql.add_feedback(query.message.chat.id, 'review', rating=rating, comment=comment)
         if rating and comment:
             text, parse = Texts.review_result_full.pair(comment=data['comment'], rating=data['rating'])
         elif rating and not comment:
             text, parse = Texts.review_result_rate.pair(rating=data['rating'])
         else:
             text, parse = Texts.review_result_comment.pair(comment=data['comment'])
-        await edit_inline_message(query.message.chat.id, text, parse)
-        await query.answer(Texts.review_done.answer)
-        if rating and rating == 5:
-            text, parse = Texts.review_done_best.pair()
+        await update_inline_query(query, Texts.review_done.answer, text, parse)
+        if rating is not None and rating == 5:
+            await run_cmd(bot.send_message(query.message.chat.id, *Texts.review_done_best.pair(),
+                                           reply_markup=main_menu))
         else:
-            text, parse = Texts.review_done.pair()
-        await run_cmd(bot.send_message(query.message.chat.id, text, parse, reply_markup=main_menu))
+            await run_cmd(bot.send_message(query.message.chat.id, *Texts.review_done.pair(), reply_markup=main_menu))
         await state.finish()
         await sql.upd_inline(query.message.chat.id, 0, '')
-        await alogger.info(f'New review saved [{query.message.chat.id}]')

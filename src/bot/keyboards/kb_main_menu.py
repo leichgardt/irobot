@@ -48,9 +48,9 @@ def __update():
 __update()
 
 
-def get_review_btn(rating=0):
+def get_review_btn(rating=0, prefix_data='review'):
     smiles = [':one:', ':two:', ':three:', ':four:', ':five:']
-    btn = ([{'text': smile, 'callback_data': f'review-{i + 1}'} for i, smile in enumerate(smiles)],)
+    btn = ([{'text': smile, 'callback_data': f'{prefix_data}-{i + 1}'} for i, smile in enumerate(smiles)],)
     if rating:
         btn[0][rating - 1]['text'] = '>{}<'.format(btn[0][rating - 1]['text'])
     return btn
