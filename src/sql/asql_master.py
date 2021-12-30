@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from src.parameters import PID_TABLE
 from src.sql.asql_core import SQLCore
 
@@ -172,6 +174,10 @@ class SQLMaster(SQLCore):
     async def finish_feedback_task(self, task_id):
         await self.execute('UPDATE cardinalis.tasks SET status=true, update_datetime=now() '
                            'WHERE status=false AND task_id=%s', task_id)
+
+    async def add_support_message(self, chat_id, message_id, writer, message_type, message_data):
+        await self.insert('INSERT INTO irobot.support_dialogs (chat_id, message_id, writer, type, data, datetime) '
+                          'VALUES (%s, %s, %s, %s, %s, %s)', chat_id, message_id, writer, message_type, message_data, datetime.now())
 
 
 sql = SQLMaster()

@@ -20,8 +20,8 @@ main_menu_btn = (
 )
 help_btn = (
     (
-        # {'text': 'Обратиться в тех.поддержку', 'callback_data': 'support'},
-        {'text': 'Обратиться в тех.поддержку', 'url': 'tg://resolve?domain={}'},
+        {'text': 'Обратиться в тех.поддержку', 'callback_data': 'support'},
+        # {'text': 'Обратиться в тех.поддержку', 'url': 'tg://resolve?domain={}'},
     ),
     # (
     #     {'text': 'Что я умею (youtube)', 'url': 'https://www.youtube.com/watch?v=bxqLsrlakK8'},
@@ -45,7 +45,7 @@ def __update():
     help_btn[0][0]['url'] = help_btn[0][0]['url'].format(config['irobot']['chatbot'])
 
 
-__update()
+# __update()
 
 
 def get_review_btn(rating=0, prefix_data='review'):
