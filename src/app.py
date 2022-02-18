@@ -283,6 +283,62 @@ async def send_mailing(request: Request,
     return {'response': 0, 'error': 'Empty data'}
 
 
+@app.post('/api/get_chat')
+@lan_require
+async def get_chat_request(request: Request, response: Response):
+    """ Найти пользователя по фильтру """
+    data = await get_request_data(request)
+    agrm_num = data.get('agrm_num')
+    agrm_id = data.get('agrm_id')
+    login = data.get('login')
+    user_id = data.get('user_id')
+    if not (agrm_num or agrm_id or login or user_id):
+        response.status_code = 400
+        return {'response': 0, 'error': 'Data not provided'}
+    if agrm_num:
+        res = await lb.direct_request('getAccounts', {'agrmnum': agrm_num})
+    elif agrm_id:
+        res = await lb.direct_request('getAccounts', {'agrmid': agrm_id})
+    elif login:
+        res = await lb.direct_request('getAccounts', {'login': login})
+    else:  # user_id
+        res = await lb.direct_request('getAccounts', {'userid': user_id})
+    if not res:
+        response.status_code = 500
+        return {'response': -1, 'error': 'User not found'}
+    chats = await sql.find_user_chats(res[0].account.uid)
+    if chats:
+        return {'response': 1, 'result': chats}
+    else:
+        return {'response': -1, 'error': 'Chat not found'}
+
+
+@app.post('/api/send_feedback')
+@lan_require
+async def send_feedback_request(request: Request, response: Response):
+    """ Отправить пользователю feedback-сообщение """
+    data = await get_request_data(request)
+    task_id = data.get('task_id')
+    login = data.get('login')
+    if not (task_id and login):
+        response.status_code = 400
+        return {'response': 0, 'error': 'Task_id or agrm_num not specified'}
+    acc = await lb.direct_request('getAccounts', {'login': login})
+    if not acc:
+        response.status_code = 500
+        return {'response': -1, 'error': 'User by agreement number not found'}
+    chats = await sql.find_user_chats(acc[0].account.uid)
+    count = 0
+    for chat_id in chats:
+        msg = await send_feedback(chat_id, task_id)
+        if msg and msg.message_id > 0:
+            count += 1
+    if not count:
+        response.status_code = 500
+        return {'response': -1, 'error': 'Messages not received'}
+    return {'response': 1, 'messages': count}
+
+
 @app.post('/api/status')
 @lan_require
 async def api_status(request: Request):
