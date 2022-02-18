@@ -25,11 +25,11 @@ from src.web import (
     lan_require, get_request_data,
     SoloWorker, Table, WebM,
     telegram_api, broadcast, logining, send_message, edit_payment_message,
-    auto_payment_monitor, auto_feedback_monitor, rates_feedback_monitor,
+    auto_payment_monitor, auto_feedback_monitor,
     get_subscriber_table, get_mailing_history
 )
 
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 ABOUT = """Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @{},
 а так же для обработки запросов платежей от системы Yoomoney.
 Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении завершенного 
@@ -89,18 +89,6 @@ async def feedback_monitor():
     """
     await auto_feedback_monitor(logger)
     # await logger.info('feedback')
-
-
-@app.on_event('startup')
-@repeat_every(seconds=600)
-@sw.solo_worker(task='feedback-rates')
-async def feedback_monitor():
-    """
-    Поиск новых feedback сообщений для рассылки.
-    Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
-    """
-    await rates_feedback_monitor(logger)
-    # await logger.info('feedback-rates')
 
 
 @app.on_event('shutdown')

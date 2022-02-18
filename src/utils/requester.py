@@ -2,7 +2,7 @@ import aiohttp
 from .logger import alogger
 
 
-async def post_request(*args, _as_json=True, **kwargs):
+async def post_request(*args, _as_json=True, _logger=alogger, **kwargs):
     res = None
     async with aiohttp.ClientSession() as session:
         try:
@@ -13,9 +13,9 @@ async def post_request(*args, _as_json=True, **kwargs):
                     else:
                         res = resp
                 else:
-                    await alogger.info(f'Bad status [{resp.status}] for {resp.url}')
+                    await _logger.info(f'Bad status [{resp.status}] for {resp.url}')
         except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError):
-            await alogger.info(f'Can\'t connect to server "{resp.url}"')
+            await _logger.info(f'Can\'t connect to server "{resp.url}"')
         except Exception as e:
-            await alogger.warning(f'Connection error: {e}')
+            await _logger.warning(f'Connection error: {e}')
     return res

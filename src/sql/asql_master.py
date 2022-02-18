@@ -117,30 +117,29 @@ class SQLMaster(SQLCore):
     async def find_payments_by_record_id(self, record_id):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)
 
-    async def add_feedback(self, chat_id, type_, object_=None, rating=None, comment=None):
-        return await self.insert('INSERT INTO irobot.feedback (chat_id, type, object, rating, comment) VALUES ('
-                                 '%s, %s, %s, %s, %s) RETURNING id', chat_id, type_, object_, rating, comment)
+    async def add_feedback(self, chat_id, type_, object_=None, rating=None, comment=None, status='new'):
+        return await self.insert('INSERT INTO irobot.feedback (chat_id, type, object, rating, comment, status) VALUES ('
+                                 '%s, %s, %s, %s, %s, %s) RETURNING id',
+                                 chat_id, type_, object_, rating, comment, status)
 
-    async def get_feedback(self, status, interval):
+    async def get_feedback(self, interval='1 hours'):
         """
-        селект фидбеков у которых либо нету upd_dt и СОЗДАНЫ они более interval времени,
-        либо у них есть upd_dt и они ОБНОВЛЕНЫ более interval времени
+        Загрузка feedback пользователей со статусом "sending" или "new", которые созданы более часа назад (по умолчанию)
+
+        :param interval: Интервал времени для feedback со статусом "new"
+        :return Список feedbacks, которые состоят из [id, chat_id, task_id, rating, comment]
         """
         return await self.execute(
-            'SELECT id, task_id, chat_id FROM irobot.feedback WHERE '
-            '(feedback.update_datetime IS null AND status=%(status)s AND now() - datetime > interval %(interval)s) OR '
-            '(feedback.update_datetime IS NOT null AND status=%(status)s AND now() - update_datetime > '
-            'interval %(interval)s) ORDER BY id', {'status': status, 'interval': interval})
+            "SELECT id, chat_id, object, rating, comment FROM irobot.feedback WHERE type='feedback' AND "
+            "(status='sending' OR (status='new' AND update_datetime IS null AND now() - datetime > interval %s) OR "
+            "(status='new' AND update_datetime IS NOT null AND now() - update_datetime > interval %s)) ORDER BY id DESC"
+            , interval, interval
+        )
 
     async def upd_feedback(self, fb_id, **kwargs):
         upd = ', '.join([f'{key}= %s' for key in kwargs.keys()])
         await self.execute(f'UPDATE irobot.feedback SET update_datetime=now(), {upd} WHERE id=%s',
                            *kwargs.values(), fb_id)
-
-    async def find_feedback_id(self, task_id, status):
-        res = await self.execute('SELECT id FROM irobot.feedback WHERE task_id=%s AND status=%s ORDER BY id DESC '
-                                 'LIMIT 1', task_id, status)
-        return res[0][0] if res else 0
 
     async def get_sub_accounts(self):
         return await self.execute('SELECT s.chat_id, a.login, s.mailing FROM irobot.subs s JOIN irobot.accounts a '

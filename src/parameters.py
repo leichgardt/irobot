@@ -1,5 +1,7 @@
 from src.utils import config
 
+CARDINALIS_URL = 'https://{}/cardinalis'.format(config['paladin']['domain'])
+
 HOST_URL = 'https://{}/irobot/'.format(config['paladin']['maindomain'])
 
 API_TOKEN = config['irobot']['token']
