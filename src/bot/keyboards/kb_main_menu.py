@@ -23,9 +23,6 @@ help_btn = (
         {'text': 'Обратиться в тех.поддержку', 'callback_data': 'support'},
         # {'text': 'Обратиться в тех.поддержку', 'url': 'tg://resolve?domain={}'},
     ),
-    # (
-    #     {'text': 'Что я умею (youtube)', 'url': 'https://www.youtube.com/watch?v=bxqLsrlakK8'},
-    # ),
     (
         {'text': 'О нас', 'callback_data': 'about'},
         {'text': 'Назад', 'callback_data': 'main-menu'},

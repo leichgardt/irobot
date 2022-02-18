@@ -136,6 +136,7 @@ async def broadcast(data: dict, logger: Logger):
 
 class WebM:
     def __init__(self):
+        """Класс для рендера HTML-шаблонов с аргументами (для сокращения кода)"""
         self.templates: Jinja2Templates = None
         self.back_link = ''
         self.bot_name = ''
@@ -147,7 +148,7 @@ class WebM:
         self.bot_name = name
         self.headers = headers
 
-    def page(self, request: Request, data: dict, *, template: str = 'page.html', **kwargs):
+    def page(self, request: Request, data: dict = None, *, template: str = 'page.html', **kwargs):
         return self.templates.TemplateResponse(template,
                                                dict(request=request,
                                                     domain=config['paladin']['domain'],
