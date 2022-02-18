@@ -78,7 +78,6 @@ async def auto_feedback_monitor(logger):
     статистики "Cardinalis". При успехе задача переходит в статус "sent".
     """
     feedbacks = await sql.get_feedback('1 hours')
-    print('feedbacks', len(feedbacks))
     if feedbacks:
         for fb_id, chat_id, task_id, rating, comment in feedbacks:
             print(fb_id, chat_id, task_id, rating, comment)
