@@ -80,24 +80,19 @@ async def auto_feedback_monitor(logger):
     feedbacks = await sql.get_feedback('1 hours')
     if feedbacks:
         for fb_id, chat_id, task_id, rating, comment in feedbacks:
-            print(fb_id, chat_id, task_id, rating, comment)
-            await logger.info(f'Trying to save Feedback in Cardinalis [{chat_id}]')
+            await logger.info(f'Trying to save Feedback in Cardinalis [{chat_id}] for task [{task_id}]')
             res = await send_feedback_to_cardinalis(logger, task_id, f'{rating}' + (f'\n{comment}' if comment else ''))
-            print('send_feedback_to_cardinalis', res)
             if res > 0:
                 await sql.upd_feedback(fb_id, status='complete')
                 await logger.info(f'Feedback saved [{chat_id}]')
             elif res == 0:
                 await sql.upd_feedback(fb_id, status='passed')
                 await logger.info(f'Feedback already closed [{chat_id}]')
+            else:
+                await logger.warning(f'Failed to save feedback [{chat_id}]')
 
 
 async def send_feedback_to_cardinalis(logger, input_task_id, input_text):
     res = await post_request(f'{CARDINALIS_URL}/api/save_feedback', _logger=logger,
                              json={'task_id': input_task_id, 'text': input_text, 'service': 'telegram'})
     return res.get('response', 0)
-
-
-if __name__ == '__main__':
-    from src.utils import alogger
-    asyncio.run(auto_feedback_monitor(alogger))

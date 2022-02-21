@@ -1,6 +1,6 @@
 from src.utils import config
 
-CARDINALIS_URL = 'https://{}/cardinalis'.format(config['paladin']['domain'])
+CARDINALIS_URL = 'https://{}/cardinalis'.format(config['paladin']['cup-domain'])
 
 HOST_URL = 'https://{}/irobot/'.format(config['paladin']['maindomain'])
 
