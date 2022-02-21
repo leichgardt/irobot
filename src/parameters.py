@@ -1,5 +1,9 @@
 from src.utils import config
 
+DB_NAME = config['postgres']['dbname']
+DB_USER = config['postgres']['dbuser']
+DB_HOST = config['postgres']['dbhost']
+
 CARDINALIS_URL = 'https://{}/cardinalis'.format(config['paladin']['cup-domain'])
 
 HOST_URL = 'https://{}/irobot/'.format(config['paladin']['maindomain'])

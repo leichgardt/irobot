@@ -6,7 +6,7 @@ import psycopg2.errors
 import psycopg2.extensions
 import ujson
 
-from src.utils import config
+from src.parameters import DB_NAME, DB_USER, DB_HOST
 
 
 class SQLCore:
@@ -33,9 +33,7 @@ class SQLCore:
     async def init_pool(self):
         if self.pool is not None:  # re-init pool
             await self.close_pool()
-        self.pool = await aiopg.create_pool(self._dsn.format(name=config['postgres']['dbname'],
-                                                             user=config['postgres']['dbuser'],
-                                                             host=config['postgres']['dbhost']),
+        self.pool = await aiopg.create_pool(self._dsn.format(name=DB_NAME, user=DB_USER, host=DB_HOST),
                                             minsize=self.pool_min_size,
                                             maxsize=self.pool_max_size)
         if not self.logger:
@@ -124,6 +122,7 @@ def strip_and_typing_res(val):
 
 if __name__ == '__main__':
     from src.utils import alogger
+    from src.utils import config
 
     async def main():
         sql = SQLCore()
