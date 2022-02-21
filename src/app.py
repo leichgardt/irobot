@@ -24,7 +24,7 @@ from src.utils import config, aio_logger
 from src.web import (
     lan_require, get_request_data,
     SoloWorker, Table, WebM,
-    telegram_api, broadcast, logining, send_message, edit_payment_message,
+    telegram_api, broadcast, logining, send_message, edit_payment_message, send_feedback,
     auto_payment_monitor, auto_feedback_monitor,
     get_subscriber_table, get_mailing_history
 )
