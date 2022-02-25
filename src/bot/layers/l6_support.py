@@ -8,7 +8,7 @@ from datetime import datetime
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_keyboard, update_inline_query, run_cmd
+from src.bot.api import main_menu, get_keyboard, update_inline_query, exc_handler
 from src.bot import keyboards
 from src.text import Texts
 from .l5_feedback import bot, dp
@@ -48,6 +48,7 @@ class SupportFSM(StatesGroup):
 
 
 @dp.callback_query_handler(text='support', state='*')
+@exc_handler
 async def support_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ Активация режима обращения в поддержку """
     await state.finish()
@@ -58,6 +59,7 @@ async def support_inline_h(query: types.CallbackQuery, state: FSMContext):
 
 
 @dp.message_handler(lambda message: message.text not in ['/cancel', '/end_support'], state=SupportFSM.live)
+@exc_handler
 async def support_message_h(message: types.Message, state: FSMContext):
     """ Приём текстовых сообщений в режиме поддержки"""
     async with state.proxy() as data:
@@ -78,6 +80,7 @@ async def support_message_h(message: types.Message, state: FSMContext):
 
 @dp.message_handler(content_types=['document', 'photo', 'sticker', 'voice', 'video', 'video_note', 'audio'],
                     state=SupportFSM.live)
+@exc_handler
 async def support_content_h(message: types.Message, state: FSMContext):
     """ Приём контентных сообщений в режиме поддержки """
     async with state.proxy() as data:
@@ -91,6 +94,7 @@ async def support_content_h(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(commands=['end_support', 'cancel'], state=SupportFSM.live)
+@exc_handler
 async def cancel_support_message_h(message: types.Message, state: FSMContext):
     """ отмена обращения """
     async with state.proxy() as data:
@@ -104,6 +108,7 @@ async def cancel_support_message_h(message: types.Message, state: FSMContext):
 
 
 @dp.callback_query_handler(text='cancel', state=SupportFSM.live)
+@exc_handler
 async def cancel_support_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ отмена обращения """
     await update_inline_query(query, Texts.cancel.answer, 'Спасибо за обращение!')
@@ -117,6 +122,7 @@ class SupportReviewFSM(StatesGroup):
 
 
 @dp.callback_query_handler(Regexp(regexp=r'support-feedback-([1-5]*)'), state='*')
+@exc_handler
 async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ обработка обратной связи """
     async with state.proxy() as data:
@@ -136,23 +142,25 @@ async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(text='pass', state=SupportReviewFSM.comment)
+@exc_handler
 async def pass_commenting_support_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ пропустить оценку обратной связи """
     async with state.proxy() as data:
         await state.finish()
         await sql.add_feedback(query.message.chat.id, 'support', data.get('operator'), data['rating'])
         await update_inline_query(query, *Texts.passed.full())
-        await run_cmd(bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu))
+        await bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu)
 
 
 @dp.message_handler(state=SupportReviewFSM.comment)
+@exc_handler
 async def review_rating_message_h(message: types.Message, state: FSMContext):
     """ обработка текста обратной связи """
     async with state.proxy() as data:
         await state.finish()
         await sql.add_feedback(message.chat.id, 'support', data['operator'], data['rating'], message.text)
-        await run_cmd(bot.send_message(message.chat.id, 'Спасибо за отзыв!'))
-        await run_cmd(bot.send_message(message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu))
+        await bot.send_message(message.chat.id, 'Спасибо за отзыв!')
+        await bot.send_message(message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu)
 
 
 # _____ operator side _____
@@ -164,7 +172,8 @@ class OpSupportFSM(StatesGroup):
 
 
 @dp.callback_query_handler(Regexp(regexp=r'get-support-line-([0-9]*)'), state='*')
-async def op_take_support_inline_h(query: types.CallbackQuery, state: FSMContext):
+@exc_handler
+async def oper_take_support_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ Принять линию поддержки """
     client_chat_id = int(query.data.rsplit('-', 1)[-1])
     data = await dp.storage.get_data(chat=client_chat_id)
@@ -191,7 +200,8 @@ async def op_take_support_inline_h(query: types.CallbackQuery, state: FSMContext
 
 
 @dp.message_handler(commands=['end_support', 'cancel'], state=OpSupportFSM.chat_id)
-async def op_cancel_support_message_h(message: types.Message, state: FSMContext):
+@exc_handler
+async def oper_cancel_support_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         await dp.storage.reset_state(chat=data['chat_id'])
         await bot.send_message(message.chat.id, f'Линия поддержки с пользователем {data["chat_id"]} закрыта.')
@@ -201,7 +211,8 @@ async def op_cancel_support_message_h(message: types.Message, state: FSMContext)
 
 
 @dp.message_handler(lambda message: message.text not in ['/cancel', '/end_support'], state=OpSupportFSM.chat_id)
-async def op_support_message_h(message: types.Message, state: FSMContext):
+@exc_handler
+async def oper_support_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         await message.send_copy(data['chat_id'])
         await save_dialog_message(message, data['operator'])
@@ -209,7 +220,8 @@ async def op_support_message_h(message: types.Message, state: FSMContext):
 
 @dp.message_handler(content_types=['document', 'photo', 'sticker', 'voice', 'video', 'video_note', 'audio'],
                     state=OpSupportFSM.chat_id)
-async def op_support_content_h(message: types.Message, state: FSMContext):
+@exc_handler
+async def oper_support_content_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         await message.send_copy(data['chat_id'])
         await save_dialog_message(message, data['operator'])

@@ -5,7 +5,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_keyboard, update_inline_query, edit_inline_message, run_cmd
+from src.bot.api import main_menu, get_keyboard, update_inline_query, edit_inline_message, exc_handler
 from src.bot import keyboards
 from src.text import Texts
 from .l4_payment import bot, dp
@@ -19,6 +19,7 @@ class FeedbackFSM(StatesGroup):
 
 
 @dp.callback_query_handler(Regexp(regexp=r'feedback-[0-9]-([0-9]*)'), state='*')
+@exc_handler
 async def feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
     await alogger.info(f'[{query.message.chat.id}] Feedback')
     await state.finish()
@@ -35,6 +36,7 @@ async def feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(text='pass', state=FeedbackFSM.comment)
+@exc_handler
 async def comment_feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         await alogger.info(f'[{query.message.chat.id}] Feedback passed')
@@ -44,6 +46,7 @@ async def comment_feedback_inline_h(query: types.CallbackQuery, state: FSMContex
 
 
 @dp.message_handler(state=FeedbackFSM.comment)
+@exc_handler
 async def feedback_comment_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         await alogger.info(f'[{message.chat.id}] Feedback commented ')

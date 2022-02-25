@@ -8,7 +8,7 @@ from aiogram.utils.emoji import emojize
 
 from src.bot import keyboards
 from src.bot.api import (main_menu, edit_inline_message, update_inline_query, get_keyboard, delete_message,
-                         private_and_login_require, get_payment_hash, run_cmd, get_payment_price,
+                         private_and_login_require, get_payment_hash, exc_handler, get_payment_price,
                          get_all_agrm_data, get_promise_payment_agrms, get_agrm_balances, get_custom_button)
 from src.lb import lb
 from src.parameters import SBER_TOKEN, RECEIPT_EMAIL
@@ -35,15 +35,17 @@ class PaymentFSM(StatesGroup):
 
 @dp.message_handler(Text(emojize(':moneybag: Платежи')), state='*')
 @private_and_login_require()
+@exc_handler
 async def message_h_payments(message: types.Message, state: FSMContext):
     await state.finish()
     await PaymentFSM.operation.set()
     kb = get_keyboard(keyboards.payment_choice_btn, keyboard_type='inline')
-    res = await run_cmd(bot.send_message(message.chat.id, *Texts.payments.pair(), reply_markup=kb))
+    res = await bot.send_message(message.chat.id, *Texts.payments.pair(), reply_markup=kb)
     await sql.upd_inline(message.chat.id, res.message_id, *Texts.payments.pair())
 
 
 @dp.callback_query_handler(text='payments', state=PaymentFSM.states)
+@exc_handler
 async def inline_h_payments(query: types.CallbackQuery, state: FSMContext):
     await PaymentFSM.operation.set()
     kb = get_keyboard(keyboards.payment_choice_btn)
@@ -51,6 +53,7 @@ async def inline_h_payments(query: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(text='payments-online', state=PaymentFSM.states)
+@exc_handler
 async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
     """
     Оплата онлайн
@@ -82,6 +85,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
 @dp.callback_query_handler(text='no', state=PaymentFSM.payment)
 @dp.callback_query_handler(text='payments-promise', state=PaymentFSM.states)
 @dp.async_task
+@exc_handler
 async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext):
     """
     Обещанный платёж
@@ -118,6 +122,7 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
 
 
 @dp.callback_query_handler(Regexp(regexp=r'agrm-([^\s]*)'), state=PaymentFSM.agrm)
+@exc_handler
 async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
     """
     Выбор договора для платежа
@@ -144,6 +149,7 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query_handler(text='yes', state=PaymentFSM.payment)
 @dp.async_task
+@exc_handler
 async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
     """ Обещанный платеж """
     async with state.proxy() as data:
@@ -151,7 +157,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
         if not agrm_id:
             await alogger.error(f'Promise payment error! Cannot get agrm_id from agrm "{data["agrm"]}": '
                                 f'{data["agrm_data"]}')
-            await run_cmd(bot.send_message(query.message.chat.id, *Texts.backend_error.pair(), reply_markup=main_menu))
+            await bot.send_message(query.message.chat.id, *Texts.backend_error.pair(), reply_markup=main_menu)
         else:
             res = await lb.promise_payment(agrm_id[0], data['amount'])
             if res:
@@ -162,8 +168,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
                 await alogger.warning(f'Payment failure [{query.message.chat.id}]')
             text = await get_agrm_balances(query.message.chat.id)
             await update_inline_query(query, answer, text, parse, alert=True)
-            await run_cmd(bot.send_message(query.message.chat.id, text, Texts.balance.parse_mode,
-                                           reply_markup=main_menu))
+            await bot.send_message(query.message.chat.id, text, Texts.balance.parse_mode, reply_markup=main_menu)
         await state.finish()
 
 
@@ -171,6 +176,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
 
 @dp.message_handler(lambda message: not message.text.isdigit() or (message.text.isdigit() and int(message.text) < 100),
                     state=PaymentFSM.amount)
+@exc_handler
 async def inline_h_payment_non_int(message: types.Message, state: FSMContext):
     """ Если текст сообщения НЕ число или меньше минимума - попросить ввести ещё раз """
     async with state.proxy() as data:
@@ -187,6 +193,7 @@ async def inline_h_payment_non_int(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(lambda message: message.text.isdigit() and int(message.text) >= 100, state=PaymentFSM.amount)
+@exc_handler
 async def inline_h_payment(message: types.Message, state: FSMContext):
     """ Если текст сообщения Число или больше минимума - выдать счёт на оплату """
     async with state.proxy() as data:
@@ -213,7 +220,7 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
                         currency='RUB'
                     ),
                     vat_code=1,
-                ),],
+                ), ],
             ),
             title=Texts.payment_title,
             description=Texts.payment_description_item.format(agrm=data['agrm'], amount=amount),
@@ -226,6 +233,7 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
 
 
 @dp.pre_checkout_query_handler(lambda query: True, state='*')
+@exc_handler
 async def checkout(pre_checkout_query: types.PreCheckoutQuery, state: FSMContext):
     """ Обработчик для подтверждения транзакции - запускается при нажатии на кнопку "Оплатить" """
     await alogger.info(f'[{pre_checkout_query.from_user.id}] Pre-payment checkout {pre_checkout_query.invoice_payload}')
@@ -248,11 +256,12 @@ async def checkout(pre_checkout_query: types.PreCheckoutQuery, state: FSMContext
         elif payment['status'] == 'canceled':
             msg = Texts.payments_online_already_canceled
     await alogger.info(f'[{pre_checkout_query.from_user.id}] Pre-payment status {ok=}')
-    await run_cmd(bot.answer_pre_checkout_query(pre_checkout_query.id, ok=ok, error_message=msg))
+    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=ok, error_message=msg)
 
 
 @dp.message_handler(content_types=types.message.ContentTypes.SUCCESSFUL_PAYMENT, state='*')
 @dp.async_task
+@exc_handler
 async def got_payment(message: types.Message, state: FSMContext):
     """
     Обработчик успешного платежа (перевода) через invoice.
