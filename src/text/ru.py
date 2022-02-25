@@ -225,6 +225,8 @@ class Texts:
     payments_online_amount.answer = payments_promise_offer.answer
     payments_online_amount_is_not_digit = T(emojize(
         'Платежи >> Оплата Онлайн\n\nЭто число? :thinking_face: Введи сумму, на которую хочешь пополнить счёт.'))
+    payments_online_amount_is_too_small = T(
+        'Платежи >> Оплата онлайн\n\nМинимальная сумма платежа 100 рублей.')
     payments_online_offer = T(emojize(
         'Платежи >> Оплата онлайн >> Договор №{agrm}\n\nК зачислению: {amount} руб.\n'
         'Комиссия (до 4%): {tax} руб.\n\nИтого к оплате: <u>{res} руб.</u>'))
@@ -246,13 +248,13 @@ class Texts:
     payment_item_tax = T(
         'Комиссия (до 4%)')
     payment_title = T(
-        'Пополнение счёта договора №{agrm}')
+        'Пополнение счёта договора')
     payment_description = T(
-        'Пополнение счёта для {agrm} на {amount}')
+        'Пополнить счёт договора №{agrm} на {amount} руб.')
     payment_description_item = T(
-        'Телекоммуникационные услуги связи по договору {agrm}')
+        'Телекоммуникационные услуги связи по договору №{agrm}')
     payment_error_message = T(
-        'Не удалось провести платёж. Попробуй ещё раз.')
+        'Попробуй провести платёж ещё раз.')
     payments_on_process = T(
         'Платёж обрабатывается.')
     payments_online_was_paid = T(emojize(

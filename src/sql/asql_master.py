@@ -87,10 +87,10 @@ class SQLMaster(SQLCore):
                            chat_id, rating, comment)
 
     async def add_payment(self, hash_code: str, chat_id: int, agrm: str, amount: float, inline: int = None,
-                          balance: int = None):
-        res = await self.execute('INSERT INTO irobot.payments(hash, chat_id, agrm, amount, inline, balance) '
-                                 'VALUES (%s, %s, %s, %s, %s, %s) RETURNING id',
-                                 hash_code, chat_id, agrm, amount, inline, balance)
+                          balance: int = None, status: str = None):
+        res = await self.execute('INSERT INTO irobot.payments(hash, chat_id, agrm, amount, inline, balance, status) '
+                                 'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id',
+                                 hash_code, chat_id, agrm, amount, inline, balance, status)
         return res[0][0] if res else 0
 
     async def upd_payment(self, hash_code, **kwargs):

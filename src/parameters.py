@@ -1,5 +1,7 @@
 from src.utils import config
 
+SBER_TOKEN = config['sberbank']['token']
+
 DB_NAME = config['postgres']['dbname']
 DB_USER = config['postgres']['dbuser']
 DB_HOST = config['postgres']['dbhost']
