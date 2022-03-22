@@ -6,8 +6,9 @@ from aiogram.dispatcher.filters import Text
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, private_and_login_require, get_keyboard, get_hash, get_login_url, exc_handler
 from src.bot import keyboards
+from src.bot.api import main_menu, private_and_login_require, get_hash, get_login_url, exc_handler
+from src.bot.api.keyboard import Keyboard
 from src.text import Texts
 
 try:
@@ -67,6 +68,6 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
         hash_code = get_hash(message.chat.id)
         url = get_login_url(hash_code)
         res = await bot.send_message(message.chat.id, text, Texts.start.parse_mode,
-                                     reply_markup=get_keyboard(keyboards.get_login_btn(url)))
+                                     reply_markup=Keyboard(keyboards.get_login_btn(url)).inline())
         await sql.add_chat(message.chat.id, res.message_id, text, Texts.start.parse_mode, hash_code,
                            message.from_user.username, message.from_user.first_name, message.from_user.last_name)

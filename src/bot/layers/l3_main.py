@@ -6,9 +6,17 @@ from aiogram.utils.emoji import emojize
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_agrm_balances, edit_inline_message, get_keyboard, delete_message, \
-    update_inline_query, private_and_login_require, exc_handler
 from src.bot import keyboards
+from src.bot.api import (
+    main_menu,
+    get_agrm_balances,
+    edit_inline_message,
+    delete_message,
+    update_inline_query,
+    private_and_login_require,
+    exc_handler
+)
+from src.bot.api.keyboard import Keyboard
 from src.text import Texts
 from .l2_settings import bot, dp
 
@@ -27,7 +35,7 @@ class ReviewFSM(StatesGroup):
 async def help_message_h(message: types.Message, state: FSMContext):
     await bot.send_chat_action(message.chat.id, 'typing')
     if await sql.get_sub(message.chat.id):
-        kb = get_keyboard(keyboards.help_btn, keyboard_type='inline', lining=True)
+        kb = Keyboard(keyboards.help_btn).inline()
         res = await bot.send_message(message.chat.id, *Texts.help.pair(), reply_markup=kb)
         await sql.upd_inline(message.chat.id, res.message_id, *Texts.help.pair())
     else:
@@ -37,7 +45,7 @@ async def help_message_h(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text='about')
 @exc_handler
 async def about_inline_h(query: types.CallbackQuery):
-    kb = get_keyboard(keyboards.help_btn, keyboard_type='inline', lining=True)
+    kb = Keyboard(keyboards.help_btn).inline()
     await update_inline_query(query, *Texts.about_us.full(), reply_markup=kb)
 
 
@@ -79,7 +87,7 @@ async def help_message_h(message: types.Message, state: FSMContext):
 async def review_inline_h(message: types.Message, state: FSMContext):
     await bot.send_chat_action(message.chat.id, 'typing')
     await state.finish()
-    kb = get_keyboard(keyboards.get_review_btn(), keyboards.back_to_main, keyboard_type='inline', row_size=5)
+    kb = Keyboard([keyboards.get_review_btn(), keyboards.back_to_main], row_size=5).inline()
     await ReviewFSM.rating.set()
     res = await bot.send_message(message.chat.id, *Texts.review.pair(), reply_markup=kb)
     await sql.upd_inline(message.chat.id, res.message_id, *Texts.review.pair())
@@ -91,8 +99,7 @@ async def review_inline_h(message: types.Message, state: FSMContext):
 async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         data['rating'] = int(query.data[-1])
-        kb = get_keyboard(keyboards.get_review_btn(data['rating']), keyboards.review_btn, keyboard_type='inline',
-                          row_size=5)
+        kb = Keyboard([keyboards.get_review_btn(data['rating']), keyboards.review_btn], row_size=5).inline()
         if 'comment' in data.keys():
             text, parse = Texts.review_full.pair(comment=data['comment'], rating=data['rating'])
         else:
@@ -107,7 +114,7 @@ async def review_comment_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['comment'] = message.text
         rating = data['rating'] if 'rating' in data.keys() else 0
-        kb = get_keyboard(keyboards.get_review_btn(rating), keyboards.review_btn, keyboard_type='inline', row_size=5)
+        kb = Keyboard([keyboards.get_review_btn(rating), keyboards.review_btn], row_size=5).inline()
         if rating:
             text, parse = Texts.review_full.pair(comment=data['comment'], rating=data['rating'])
         else:

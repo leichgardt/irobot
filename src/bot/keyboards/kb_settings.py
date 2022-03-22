@@ -1,65 +1,62 @@
-settings_menu_btn = (
-    (
-        {'text': 'Учётные записи', 'callback_data': 'settings-my-accounts'},
-        {'text': 'Уведомления', 'callback_data': 'settings-notify'},
-    ),
-    (
-        {'text': 'Выйти из программы', 'callback_data': 'exit'},
-        {'text': 'Завершить настройки', 'callback_data': 'settings-done'},
-    ),
-)
-exit_confirm_btn = (
-    (
-        {'text': 'Выйти', 'callback_data': 'exit-yes'},
-        {'text': 'Отмена', 'callback_data': 'settings'},
-    ),
-)
-account_control_btn = (
-    (
-        {'text': 'Удалить', 'callback_data': 'del-account'},
-        {'text': 'Назад', 'callback_data': 'settings-my-accounts'},
-    ),
-)
-cancel_btn = (
-    (
-        {'text': 'Отмена', 'callback_data': 'cancel'},
-    ),
-)
-back_to_settings = (
-    (
-        {'text': 'Назад', 'callback_data': 'settings'},
-    ),
-)
-confirm_btn = (
-    (
-        {'text': 'Да', 'callback_data': 'yes'},
-        {'text': 'Нет', 'callback_data': 'no'},
-    ),
-)
-start_r_btn = (
-    (
-        {'text': '/start'},
-    ),
-)
+from ..api.keyboard_button import KeyboardButton
+from ...sql import sql
+
+
+__all__ = [
+    'settings_menu_btn',
+    'exit_confirm_btn',
+    'account_control_btn',
+    'cancel_btn',
+    'confirm_btn',
+    'get_notify_settings_btn',
+    'get_login_btn'
+]
+
+
+settings_menu_btn = [
+    [
+        KeyboardButton('Учётные записи', callback_data='settings-my-accounts'),
+        KeyboardButton('Уведомления', callback_data='settings-notify')
+    ],
+    [
+        KeyboardButton('Выйти из программы', callback_data='exit'),
+        KeyboardButton('Завершить настройки', callback_data='settings-done')
+    ],
+]
+
+exit_confirm_btn = [
+    KeyboardButton('Выйти', callback_data='exit-yes'),
+    KeyboardButton('Отмена', callback_data='settings')
+]
+
+account_control_btn = [
+    KeyboardButton('Удалить', callback_data='del-account'),
+    KeyboardButton('Назад', callback_data='settings-my-accounts')
+]
+
+cancel_btn = [
+    KeyboardButton('Отмена', callback_data='cancel')
+]
+
+confirm_btn = [
+    KeyboardButton('Да', callback_data='yes'),
+    KeyboardButton('Нет', callback_data='no')
+]
 
 
 async def get_notify_settings_btn(chat_id):
-    from src.sql import sql
-    row = []
     data = await sql.get_sub(chat_id)
     if data:
         if data[0]:
-            text = 'Выкл. рассылку'
+            res = [KeyboardButton('Выкл. рассылку', callback_data='settings-switch-mailing')]
         else:
-            text = 'Вкл. рассылку'
-        params = {'text': text, 'callback_data': 'settings-switch-mailing'}
-        row.append(params)
-    return (row,)
+            res = [KeyboardButton('Вкл. рассылку', callback_data='settings-switch-mailing')]
+        return res + [KeyboardButton('Назад', callback_data='settings')]
+    else:
+        raise ValueError(f'Chat not found [{chat_id}]')
 
 
 def get_login_btn(url):
-    return (
-        (
-            {'text': 'Авторизоваться', 'url': url},
-        ),
-    )
+    return [
+        KeyboardButton('Авторизоваться', url=url)
+    ]

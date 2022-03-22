@@ -1,8 +1,6 @@
-import asyncio
 import traceback
 
 from aiologger import Logger
-from collections.abc import Iterable
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from functools import wraps
@@ -11,7 +9,8 @@ from starlette.responses import Response
 from urllib.parse import urlparse, parse_qs
 
 from src.bot import keyboards
-from src.bot.api import main_menu, get_keyboard, get_all_agrm_data, get_payment_url, get_payment_tax
+from src.bot.api import main_menu, get_all_agrm_data, get_payment_url, get_payment_tax
+from src.bot.api.keyboard import Keyboard
 from src.lb import lb
 from src.sql import sql
 from src.text import Texts
@@ -20,11 +19,11 @@ from src.web.table import Table
 from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action, edit_message_text
 
 
-async def edit_payment_message(hash_code, chat_id, agrm, amount, inline):
+async def edit_payment_message(hash_code, chat_id, agrm, amount, message_id):
     summ = amount + (tax := get_payment_tax(amount))
     text, parse = Texts.payments_online_offer.pair(agrm=agrm, amount=amount, tax=tax, res=summ)
-    kb = get_keyboard(keyboards.payment_url_btn(get_payment_url(hash_code), summ))
-    await edit_message_text(text, chat_id, inline, parse_mode=parse, reply_markup=kb)
+    kb = Keyboard(keyboards.payment_url_btn(get_payment_url(hash_code), summ)).inline()
+    await edit_message_text(text, chat_id, message_id, parse_mode=parse, reply_markup=kb)
 
 
 async def get_request_data(request: Request):
@@ -76,8 +75,9 @@ async def logining(chat_id: int, login: str):
         _, text, parse = Texts.settings_account_add_success.full()
         await edit_inline_message(chat_id, text.format(account=login), parse)
         data = await get_all_agrm_data(chat_id, only_numbers=True)
-        kb = get_keyboard(await keyboards.get_agrms_btn(custom=data, prefix='account'), keyboards.account_settings_btn)
         _, text, parse = Texts.settings_accounts.full()
+        btn_list = await keyboards.get_agrms_btn(custom=data, prefix='account') + [keyboards.account_settings_btn]
+        kb = Keyboard(btn_list).inline()
         await send_message(chat_id, text.format(accounts=Texts.get_account_agrm_list(data)), parse, reply_markup=kb)
 
 

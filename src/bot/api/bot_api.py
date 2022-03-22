@@ -6,10 +6,10 @@ from aiogram.dispatcher import FSMContext
 from functools import wraps
 
 from src.sql import sql
-from src.bot.bot_core import bot
 from src.bot import keyboards
+from src.bot.api.keyboard import Keyboard
+from src.bot.bot_core import bot
 from src.text import Texts
-from src.bot.api.bot_keyboard_master import get_keyboard
 from src.utils import alogger
 
 
@@ -132,7 +132,7 @@ async def edit_inline_message(chat_id: int,
     if not reply_markup and btn_list:
         if not isinstance(btn_list, (list, tuple, set)):
             btn_list = [btn_list]
-        reply_markup = get_keyboard(*btn_list)
+        reply_markup = Keyboard(btn_list).inline()
     if inline:
         try:
             await bot.edit_message_text(text, chat_id, inline, reply_markup=reply_markup, parse_mode=parse_mode,
@@ -174,7 +174,7 @@ async def update_inline_query(
     :param reply_markup: Клавиатура
     """
     if btn_list:
-        reply_markup = get_keyboard(*btn_list, keyboard_type='inline')
+        reply_markup = Keyboard(btn_list).inline()
     text = f'{title}\n\n{text}' if title else text
     try:
         await bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
@@ -188,6 +188,6 @@ async def update_inline_query(
         await sql.upd_inline(query.message.chat.id, query.message.message_id, text, parse_mode=parse_mode)
 
 
-main_menu = get_keyboard(keyboards.main_menu_btn, keyboard_type='reply', one_time_keyboard=True)
-cancel_menu = {'inline': get_keyboard(keyboards.cancel_btn, keyboard_type='inline'),
-               'reply': get_keyboard(keyboards.cancel_btn, keyboard_type='reply', one_time_keyboard=True)}
+main_menu = Keyboard(keyboards.main_menu_btn).reply(one_time_keyboard=True)
+cancel_menu = {'inline': Keyboard(keyboards.cancel_btn).inline(),
+               'reply': Keyboard(keyboards.cancel_btn).reply(one_time_keyboard=True)}

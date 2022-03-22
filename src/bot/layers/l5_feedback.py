@@ -5,8 +5,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_keyboard, update_inline_query, edit_inline_message, exc_handler
 from src.bot import keyboards
+from src.bot.api import main_menu, update_inline_query, edit_inline_message, exc_handler
 from src.text import Texts
 from .l4_payment import bot, dp
 
@@ -32,7 +32,7 @@ async def feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
         feedback = await sql.add_feedback(query.message.chat.id, 'feedback', task, rating)
         await FeedbackFSM.comment.set()
         await state.update_data(task=task, feedback_id=feedback, message_id=query.message.message_id)
-        await update_inline_query(query, *Texts.why_feedback.full(), reply_markup=get_keyboard(keyboards.pass_btn))
+        await update_inline_query(query, *Texts.why_feedback.full(), btn_list=[keyboards.pass_btn])
 
 
 @dp.callback_query_handler(text='pass', state=FeedbackFSM.comment)

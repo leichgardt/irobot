@@ -6,10 +6,21 @@ from aiogram.dispatcher.filters import Text, Regexp
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.emoji import emojize
 
+from src.bot.api import (
+    main_menu,
+    edit_inline_message,
+    update_inline_query,
+    delete_message,
+    private_and_login_require,
+    get_payment_hash,
+    exc_handler,
+    get_payment_price,
+    get_all_agrm_data,
+    get_promise_payment_agrms,
+    get_agrm_balances
+)
 from src.bot import keyboards
-from src.bot.api import (main_menu, edit_inline_message, update_inline_query, get_keyboard, delete_message,
-                         private_and_login_require, get_payment_hash, exc_handler, get_payment_price,
-                         get_all_agrm_data, get_promise_payment_agrms, get_agrm_balances, get_custom_button)
+from src.bot.api.keyboard import Keyboard, KeyboardButton
 from src.lb import lb
 from src.parameters import SBER_TOKEN, RECEIPT_EMAIL
 from src.sql import sql
@@ -39,7 +50,7 @@ class PaymentFSM(StatesGroup):
 async def message_h_payments(message: types.Message, state: FSMContext):
     await state.finish()
     await PaymentFSM.operation.set()
-    kb = get_keyboard(keyboards.payment_choice_btn, keyboard_type='inline')
+    kb = Keyboard(keyboards.payment_choice_btn).inline()
     res = await bot.send_message(message.chat.id, *Texts.payments.pair(), reply_markup=kb)
     await sql.upd_inline(message.chat.id, res.message_id, *Texts.payments.pair())
 
@@ -48,7 +59,7 @@ async def message_h_payments(message: types.Message, state: FSMContext):
 @exc_handler
 async def inline_h_payments(query: types.CallbackQuery, state: FSMContext):
     await PaymentFSM.operation.set()
-    kb = get_keyboard(keyboards.payment_choice_btn)
+    kb = Keyboard(keyboards.payment_choice_btn).inline()
     await update_inline_query(query, *Texts.payments.full(), reply_markup=kb)
 
 
@@ -73,12 +84,13 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
             res = await lb.get_balance(agrm_data=data['agrm_data'][0])
             data['balance'] = res['balance']
             text = map_format(text, balance=data['balance'])
-            kb = get_keyboard(keyboards.back_to_payments_btn)
+            kb = Keyboard(keyboards.back_to_payments_btn).inline()
             answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'])
         else:
             await PaymentFSM.agrm.set()
             answer, text, parse = Texts.payments_online.full()
-            kb = get_keyboard(await keyboards.get_agrms_btn(custom=data['agrm_data']), keyboards.back_to_payments_btn)
+            kb = Keyboard([await keyboards.get_agrms_btn(custom=data['agrm_data']),
+                           keyboards.back_to_payments_btn]).inline()
         await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
 
@@ -107,17 +119,17 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
                 await PaymentFSM.payment.set()
                 data['agrm'] = agrms[0]['agrm']
                 answer, text, parse = Texts.payments_promise_offer.full()
-                kb = get_keyboard(keyboards.confirm_btn)
+                kb = Keyboard(keyboards.confirm_btn).inline()
                 answer = answer.format(agrm=data['agrm'])
                 text = text.format(agrm=data['agrm'])
             elif len(agrms) > 1:
                 await PaymentFSM.agrm.set()
                 answer, text, parse = Texts.payments_promise.full()
-                kb = get_keyboard(await keyboards.get_agrms_btn(custom=agrms), keyboards.back_to_payments_btn)
+                kb = Keyboard([await keyboards.get_agrms_btn(custom=agrms), keyboards.back_to_payments_btn]).inline()
             else:
                 await state.finish()
                 answer, text, parse = Texts.payments_promise_already_have.full()
-                kb = get_keyboard(keyboards.payment_choice_btn)
+                kb = Keyboard(keyboards.payment_choice_btn).inline()
         await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
 
@@ -133,14 +145,14 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
         if data['operation'] == 'promise':
             await PaymentFSM.payment.set()
             answer, text, parse = Texts.payments_promise_offer.full()
-            kb = get_keyboard(keyboards.confirm_btn)
+            kb = Keyboard(keyboards.confirm_btn).inline()
         else:
             await PaymentFSM.amount.set()
             answer, text, parse = Texts.payments_online_amount.full()
             balance = await lb.get_balance(agrmnum=data['agrm'])
             data['balance'] = balance['balance']
             text = map_format(text, balance=data['balance'])
-            kb = get_keyboard(get_custom_button(Texts.back, 'payments-online'))
+            kb = Keyboard([KeyboardButton(Texts.back, callback_data='payments-online')]).inline()
         answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'])
         await update_inline_query(query, answer, text, parse, reply_markup=kb)
 
@@ -181,9 +193,9 @@ async def inline_h_payment_non_int(message: types.Message, state: FSMContext):
     """ Если текст сообщения НЕ число или меньше минимума - попросить ввести ещё раз """
     async with state.proxy() as data:
         if len(data['agrm_data']) > 1:
-            btn = get_custom_button(Texts.back, 'payments-online')
+            btn = KeyboardButton(Texts.back, callback_data='payments-online')
         else:
-            btn = get_custom_button(Texts.back, 'payments')
+            btn = KeyboardButton(Texts.back, callback_data='payments')
         if not message.text.isdigit():
             text, parse = Texts.payments_online_amount_is_not_digit.pair()
         else:

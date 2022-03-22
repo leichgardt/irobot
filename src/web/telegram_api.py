@@ -4,8 +4,8 @@ import logging
 from aiogram import Bot
 from aiogram.utils import exceptions
 
-from src.bot.api import get_keyboard
 from src.bot import keyboards
+from src.bot.api.keyboard import Keyboard
 from src.parameters import API_TOKEN
 from src.text import Texts
 from src.sql import sql
@@ -51,7 +51,7 @@ async def send_message(chat_id: int, text: str, *args, **kwargs):
 
 async def send_feedback(chat_id, task_id):
     res = await send_message(chat_id, Texts.new_feedback, Texts.new_feedback.parse_mode,
-                             reply_markup=get_keyboard(keyboards.get_feedback_btn(task_id), row_size=5))
+                             reply_markup=Keyboard(keyboards.get_feedback_btn(task_id), row_size=5).inline())
     if res:
         await sql.upd_inline(chat_id, res.message_id, Texts.new_feedback, Texts.new_feedback.parse_mode)
     return res

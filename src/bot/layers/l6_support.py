@@ -8,8 +8,9 @@ from datetime import datetime
 
 from src.utils import alogger
 from src.sql import sql
-from src.bot.api import main_menu, get_keyboard, update_inline_query, exc_handler
 from src.bot import keyboards
+from src.bot.api import main_menu, update_inline_query, exc_handler
+from src.bot.api.keyboard import Keyboard
 from src.text import Texts
 from .l5_feedback import bot, dp
 
@@ -55,7 +56,7 @@ async def support_inline_h(query: types.CallbackQuery, state: FSMContext):
     await alogger.info(f'Support enabled [{query.message.chat.id}]')
     await SupportFSM.live.set()
     await sql.update('irobot.subs', f'chat_id={query.message.chat.id}', support_mode=True)
-    await update_inline_query(query, *Texts.support.full(), reply_markup=get_keyboard(keyboards.cancel_btn))
+    await update_inline_query(query, *Texts.support.full(), reply_markup=Keyboard(keyboards.cancel_btn).inline())
 
 
 @dp.message_handler(lambda message: message.text not in ['/cancel', '/end_support'], state=SupportFSM.live)
@@ -71,7 +72,7 @@ async def support_message_h(message: types.Message, state: FSMContext):
                 for operator in ops:
                     await bot.send_message(
                         operator[0], f'Клиент {message.from_user.id} обратился в поддержку. Примите запрос?',
-                        reply_markup=get_keyboard(keyboards.get_support_kb(message.chat.id))
+                        reply_markup=Keyboard(keyboards.get_support_kb(message.chat.id)).inline()
                     )
         else:
             await message.send_copy(data.get('operator').get('chat_id'))
@@ -132,9 +133,12 @@ async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
         if rating < 5:
             await state.update_data(rating=rating)
             await SupportReviewFSM.comment.set()
-            await update_inline_query(query, f'Оценил на {rating}', 'Что-то было не так? Напиши пожалуйста, мы '
-                                                                    'обязательно учтём твоё мнение!',
-                                      reply_markup=get_keyboard(keyboards.pass_btn))
+            await update_inline_query(
+                query,
+                f'Оценил на {rating}',
+                'Что-то было не так? Напиши пожалуйста, мы обязательно учтём твоё мнение!',
+                btn_list=[keyboards.pass_btn]
+            )
         else:
             await state.finish()
             await sql.add_feedback(query.message.chat.id, 'support', data.get('operator'), rating)
@@ -206,8 +210,9 @@ async def oper_cancel_support_message_h(message: types.Message, state: FSMContex
         await dp.storage.reset_state(chat=data['chat_id'])
         await bot.send_message(message.chat.id, f'Линия поддержки с пользователем {data["chat_id"]} закрыта.')
         await asyncio.sleep(3)
+        kb = Keyboard(keyboards.get_review_btn(0, 'support-feedback'), row_size=5).inline()
         await bot.send_message(data['chat_id'], 'Спасибо за обращение! Пожалуйста, оцени работу оператора',
-                               reply_markup=get_keyboard(keyboards.get_review_btn(0, 'support-feedback'), row_size=5))
+                               reply_markup=kb)
 
 
 @dp.message_handler(lambda message: message.text not in ['/cancel', '/end_support'], state=OpSupportFSM.chat_id)
