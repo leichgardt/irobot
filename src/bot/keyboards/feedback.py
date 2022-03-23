@@ -1,7 +1,7 @@
-from ..api.keyboard_button import KeyboardButton
+from src.bot.api.keyboard import KeyboardButton
 
 
-__all__ = ['pass_btn', 'get_feedback_btn']
+__all__ = ('pass_btn', 'get_feedback_btn')
 
 
 pass_btn = [

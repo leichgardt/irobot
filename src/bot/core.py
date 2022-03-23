@@ -6,6 +6,9 @@ from aiogram.dispatcher import Dispatcher
 from src.parameters import API_TOKEN
 from src.utils import config
 
+
+__all__ = ('bot', 'dp')
+
 storage = MongoStorage(host=config['paladin']['cup'], port=27017, db_name='aiogram_fsm')
 
 bot = Bot(token=API_TOKEN)

@@ -3,6 +3,9 @@ import requests
 import re
 
 
+__all__ = ('config',)
+
+
 class Configer:
 
     """

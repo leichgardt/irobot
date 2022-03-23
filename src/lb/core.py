@@ -1,55 +1,42 @@
 import asyncio
-import httpx
-import zeep.exceptions
-import uvloop
 
+import httpx
+import uvloop
 from zeep import AsyncClient, Settings
 from zeep.client import Factory
-from zeep.wsdl import Document
+from zeep.exceptions import Fault
 from zeep.transports import AsyncTransport
 
-from src.utils import config, alogger, get_datetime, get_phone_number
+from src.utils import config, logger, get_datetime, get_phone_number
 
 
 class CustomAsyncClient(AsyncClient):
     """
-    Данный кастомный класс предназначен для добавления возможности указывать remote-host
-    в параметр port.binding_options['address'] (по умолчанию '127.0.0.1'):
+    Класс предназначен для добавления возможности указывать remote-host в параметр port.binding_options['address']
+    (по умолчанию '127.0.0.1'):
 
     >>> client = CustomAsyncClient('url_to_wsdl', address='remote_host')
 
     Это сделано с помощью переопределения метода '_get_port'
     """
-    def __init__(self, wsdl, transport=None, settings=None, address=None):
-        self.settings = settings or Settings()
-        self.transport = (
-            transport if transport is not None else self._default_transport()
-        )
-        self.wsdl = Document(wsdl, self.transport, settings=self.settings)
-        self.wsse = None
-        self.plugins = []
-        self._default_service = None
-        self._default_service_name = None
-        self._default_port_name = None
-        self._default_soapheaders = None
+    def __init__(self, wsdl, transport=None, settings=None, address=None, **kwargs):
+        super().__init__(wsdl, transport=transport, settings=settings, **kwargs)
         self.address = address  # новый параметр
+        self._get_port = self._get_port_deco(self._get_port)
 
-    def _get_port(self, service, name):
-        if name:
-            port = service.ports.get(name)
-            if not port:
-                raise ValueError("Port not found")
-        else:
-            port = list(service.ports.values())[0]
-        port.binding_options.update({'address': self.address})
-        return port
+    def _get_port_deco(self, get_port):
+        def get_port_wrapper(service, name):
+            port = get_port(service, name)
+            port.binding_options.update({'address': self.address})
+            return port
+        return get_port_wrapper
 
 
 class LBZeepCore:
     get_datetime = staticmethod(get_datetime)
     get_phone_number = staticmethod(get_phone_number)
 
-    def __init__(self, logger=alogger):
+    def __init__(self, logger=logger):
         self.user = config['lanbilling']['user']
         self.__password = config['lanbilling']['password']
         self._api_url = config['lanbilling']['url']
@@ -109,7 +96,7 @@ class LBZeepCore:
     async def execute(self, func, *args):
         try:
             return await self.client.service[func](*args)
-        except zeep.exceptions.Fault as e:
+        except Fault as e:
             if e.message == 'error_auth':
                 if await self.login():
                     return await self.client.service[func](*args)

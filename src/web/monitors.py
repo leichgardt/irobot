@@ -9,6 +9,9 @@ from src.utils import post_request, config
 from src.web.telegram_api import send_message
 
 
+__all__ = ('auto_feedback_monitor', 'auto_payment_monitor')
+
+
 async def auto_payment_monitor(logger, tries_num=5):
     """
     Поиск некорректных платежей

@@ -1,22 +1,19 @@
-import ujson
-
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
-from src.utils import alogger
-from src.sql import sql
 from src.bot import keyboards
-from src.bot.api import main_menu, private_and_login_require, get_hash, get_login_url, exc_handler
-from src.bot.api.keyboard import Keyboard
+from src.bot.api import private_and_login_require, get_login_url, exc_handler, Keyboard
+from src.sql import sql
 from src.text import Texts
+from src.utils import logger, get_hash
 
 try:
     from .l0_test import bot, dp
 
     print('>>> The Test layer L0 was loaded.')
 except ImportError:
-    from src.bot.bot_core import bot, dp
+    from src.bot.core import bot, dp
 
 
 # async def start_payment(chat_id, payload):
@@ -30,8 +27,8 @@ except ImportError:
 #                     chat_id, payment['agrm'], payment['amount'], get_payment_tax(payment['amount']), hash_code
 #                 ))
 #             else:
-#                 _, text, parse = Texts.payments_online_already_have.full()
-#                 await bot.send_message(chat_id, text, parse, reply_markup=main_menu)
+#                 _, text, parse_mode = Texts.payments_online_already_have.full()
+#                 await bot.send_message(chat_id, text, parse, reply_markup=keyboards.main_menu_kb)
 #         return True
 #     return False
 
@@ -60,9 +57,9 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
     #         return
     if await sql.get_sub(message.from_user.id):
         await bot.send_message(message.chat.id, text=Texts.main_menu, parse_mode=Texts.main_menu.parse_mode,
-                               reply_markup=main_menu)
+                               reply_markup=keyboards.main_menu_kb)
     else:
-        await alogger.info(f'Start [{message.chat.id}]')
+        await logger.info(f'Start [{message.chat.id}]')
         text = Texts.start.format(name=(message.from_user.first_name or message.from_user.last_name
                                         or message.from_user.username))
         hash_code = get_hash(message.chat.id)

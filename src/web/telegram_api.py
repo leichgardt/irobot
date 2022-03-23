@@ -1,3 +1,4 @@
+import aiohttp
 import asyncio
 import logging
 
@@ -8,8 +9,20 @@ from src.bot import keyboards
 from src.bot.api.keyboard import Keyboard
 from src.parameters import API_TOKEN
 from src.text import Texts
+from src.run_bot import WEBAPP_PORT
 from src.sql import sql
-from src.utils import config
+
+
+__all__ = (
+    'telegram_api',
+    'send_message',
+    'send_feedback',
+    'edit_message_text',
+    'webhook_request',
+    'edit_inline_message',
+    'delete_message',
+    'send_chat_action'
+)
 
 
 class TelegramAPI(Bot):
@@ -53,7 +66,7 @@ async def send_feedback(chat_id, task_id):
     res = await send_message(chat_id, Texts.new_feedback, Texts.new_feedback.parse_mode,
                              reply_markup=Keyboard(keyboards.get_feedback_btn(task_id), row_size=5).inline())
     if res:
-        await sql.upd_inline(chat_id, res.message_id, Texts.new_feedback, Texts.new_feedback.parse_mode)
+        await sql.upd_inline_message(chat_id, res.message_id, Texts.new_feedback, Texts.new_feedback.parse_mode)
     return res
 
 
@@ -81,7 +94,7 @@ async def edit_message_text(text, chat_id, message_id, *args, **kwargs):
 
 
 async def edit_inline_message(chat_id, text, *args, **kwargs):
-    inline_msg_id, _, _ = await sql.get_inline(chat_id)
+    inline_msg_id, _, _ = await sql.get_inline_message(chat_id)
     if inline_msg_id:
         await edit_message_text(text, chat_id, inline_msg_id, *args, **kwargs)
     else:

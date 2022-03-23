@@ -14,13 +14,13 @@ class KeyboardButton:
     def __str__(self):
         return {**self.parameters}.__str__()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str):
         if item in self.parameters:
             return self.parameters[item]
         else:
             raise KeyError(f'{item=} given but there is {list(self.parameters.keys())}')
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value):
         self.parameters[key] = value
 
     def get_button(self, keyboard_type: str):

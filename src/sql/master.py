@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from src.parameters import PID_TABLE
-from src.sql.asql_core import SQLCore
+from src.sql.core import SQLCore
 
 
 class SQLMaster(SQLCore):
@@ -73,12 +73,12 @@ class SQLMaster(SQLCore):
             await self.execute('UPDATE irobot.accounts SET active=false, update_datetime=now() WHERE chat_id=%s',
                                chat_id)
 
-    async def get_inline(self, chat_id):
+    async def get_inline_message(self, chat_id):
         res = await self.execute('SELECT inline_msg_id, inline_text, inline_parse_mode FROM irobot.subs '
                                  'WHERE chat_id=%s', chat_id)
-        return res[0] if res else (None, None, None)
+        return res[0] if res else (0, '', None)
 
-    async def upd_inline(self, chat_id: int, inline: int, text: str, parse_mode: str = None):
+    async def upd_inline_message(self, chat_id: int, inline: int, text: str, parse_mode: str = None):
         await self.execute('UPDATE irobot.subs SET inline_msg_id= %s, inline_text= %s, inline_parse_mode= %s '
                            'WHERE chat_id=%s', inline, text, parse_mode, chat_id)
 

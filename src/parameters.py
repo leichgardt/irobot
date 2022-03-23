@@ -1,5 +1,9 @@
 from src.utils import config
 
+MONGO_DB_HOST = config['paladin']['cup']
+MONGO_DB_PORT = 27017
+MONGO_DB_NAME = 'aiogram_fsm'
+
 SBER_TOKEN = config['sberbank']['token']
 
 DB_NAME = config['postgres']['dbname']

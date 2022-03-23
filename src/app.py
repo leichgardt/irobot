@@ -9,27 +9,25 @@ from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
-from starlette.responses import Response, RedirectResponse
+from starlette.responses import Response
 from pydantic import BaseModel
 
 sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../'))
 
-from src.bot.api import main_menu, get_payment_tax
 from src.guni import workers
 from src.lb import lb
-from src.payments import yoomoney_pay
 from src.sql import sql
 from src.text import Texts
 from src.utils import config, aio_logger
 from src.web import (
     lan_require, get_request_data,
     SoloWorker, Table, WebM,
-    telegram_api, broadcast, logining, send_message, edit_payment_message, send_feedback,
+    telegram_api, broadcast, logining, send_message, send_feedback,
     auto_payment_monitor, auto_feedback_monitor,
     get_subscriber_table, get_mailing_history
 )
 
-VERSION = '1.0.3'
+VERSION = '1.0.3a'
 ABOUT = """Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @{},
 а так же для обработки запросов платежей от системы Yoomoney.
 Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении завершенного 
@@ -130,11 +128,12 @@ async def login_try(response: Response,
                     background_tasks: BackgroundTasks,
                     item: LoginItem):
     """
-    response: 1  - успешная авторизация
-    response: 2  - договор уже добавлен к учётной записи
-    response: 0  - неверный пароль
-    response: -1 - договор не найден
-    response: -2 - не переданы данные (agrm/password/hash)
+    Коды ответа:
+         1 - успешная авторизация
+         2 - договор уже добавлен к учётной записи
+         0 - неверный пароль
+        -1 - договор не найден
+        -2 - не переданы данные (agrm/password/hash)
     """
     if item.login and item.pwd and item.hash:
         res = await lb.check_account_pass(item.login, item.pwd)
@@ -161,13 +160,13 @@ async def login_try(response: Response,
 
 
 @app.get('/login_success')
-async def login_page(request: Request):
+async def successful_login_page(request: Request):
     return webm.page(request, dict(title=Texts.web.auth, message=dict(title=Texts.web.auth_success)))
 
 
 @app.get('/api/get_history')
 @lan_require
-async def get_history(request: Request):  # lan_require decorator requires `Request` argument
+async def get_history_table(request: Request):  # lan_require decorator requires `Request` argument
     """Получить таблицу с последними 10 рассылками"""
     res = await sql.get_mailings()
     if res:
@@ -186,7 +185,7 @@ class MailingItem(BaseModel):
 
 @app.post('/api/send_mail')
 @lan_require
-async def send_mailing(request: Request,  # lan_require decorator requires `Request` argument
+async def send_mailing(request: Request,  # НЕ УДАЛЯТЬ! Требуется для декоратора `lan_require`
                        response: Response,
                        background_tasks: BackgroundTasks,
                        item: MailingItem):
@@ -329,7 +328,7 @@ async def send_feedback_request(request: Request, response: Response):
 
 @app.post('/api/status')
 @lan_require
-async def api_status(request: Request):
+async def api_status(request: Request):  # для декоратора lan_require требуется аргумент `request`
     """
     response: 1  - OK
     response: 0  - SQL error
@@ -346,72 +345,6 @@ async def api_status(request: Request):
         output -= 1 if not res1 else 0
         output -= 2 if not res2 else 0
     return {'response': output}
-
-
-@app.get('/new_payment')
-async def new_payment(background_tasks: BackgroundTasks, hash_code: str = None):
-    url = 'payment?status=error'
-    if hash_code:
-        payment = await sql.find_payment(hash_code)
-        if payment:
-            if not payment['url'] and payment['status'] == 'new':
-                yoo_payment = await yoomoney_pay(payment['agrm'], payment['amount'], get_payment_tax(payment['amount']),
-                                                 hash_code)
-                if yoo_payment:
-                    url = yoo_payment['url']
-                    await sql.upd_payment(hash_code, status='processing', url=yoo_payment['url'],
-                                          receipt=yoo_payment['id'])
-                background_tasks.add_task(edit_payment_message, hash_code, payment['chat_id'], payment['agrm'],
-                                          payment['amount'], payment['inline'])
-            elif payment['url']:
-                url = payment['url']
-    return RedirectResponse(url, 302)
-
-
-@app.get('/payment')
-async def get_payment(request: Request, hash_code: str = None, status: str = None):
-    if status == 'error':
-        return webm.page(request, dict(title=Texts.web.payment_error, message=dict(
-            title=Texts.web.payment_error,
-            textlines=Texts.web.payment_err_detail
-        )))
-    if hash_code:
-        payment = await sql.find_payment(hash_code)
-        if payment:
-            if payment['status'] == 'processing':
-                return webm.page(request, dict(title=Texts.web.payment_processing, message=dict(
-                    title=Texts.web.payment_processing,
-                    textlines=Texts.web.payment_process_detail
-                )))
-            elif payment['status'] in ('success', 'finished'):
-                return webm.page(request, dict(title=Texts.web.payment_success,
-                                               message=dict(title=Texts.web.payment_success)))
-            elif payment['status'] == 'error':
-                return webm.page(request, dict(title=Texts.web.payment_error, message=dict(
-                    title=Texts.web.payment_error,
-                    textlines=Texts.web.payment_err_detail
-                )))
-    data = await get_request_data(request)
-    await logger.info(f'Backend error [{request.client.host}]: {request.url}{f" {data}" if data else ""}')
-    return webm.page(request, dict(message=dict(title=Texts.web.backend_error, textlines=Texts.web.backend_err_detail),
-                                   title=Texts.web.error))
-
-
-@app.post('/api/payment')
-async def payment_processing(request: Request):
-    data = await get_request_data(request)
-    payment_id = 0
-    if data and 'hash_code' in data:
-        payment = await sql.find_payment(data['hash_code'])
-        if payment:
-            payment_id = await lb.new_payment(payment['agrm'], payment['amount'], payment['receipt'])
-            if payment_id:
-                res = await send_message(payment['chat_id'], *Texts.payments_online_success.pair(),
-                                         reply_markup=main_menu)
-                await sql.upd_payment(data['hash_code'], status='finished' if res else 'success', record_id=payment_id)
-            else:
-                await sql.upd_payment(data['hash_code'], status='error')
-    return {'response': payment_id}
 
 
 if __name__ == "__main__":

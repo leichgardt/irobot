@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from src.lb.lb_zeep import LBZeepCore
+from src.lb.core import LBZeepCore
 from src.utils import get_datetime
 
 
@@ -77,26 +77,28 @@ class LBAPI(LBZeepCore):
                                                                  dtfrom=get_datetime(dtfrom),
                                                                  dtto=get_datetime(dtto)))
 
-    async def new_payment(self, agrm: str, amount: float, receipt: str, paydate: [str, datetime] = None):
+    async def new_payment(self, agrm: str, amount: float, receipt: str, paydate: [str, datetime] = None, test=False):
         res = await self.direct_request('getAgreements', dict(agrmnum=agrm))
         if res:
-            paydate = datetime.now() if not paydate else paydate
+            paydate = paydate or datetime.now()
+            agrm_id = res[0].agrmid
             try:
                 payment_obj = self.factory.soapPayment(
-                    agrmid=res[0].agrmid,
+                    agrmid=agrm_id,
                     currid=1,
-                    classid=1,
+                    classid=1 if not test else 2,
                     amount=amount,
                     cashcode=1,
                     classname='Безналично',
-                    receipt=receipt,
-                    comment='IroBot via YooKassa',
+                    receipt=f'{"test-" if test else ""}{receipt}',
+                    comment='IroBot via Sberbank',
                     localdate=self.get_datetime(datetime.now()),
                     paydate=paydate if isinstance(paydate, str) else self.get_datetime(paydate)
                 )
+                await self.logger.info(f'Payment try [{agrm_id=} {agrm=} {amount=} {receipt=} {paydate=}]')
                 return await self.direct_request('Payment', payment_obj)
             except Exception as e:
-                await self.logger.error(f'LB Payment error: {e}')
+                await self.logger.error(f'LB Payment error: {e} [{agrm_id=} {agrm=} {amount=} {receipt=} {paydate=}]')
         return 0
 
 

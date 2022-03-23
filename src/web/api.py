@@ -9,21 +9,25 @@ from starlette.responses import Response
 from urllib.parse import urlparse, parse_qs
 
 from src.bot import keyboards
-from src.bot.api import main_menu, get_all_agrm_data, get_payment_url, get_payment_tax
-from src.bot.api.keyboard import Keyboard
+from src.bot.api import get_all_agrm_data, Keyboard
 from src.lb import lb
 from src.sql import sql
 from src.text import Texts
 from src.utils import config
 from src.web.table import Table
-from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action, edit_message_text
+from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action
 
 
-async def edit_payment_message(hash_code, chat_id, agrm, amount, message_id):
-    summ = amount + (tax := get_payment_tax(amount))
-    text, parse = Texts.payments_online_offer.pair(agrm=agrm, amount=amount, tax=tax, res=summ)
-    kb = Keyboard(keyboards.payment_url_btn(get_payment_url(hash_code), summ)).inline()
-    await edit_message_text(text, chat_id, message_id, parse_mode=parse, reply_markup=kb)
+__all__ = (
+    'get_query_params',
+    'get_request_data',
+    'lan_require',
+    'broadcast',
+    'logining',
+    'WebM',
+    'get_subscriber_table',
+    'get_mailing_history'
+)
 
 
 async def get_request_data(request: Request):
@@ -66,19 +70,19 @@ async def logining(chat_id: int, login: str):
     if not await sql.get_sub(chat_id):
         # если пользователь новый
         await sql.subscribe(chat_id)
-        inline, _, _ = await sql.get_inline(chat_id)
+        inline, _, _ = await sql.get_inline_message(chat_id)
         await delete_message(chat_id, inline)
-        _, text, parse = Texts.auth_success.full()
-        await send_message(chat_id, text.format(account=login), parse, reply_markup=main_menu)
+        text, parse_mode = Texts.auth_success.pair()
+        await send_message(chat_id, text.format(account=login), parse_mode, reply_markup=keyboards.main_menu_kb)
     else:
         # если пользователь добавил новый аккаунт
-        _, text, parse = Texts.settings_account_add_success.full()
-        await edit_inline_message(chat_id, text.format(account=login), parse)
+        text, parse_mode = Texts.settings_account_add_success.pair()
+        await edit_inline_message(chat_id, text.format(account=login), parse_mode)
         data = await get_all_agrm_data(chat_id, only_numbers=True)
-        _, text, parse = Texts.settings_accounts.full()
+        text, parse_mode = Texts.settings_accounts.pair(accounts=Texts.get_account_agrm_list(data))
         btn_list = await keyboards.get_agrms_btn(custom=data, prefix='account') + [keyboards.account_settings_btn]
         kb = Keyboard(btn_list).inline()
-        await send_message(chat_id, text.format(accounts=Texts.get_account_agrm_list(data)), parse, reply_markup=kb)
+        await send_message(chat_id, text, parse_mode, reply_markup=kb)
 
 
 async def broadcast(data: dict, logger: Logger):

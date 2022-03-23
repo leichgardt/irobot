@@ -1,42 +1,17 @@
 import asyncio
+from datetime import datetime
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Regexp
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from datetime import datetime
 
-from src.utils import alogger
-from src.sql import sql
 from src.bot import keyboards
-from src.bot.api import main_menu, update_inline_query, exc_handler
-from src.bot.api.keyboard import Keyboard
+from src.bot.api import update_inline_query, exc_handler, Keyboard, save_dialog_message
+from src.sql import sql
 from src.text import Texts
+from src.utils import logger
 from .l5_feedback import bot, dp
-
-
-async def save_dialog_message(message: types.Message, user: str):
-    if message.content_type == 'text':
-        data = {'text': message.text}
-    elif message.content_type == 'document':
-        data = {'file_id': message.document.file_id, 'mime_type': message.document.mime_type}
-    elif message.content_type == 'photo':
-        data = {'file_id': message.photo[-1].file_id}
-    elif message.content_type == 'sticker':
-        data = {'file_id': message.sticker.file_id}
-    elif message.content_type == 'voice':
-        data = {'file_id': message.voice.file_id}
-    elif message.content_type == 'video':
-        data = {'file_id': message.video.file_id, 'mime_type': message.video.mime_type}
-    elif message.content_type == 'video_note':
-        data = {'file_id': message.video_note.file_id}
-    elif message.content_type == 'audio':
-        data = {'file_id': message.audio.file_id, 'mime_type': message.audio.mime_type}
-    else:
-        await alogger.warning(f'Unhandled support message content type: {message} [{message.chat.id}]')
-        return
-    data = {'caption': message.caption, **data} if 'caption' in message else data
-    await sql.add_support_message(message.chat.id, message.message_id, user, message.content_type, data)
 
 
 # _____ client side _____
@@ -53,7 +28,7 @@ class SupportFSM(StatesGroup):
 async def support_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ Активация режима обращения в поддержку """
     await state.finish()
-    await alogger.info(f'Support enabled [{query.message.chat.id}]')
+    await logger.info(f'Support enabled [{query.message.chat.id}]')
     await SupportFSM.live.set()
     await sql.update('irobot.subs', f'chat_id={query.message.chat.id}', support_mode=True)
     await update_inline_query(query, *Texts.support.full(), reply_markup=Keyboard(keyboards.cancel_btn).inline())
@@ -103,7 +78,7 @@ async def cancel_support_message_h(message: types.Message, state: FSMContext):
             await bot.send_message(data['operator']['chat_id'], f'Пользователь {message.chat.id} завершил поддержку.')
             await dp.storage.reset_state(chat=data['operator']['chat_id'])
     await state.finish()
-    await bot.send_message(message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu)
+    await bot.send_message(message.chat.id, *Texts.main_menu.pair(), reply_markup=keyboards.main_menu_kb)
     await sql.update('irobot.subs', f'chat_id={message.chat.id}', support_mode=False, inline_msg_id=0,
                      inline_text='', inline_parse_mode=None)
 
@@ -127,7 +102,7 @@ class SupportReviewFSM(StatesGroup):
 async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ обработка обратной связи """
     async with state.proxy() as data:
-        await alogger.info(f'Support feedback rated [{query.message.chat.id}]')
+        await logger.info(f'Support feedback rated [{query.message.chat.id}]')
         await sql.update('irobot.subs', f'chat_id={query.message.chat.id}', support_mode=False)
         rating = int(query.data.split('-')[2])
         if rating < 5:
@@ -142,7 +117,8 @@ async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
         else:
             await state.finish()
             await sql.add_feedback(query.message.chat.id, 'support', data.get('operator'), rating)
-            await update_inline_query(query, 'Оценил на 5', 'Спасибо за хороший отзыв!', reply_markup=main_menu)
+            await update_inline_query(query, 'Оценил на 5', 'Спасибо за хороший отзыв!',
+                                      reply_markup=keyboards.main_menu_kb)
 
 
 @dp.callback_query_handler(text='pass', state=SupportReviewFSM.comment)
@@ -153,7 +129,7 @@ async def pass_commenting_support_inline_h(query: types.CallbackQuery, state: FS
         await state.finish()
         await sql.add_feedback(query.message.chat.id, 'support', data.get('operator'), data['rating'])
         await update_inline_query(query, *Texts.passed.full())
-        await bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu)
+        await bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=keyboards.main_menu_kb)
 
 
 @dp.message_handler(state=SupportReviewFSM.comment)
@@ -164,7 +140,7 @@ async def review_rating_message_h(message: types.Message, state: FSMContext):
         await state.finish()
         await sql.add_feedback(message.chat.id, 'support', data['operator'], data['rating'], message.text)
         await bot.send_message(message.chat.id, 'Спасибо за отзыв!')
-        await bot.send_message(message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu)
+        await bot.send_message(message.chat.id, *Texts.main_menu.pair(), reply_markup=keyboards.main_menu_kb)
 
 
 # _____ operator side _____
@@ -192,7 +168,8 @@ async def oper_take_support_inline_h(query: types.CallbackQuery, state: FSMConte
         # записали оператора и чат клиента за ним
         await state.update_data(chat_id=client_chat_id, operator=op)
         # записали клиенту оператора
-        await dp.storage.update_data(chat=client_chat_id, data=dict(operator=dict(name=op, chat_id=query.message.chat.id)))
+        await dp.storage.update_data(chat=client_chat_id, data={'operator': {'name': op,
+                                                                             'chat_id': query.message.chat.id}})
         await update_inline_query(query, 'Запрос принят', 'Запрос принят. Для окончания режима поддержки отправьте '
                                                           'команду /end_support или /cancel')
         # передали историю сообщений с текущего обращения

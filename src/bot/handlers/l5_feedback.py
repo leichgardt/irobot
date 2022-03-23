@@ -3,11 +3,11 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Regexp
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from src.utils import alogger
-from src.sql import sql
 from src.bot import keyboards
-from src.bot.api import main_menu, update_inline_query, edit_inline_message, exc_handler
+from src.bot.api import update_inline_query, edit_inline_message, exc_handler
+from src.sql import sql
 from src.text import Texts
+from src.utils import logger
 from .l4_payment import bot, dp
 
 
@@ -21,7 +21,7 @@ class FeedbackFSM(StatesGroup):
 @dp.callback_query_handler(Regexp(regexp=r'feedback-[0-9]-([0-9]*)'), state='*')
 @exc_handler
 async def feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
-    await alogger.info(f'[{query.message.chat.id}] Feedback')
+    await logger.info(f'[{query.message.chat.id}] Feedback')
     await state.finish()
     _, rating, task = query.data.split('-')
     rating, task = int(rating), int(task)
@@ -39,9 +39,10 @@ async def feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
 @exc_handler
 async def comment_feedback_inline_h(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        await alogger.info(f'[{query.message.chat.id}] Feedback passed')
+        await logger.info(f'[{query.message.chat.id}] Feedback passed')
         await state.finish()
-        await update_inline_query(query, Texts.end_feedback_answer, *Texts.main_menu.pair(), reply_markup=main_menu)
+        await update_inline_query(query, Texts.end_feedback_answer, *Texts.main_menu.pair(),
+                                  reply_markup=keyboards.main_menu_kb)
         await sql.upd_feedback(data['feedback_id'], status='sending')
 
 
@@ -49,8 +50,8 @@ async def comment_feedback_inline_h(query: types.CallbackQuery, state: FSMContex
 @exc_handler
 async def feedback_comment_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        await alogger.info(f'[{message.chat.id}] Feedback commented ')
+        await logger.info(f'[{message.chat.id}] Feedback commented ')
         await state.finish()
-        await bot.send_message(message.chat.id, *Texts.got_feedback.pair(), reply_markup=main_menu)
-        await edit_inline_message(message.chat.id, *Texts.why_feedback.pair(), inline=data['message_id'])
+        await bot.send_message(message.chat.id, *Texts.got_feedback.pair(), reply_markup=keyboards.main_menu_kb)
+        await edit_inline_message(message.chat.id, *Texts.why_feedback.pair(), message_id=data['message_id'])
         await sql.upd_feedback(data['feedback_id'], status='sending', comment=message.text)

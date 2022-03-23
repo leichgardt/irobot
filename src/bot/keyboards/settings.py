@@ -1,19 +1,19 @@
-from ..api.keyboard_button import KeyboardButton
-from ...sql import sql
+from src.bot.api.keyboard import KeyboardButton, Keyboard
+from src.sql import sql
 
 
-__all__ = [
-    'settings_menu_btn',
+__all__ = (
+    'settings_menu_kb',
     'exit_confirm_btn',
     'account_control_btn',
     'cancel_btn',
     'confirm_btn',
     'get_notify_settings_btn',
     'get_login_btn'
-]
+)
 
 
-settings_menu_btn = [
+settings_menu_kb = Keyboard([
     [
         KeyboardButton('Учётные записи', callback_data='settings-my-accounts'),
         KeyboardButton('Уведомления', callback_data='settings-notify')
@@ -22,7 +22,7 @@ settings_menu_btn = [
         KeyboardButton('Выйти из программы', callback_data='exit'),
         KeyboardButton('Завершить настройки', callback_data='settings-done')
     ],
-]
+]).inline()
 
 exit_confirm_btn = [
     KeyboardButton('Выйти', callback_data='exit-yes'),

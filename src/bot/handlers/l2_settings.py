@@ -5,20 +5,16 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from src.bot import keyboards
 from src.bot.api import (
-    main_menu,
     update_inline_query,
-    delete_message,
     private_and_login_require,
-    get_hash,
     get_login_url,
     exc_handler,
-    get_all_agrm_data
+    get_all_agrm_data,
+    Keyboard
 )
-from src.bot.api.keyboard import Keyboard
-from src.text import Texts
 from src.sql import sql
-from src.utils import alogger
-
+from src.text import Texts
+from src.utils import logger, get_hash
 from .l1_auth import bot, dp
 
 
@@ -37,31 +33,30 @@ async def message_h_settings(message: types.Message, state: FSMContext):
     await state.finish()
     data = await sql.get_sub(message.chat.id)
     if data:
-        kb = Keyboard(keyboards.settings_menu_btn).inline()
-        text, parse = Texts.settings.pair()
+        kb = keyboards.settings_menu_kb
+        text, parse_mode = Texts.settings.pair()
         await AccountSettingsFSM.acc.set()
         await state.update_data(mailing=data[0])
     else:
         kb = None
-        text, parse = Texts.settings_non_auth.pair()
-    res = await bot.send_message(message.chat.id, text, parse_mode=parse, reply_markup=kb)
-    await sql.upd_inline(message.chat.id, res.message_id, text, parse)
+        text, parse_mode = Texts.settings_non_auth.pair()
+    res = await bot.send_message(message.chat.id, text, parse_mode=parse_mode, reply_markup=kb)
+    await sql.upd_inline_message(message.chat.id, res.message_id, text, parse_mode)
 
 
 @dp.callback_query_handler(text='settings', state=AccountSettingsFSM.acc)
 @exc_handler
 async def inline_h_settings(query: types.CallbackQuery, state: FSMContext):
-    await update_inline_query(query, *Texts.settings.full(), btn_list=keyboards.settings_menu_btn)
+    await update_inline_query(query, *Texts.settings.full(), reply_markup=keyboards.settings_menu_kb)
 
 
 @dp.callback_query_handler(text='settings-done', state=AccountSettingsFSM.acc)
 @exc_handler
 async def inline_h_settings_done(query: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await query.answer(Texts.settings_done.answer, show_alert=True)
-    await delete_message(query.message)
-    await bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=main_menu)
-    await sql.upd_inline(query.message.chat.id, 0, '')
+    await update_inline_query(query, *Texts.settings_done.full(), alert=True, skip_db_update=True)
+    await bot.send_message(query.message.chat.id, *Texts.main_menu.pair(), reply_markup=keyboards.main_menu_kb)
+    await sql.upd_inline_message(query.message.chat.id, 0, '')
 
 
 @dp.callback_query_handler(text='cancel', state=[AccountSettingsFSM.accounts, AccountSettingsFSM.acc])
@@ -97,7 +92,7 @@ async def inline_h_account_del(query: types.CallbackQuery, state: FSMContext):
             Texts.settings_accounts.parse_mode,
             btn_list=await keyboards.get_agrms_btn(custom=data['accounts']) + [keyboards.account_settings_btn]
         )
-        await alogger.info(f'Account {data["acc"]} deactivated [{query.message.chat.id}]')
+        await logger.info(f'Account {data["acc"]} deactivated [{query.message.chat.id}]')
 
 
 @dp.callback_query_handler(text='add-account', state=AccountSettingsFSM.acc)
@@ -106,10 +101,10 @@ async def inline_h_account_del(query: types.CallbackQuery, state: FSMContext):
     await AccountSettingsFSM.acc.set()
     hash_code = get_hash(query.message.chat.id)
     url = get_login_url(hash_code)
-    kb = Keyboard([keyboards.get_login_btn(url), keyboards.cancel_btn]).inline()
+    kb = Keyboard(keyboards.get_login_btn(url) + keyboards.cancel_btn).inline()
     await update_inline_query(query, *Texts.settings_account_add.full(), reply_markup=kb)
     await sql.upd_hash(query.message.chat.id, hash_code)
-    await alogger.info(f'Account adding [{query.message.chat.id}]')
+    await logger.info(f'Account adding [{query.message.chat.id}]')
 
 
 @dp.callback_query_handler(text='settings-notify', state=AccountSettingsFSM.acc)
@@ -128,11 +123,11 @@ async def inline_h_switch_notify(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         await sql.switch_sub(query.message.chat.id, 'mailing')
         data['mailing'] = not data['mailing']
-        text, parse = Texts.settings_notify.pair() if data['mailing'] else Texts.settings_notify_enable.pair()
+        text, parse_mode = Texts.settings_notify.pair() if data['mailing'] else Texts.settings_notify_enable.pair()
         btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id)]
-        await update_inline_query(query, Texts.settings_mailing_switch_answer, text, parse,
+        await update_inline_query(query, Texts.settings_mailing_switch_answer, text, parse_mode,
                                   reply_markup=Keyboard(btn_list).inline())
-        await alogger.info(f'Switching notify settings [{query.message.chat.id}]')
+        await logger.info(f'Switching notify settings [{query.message.chat.id}]')
 
 
 @dp.callback_query_handler(text='exit', state=AccountSettingsFSM.acc)
@@ -147,7 +142,7 @@ async def inline_h_exit_confirm(query: types.CallbackQuery, state: FSMContext):
     await query.answer(Texts.settings_exited.answer, show_alert=True)
     await query.message.delete()
     await bot.send_message(query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
-    await alogger.info(f'Exiting [{query.message.chat.id}]')
+    await logger.info(f'Exiting [{query.message.chat.id}]')
     await sql.unsubscribe(query.message.chat.id)
     for acc in await get_all_agrm_data(query.message.chat.id, only_numbers=True):
         await sql.deactivate_account(query.message.chat.id, acc)

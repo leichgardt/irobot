@@ -1,7 +1,10 @@
-import os
 import asyncio
+import os
 
 from src.sql import sql
+
+
+__all__ = ('SoloWorker',)
 
 
 class SoloWorker:

@@ -8,7 +8,7 @@ from yookassa import Configuration
 
 from src.parameters import SHOP_ID, SECRET_KEY, HOST_URL, RECEIPT_EMAIL
 from src.text import Texts
-from src.utils import get_phone_number, alogger
+from src.utils import get_phone_number, logger
 
 Configuration.account_id = SHOP_ID
 Configuration.secret_key = SECRET_KEY
@@ -37,7 +37,7 @@ async def yoomoney_pay(agrm: str, amount: [int, float], tax: [int, float], hash_
         try:
             await asyncio.sleep(0.1)
         except Exception as e:
-            await alogger.error(e)
+            await logger.error(e)
             break
     payment = tmp.get(hash_code, {})
     tmp.pop(hash_code)
@@ -86,11 +86,3 @@ def create_payment(agrm: str, amount: [int, float], tax: [int, float], hash_code
     else:
         params['receipt']['customer']['email'] = RECEIPT_EMAIL
     return Payment.create(params, idempotence_key)
-
-
-if __name__ == '__main__':
-    print(start := datetime.now())
-    kek = asyncio.run(yoomoney_pay('05275', 100, 3, '123'))
-    # kek = new_payment('05275', 100, '123')
-    print(datetime.now() - start)
-    print(kek)

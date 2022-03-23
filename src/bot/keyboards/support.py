@@ -1,7 +1,7 @@
-from src.bot.api.keyboard_button import KeyboardButton
+from src.bot.api.keyboard import KeyboardButton
 
 
-__all__ = ['get_support_kb']
+__all__ = ('get_support_kb',)
 
 
 def get_support_kb(client_chat_id):

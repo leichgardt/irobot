@@ -1,15 +1,9 @@
-from src.bot.api.keyboard_button import KeyboardButton
-from src.utils import config
+from src.bot.api.keyboard import KeyboardButton, Keyboard
 
 
-__all__ = ['back_to_main', 'main_menu_btn', 'help_btn', 'review_btn', 'get_review_btn']
+__all__ = ('main_menu_kb', 'back_to_main', 'help_kb', 'review_btn', 'get_review_btn')
 
-
-back_to_main = [
-    KeyboardButton('Назад', callback_data='main-menu')
-]
-
-main_menu_btn = [
+main_menu_kb = Keyboard([
     [
         KeyboardButton(':scales: Баланс', callback_data='balance'),
         KeyboardButton(':moneybag: Платежи', callback_data='payments'),
@@ -20,20 +14,23 @@ main_menu_btn = [
         KeyboardButton(':wrench: Настройки', callback_data='settings'),
     ],
     [
-        # {'text': 'Помощь', 'callback_data': 'help'},
         KeyboardButton('💩 Оставить отзыв', callback_data='review'),
     ],
-]
+]).reply(one_time_keyboard=True)
 
-help_btn = [
+help_kb = Keyboard([
     [
         KeyboardButton('Обратиться в тех.поддержку', callback_data='support')
-        # {'text': 'Обратиться в тех.поддержку', 'url': 'tg://resolve?domain={}'},
+        # KeyboardButton('Обратиться в тех.поддержку', url='tg://resolve?domain={}'),
     ],
     [
         KeyboardButton('О нас', callback_data='about'),
         KeyboardButton('Назад', callback_data='main-menu')
      ],
+]).inline()
+
+back_to_main = [
+    KeyboardButton('Назад', callback_data='main-menu')
 ]
 
 review_btn = [
@@ -50,9 +47,9 @@ def get_review_btn(rating=0, prefix_data='review'):
     return btn
 
 
-def __update():
-    global help_btn
-    help_btn[0][0]['url'] = help_btn[0][0]['url'].format(config['irobot']['chatbot'])
-
-
+# def __update():
+#     global help_btn
+#     help_btn[0][0]['url'] = help_btn[0][0]['url'].format(config['irobot']['chatbot'])
+#
+#
 # __update()

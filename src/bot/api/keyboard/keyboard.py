@@ -1,4 +1,4 @@
-from typing import Sequence, Optional, Union
+from typing import List, Optional, Union
 
 from aiogram import types
 
@@ -9,8 +9,8 @@ class Keyboard:
 
     def __init__(
             self,
-            buttons: Union[Sequence[KeyboardButton],
-                           Sequence[Union[KeyboardButton, Sequence[KeyboardButton]]]],
+            buttons: Union[List[KeyboardButton],
+                           List[Union[KeyboardButton, List[KeyboardButton]]]],
             row_size: int = 2
     ):
         self.buttons = buttons
@@ -32,7 +32,7 @@ class Keyboard:
         return keyboard
 
     def _is_simple_list_of_buttons(self):
-        return len([line for line in self.buttons if isinstance(line, (tuple, list))]) == 0
+        return len([line for line in self.buttons if isinstance(line, list)]) == 0
 
     def inline(self) -> types.InlineKeyboardMarkup:
         kb = types.InlineKeyboardMarkup(row_width=self.row_size)
@@ -44,7 +44,3 @@ class Keyboard:
                                        one_time_keyboard=one_time_keyboard)
         kb = self._fill_keyboard_with_buttons(kb, 'reply')
         return kb
-
-    @staticmethod
-    def delete_reply():
-        return types.ReplyKeyboardRemove()

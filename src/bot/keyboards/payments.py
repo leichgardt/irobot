@@ -1,10 +1,10 @@
-from ..api.keyboard_button import KeyboardButton
+from src.bot.api.keyboard import KeyboardButton, Keyboard
 
 
-__all__ = ['payment_choice_btn', 'back_to_payments_btn', 'get_payment_url_btn', 'payment_url_btn']
+__all__ = ('payment_choice_kb', 'back_to_payments_btn', 'get_payment_url_btn', 'payment_url_btn')
 
 
-payment_choice_btn = [
+payment_choice_kb = Keyboard([
     [
         KeyboardButton('Оплата онлайн', callback_data='payments-online'),
         KeyboardButton('Обещанный платёж', callback_data='payments-promise'),
@@ -12,7 +12,7 @@ payment_choice_btn = [
     [
         KeyboardButton('Назад', callback_data='main-menu'),
     ],
-]
+]).inline()
 
 back_to_payments_btn = [
     KeyboardButton('Назад', callback_data='payments')

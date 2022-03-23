@@ -1,8 +1,8 @@
-from ..api.keyboard_button import KeyboardButton
-from ..api.bot_functionality import get_all_agrm_data
+from src.bot.api.functions import get_all_agrm_data
+from src.bot.api.keyboard import KeyboardButton
 
 
-__all__ = ['account_settings_btn', 'get_agrms_btn']
+__all__ = ('account_settings_btn', 'get_agrms_btn')
 
 
 account_settings_btn = [

@@ -5,6 +5,10 @@ from aiologger.handlers.streams import AsyncStreamHandler
 from aiologger.handlers.files import AsyncFileHandler
 from aiologger.formatters.base import Formatter
 
+
+__all__ = ('logger', 'aio_logger', 'logdir', 'logfile')
+
+
 f_format = '[%(asctime)s] %(levelname)-8s %(filename)s(%(lineno)d) - %(funcName)s: %(message)s'
 s_format1 = '[%(asctime)s] %(levelname)-9s %(message)s'
 s_format2 = '%(levelname)-9s %(message)s'
@@ -24,4 +28,4 @@ def aio_logger(name, loop=None):
     return logger
 
 
-alogger = aio_logger('irobot')
+logger = aio_logger('irobot')
