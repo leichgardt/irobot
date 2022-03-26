@@ -11,9 +11,9 @@ from urllib.parse import urlparse, parse_qs
 from src.bot import keyboards
 from src.bot.api import get_all_agrm_data, Keyboard
 from src.lb import lb
+from src.parameters import HOST_IP_LIST
 from src.sql import sql
 from src.text import Texts
-from src.utils import config
 from src.web.table import Table
 from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action
 
@@ -24,7 +24,6 @@ __all__ = (
     'lan_require',
     'broadcast',
     'logining',
-    'WebM',
     'get_subscriber_table',
     'get_mailing_history'
 )
@@ -48,7 +47,7 @@ def lan_require(func):
     async def wrapper(request: Request, *args, **kwargs):
         ip = request.client.host or '127.0.0.1'
         lan_networks = [ip_network('192.168.0.0/16'), ip_network('172.16.0.0/12'), ip_network('10.0.0.0/8')]
-        if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip in config['paladin']['ironnet-global'] or
+        if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip in HOST_IP_LIST or
                 [True for network in lan_networks if ip_address(ip) in network]):
             return await func(request, *args, **kwargs)
         else:
@@ -138,32 +137,6 @@ async def broadcast(data: dict, logger: Logger):
     return count
 
 
-class WebM:
-    def __init__(self):
-        """Класс для рендера HTML-шаблонов с аргументами (для сокращения кода)"""
-        self.templates: Jinja2Templates = None
-        self.back_link = ''
-        self.bot_name = ''
-        self.headers = {}
-
-    def update(self, link, name, headers, templates):
-        self.templates = templates
-        self.back_link = link
-        self.bot_name = name
-        self.headers = headers
-
-    def page(self, request: Request, data: dict = None, *, template: str = 'page.html', **kwargs):
-        return self.templates.TemplateResponse(template,
-                                               dict(request=request,
-                                                    domain=config['paladin']['domain'],
-                                                    back_link=self.back_link,
-                                                    bot_name=self.bot_name,
-                                                    support_bot_name=config['irobot']['chatbot'],
-                                                    **data),
-                                               headers=self.headers,
-                                               **kwargs)
-
-
 async def get_subscriber_table():
     accs = await sql.get_sub_accounts()
     if accs:
@@ -179,7 +152,7 @@ async def get_subscriber_table():
                 line[1].style = 'background-color: red;'
             else:
                 line[1].style = 'background-color: green; color: white;'
-        return table
+        return table.get_html()
 
 
 async def get_mailing_history():
@@ -188,7 +161,7 @@ async def get_mailing_history():
         table = Table(res)
         for line in table:
             line[4].value = '\n'.join(line[4].value) if isinstance(line[4].value, list) else line[4].value
-        return table
+        return table.get_html()
 
 
 if __name__ == '__main__':

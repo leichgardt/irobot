@@ -1,5 +1,18 @@
 from src.utils import config
 
+
+TEST_CHAT_ID = config['irobot']['me']
+SUPPORT_BOT = config['irobot']['chatbot']
+
+HOST_IP_LIST = config['paladin']['ironnet-global']
+
+LANBILLING_USER = config['lanbilling']['user']
+LANBILLING_PASSWORD = config['lanbilling']['password']
+LANBILLING_URL = config['lanbilling']['url']
+LANBILLING_LOCATION = config['lanbilling']['location']
+
+TELEGRAM_NOTIFY_BOT_URL = 'https://{}/tesseract/api/notify'.format(config['paladin']['cup-domain'])
+
 MONGO_DB_HOST = config['paladin']['cup']
 MONGO_DB_PORT = 27017
 MONGO_DB_NAME = 'aiogram_fsm'

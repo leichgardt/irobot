@@ -54,7 +54,7 @@ def get_payment_price(agrm: str, amount: Union[int, float], tax: Union[int, floa
 
 
 def get_login_url(hash_code: str):
-    return '{}login?hash={}'.format(HOST_URL, hash_code)
+    return '{}login?hash_code={}'.format(HOST_URL, hash_code)
 
 
 async def get_agrm_balances(chat_id: int):

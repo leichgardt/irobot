@@ -121,13 +121,13 @@ def strip_and_typing_res(val):
 
 
 if __name__ == '__main__':
+    from src.parameters import TEST_CHAT_ID
     from src.utils import logger
-    from src.utils import config
 
     async def main():
         sql = SQLCore()
         sql.logger = logger
-        res = await sql.execute('SELECT * FROM irobot.subs WHERE chat_id=%s', config['irobot']['me'], as_dict=True)
+        res = await sql.execute('SELECT * FROM irobot.subs WHERE chat_id=%s', TEST_CHAT_ID, as_dict=True)
         if res:
             [print(f'{column:20}: {value}') for row in res for column, value in row.items()]
 

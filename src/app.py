@@ -1,50 +1,63 @@
 __author__ = 'leichgardt'
 
-import os
-import sys
 import uvicorn
-
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request, Response, BackgroundTasks
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
-from starlette.responses import Response
 from pydantic import BaseModel
 
-sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../'))
+try:
+    import sys
+    from pathlib import Path
 
-from src.guni import workers
-from src.lb import lb
-from src.sql import sql
-from src.text import Texts
-from src.utils import config, aio_logger
-from src.web import (
-    lan_require, get_request_data,
-    SoloWorker, Table, WebM,
-    telegram_api, broadcast, logining, send_message, send_feedback,
-    auto_payment_monitor, auto_feedback_monitor,
-    get_subscriber_table, get_mailing_history
-)
+    sys.path.append(str(Path(__file__).parent.parent.resolve()))
+
+    from src.guni import workers
+    from src.lb import lb
+    from src.parameters import SUPPORT_BOT, TEST_CHAT_ID
+    from src.sql import sql
+    from src.text import Texts
+    from src.utils import aio_logger
+    from src.web import (
+        lan_require,
+        get_request_data,
+        SoloWorker,
+        Table,
+        WebM,
+        telegram_api,
+        broadcast,
+        logining,
+        send_message,
+        send_feedback,
+        auto_payment_monitor,
+        auto_feedback_monitor,
+        get_subscriber_table,
+        get_mailing_history
+    )
+except ImportError as e:
+    raise ImportError(f'{e}. Bad $PATH variable: {":".join(sys.path)}')
+
 
 VERSION = '1.0.3a'
-ABOUT = """Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @{},
-а так же для обработки запросов платежей от системы Yoomoney.
-Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении завершенного 
-платежа сервис уведомляет пользователя через бота об успешной оплате."""
+ABOUT = (
+    'Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @{}, '
+    'а так же для обработки запросов платежей от системы Yoomoney.\n'
+    'Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении '
+    'завершенного платежа сервис уведомляет пользователя через бота об успешной оплате.'
+)
+BOT_NAME = ''
+BACK_TO_BOT_URL = '<script>window.location = "tg://resolve?domain={}";</script>'
+BACK_LINK = '<a href="https://t.me/{bot_name}">Вернуться к боту @{bot_name}</a>'
+HEADERS = {'Cache-Control': 'max-age=86400, must-revalidate'}
+DATA_PACK = {'support_bot_name': SUPPORT_BOT}
 
-bot_name = ''
-back_url = '<script>window.location = "tg://resolve?domain={}";</script>'
-back_link = '<a href="https://t.me/{bot_name}">Вернуться к боту @{bot_name}</a>'
-cache_header = {'Cache-Control': 'max-age=86400, must-revalidate'}
-
-webm = WebM()
 logger = aio_logger('irobot-web')
 sql.logger = logger
 lb.logger = logger
 templates = Jinja2Templates(directory='templates')
 app = FastAPI(debug=False, root_path='/irobot')
-# app = FastAPI(debug=False, root_path='')
 app.add_middleware(HTTPSRedirectMiddleware)
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 sw = SoloWorker(logger=logger, workers=workers)
@@ -53,17 +66,22 @@ sw = SoloWorker(logger=logger, workers=workers)
 @app.on_event('startup')
 async def update_params():
     """ Загрузить и обновить параметры """
-    global bot_name, back_url, back_link, webm, ABOUT
+    global BOT_NAME, BACK_TO_BOT_URL, BACK_LINK, ABOUT
+    # задать размер пула sql соединений
     sql.pool_min_size = 2
     sql.pool_max_size = 5
-    bot_name = await telegram_api.get_me()
-    bot_name = bot_name['username']
+
+    # загрузить данные бота и вставить их в переменные имён
+    BOT_NAME = await telegram_api.get_me()
+    BOT_NAME = BOT_NAME['username']
     Texts.web.login_try_again = [
-        Texts.web.login_try_again[0].format(bot_name=bot_name, support=config["irobot"]["chatbot"])]
-    ABOUT = ABOUT.format(bot_name)
-    back_url = back_url.format(bot_name)
-    back_link = back_link.format(bot_name=bot_name)
-    webm.update(back_link, bot_name, cache_header, templates)
+        Texts.web.login_try_again[0].format(bot_name=BOT_NAME, support=SUPPORT_BOT)
+    ]
+    ABOUT = ABOUT.format(BOT_NAME)
+    BACK_TO_BOT_URL = BACK_TO_BOT_URL.format(BOT_NAME)
+    BACK_LINK = BACK_LINK.format(bot_name=BOT_NAME)
+    DATA_PACK.update({'back_link': BACK_LINK})
+
     await sw.clean_old_pid_list()
     await logger.info(f'Irobot Web App [{sw.pid}] started. Hello there!')
 
@@ -74,7 +92,6 @@ async def update_params():
 async def payment_monitor():
     """ Поиск платежей с ошибками и попытка провести платёж еще раз """
     await auto_payment_monitor(logger)
-    # await logger.info('monitor')
 
 
 @app.on_event('startup')
@@ -86,7 +103,6 @@ async def feedback_monitor():
     Ответ абонента записывается в БД "irobot.feedback", задание которого комментируется в Userside через Cardinalis
     """
     await auto_feedback_monitor(logger)
-    # await logger.info('feedback')
 
 
 @app.on_event('shutdown')
@@ -99,22 +115,27 @@ async def close_connections():
 
 @app.get('/')
 @lan_require
-async def index(request: Request):
+async def index_page(request: Request):
+    return templates.TemplateResponse('index.html', dict(title='IroBot', about=ABOUT, version=VERSION))
+
+
+@app.get('/mailing')
+@lan_require
+async def mailing_page(request: Request):
     table = await get_subscriber_table() or ''
     history = await get_mailing_history() or ''
-    context = dict(title='IroBot', about=ABOUT, version=VERSION,
-                   tables=dict(subs=table.get_html(), history=history.get_html()))
-    return webm.page(request, context, template='index.html')
+    context = dict(title='IroBot', about=ABOUT, version=VERSION, tables=dict(subs=table.get_html(), history=history))
+    return templates.TemplateResponse('index.html', context)
 
 
 @app.get('/login')
-async def login_page(request: Request, hash: str = None):
-    if hash and await sql.find_chat_by_hash(hash):
-        return webm.page(request, dict(title=Texts.web.auth, hash_code=hash), template='login.html')
-    return webm.page(request, dict(title=Texts.web.auth, message=dict(
-        title=Texts.web.error,
-        textlines=Texts.web.login_try_again
-    )))
+async def login_page(request: Request, hash_code: str = None):
+    if hash_code and await sql.find_chat_by_hash(hash_code):
+        context = dict(request=request, title=Texts.web.auth, hash_code=hash_code, **DATA_PACK)
+        return templates.TemplateResponse('login.html', context, headers=HEADERS)
+    message = {'title': Texts.web.error, 'textlines': Texts.web.login_try_again}
+    context = dict(request=request, title=Texts.web.auth, message=message, **DATA_PACK)
+    return templates.TemplateResponse('page.html', context, headers=HEADERS)
 
 
 class LoginItem(BaseModel):
@@ -124,9 +145,7 @@ class LoginItem(BaseModel):
 
 
 @app.post('/api/login')
-async def login_try(response: Response,
-                    background_tasks: BackgroundTasks,
-                    item: LoginItem):
+async def login_try_request(response: Response, background_tasks: BackgroundTasks, item: LoginItem):
     """
     Коды ответа:
          1 - успешная авторизация
@@ -161,12 +180,13 @@ async def login_try(response: Response,
 
 @app.get('/login_success')
 async def successful_login_page(request: Request):
-    return webm.page(request, dict(title=Texts.web.auth, message=dict(title=Texts.web.auth_success)))
+    context = {'request': request, 'title': Texts.web.auth, 'message': {'title': Texts.web.auth_success}}
+    return templates.TemplateResponse('page.html', context, headers=HEADERS)
 
 
 @app.get('/api/get_history')
 @lan_require
-async def get_history_table(request: Request):  # lan_require decorator requires `Request` argument
+async def get_history_table_request(request: Request):  # НЕ УДАЛЯТЬ `request`! Требуется для декоратора `lan_require`
     """Получить таблицу с последними 10 рассылками"""
     res = await sql.get_mailings()
     if res:
@@ -185,10 +205,12 @@ class MailingItem(BaseModel):
 
 @app.post('/api/send_mail')
 @lan_require
-async def send_mailing(request: Request,  # НЕ УДАЛЯТЬ! Требуется для декоратора `lan_require`
-                       response: Response,
-                       background_tasks: BackgroundTasks,
-                       item: MailingItem):
+async def send_mailing_request(
+        request: Request,  # НЕ УДАЛЯТЬ! Требуется для декоратора `lan_require`
+        response: Response,
+        background_tasks: BackgroundTasks,
+        item: MailingItem
+):
     """Добавить новую рассылку"""
     if item.type in ('notify', 'mailing'):
         mail_id = await sql.add_mailing(item.type, item.text)
@@ -209,63 +231,62 @@ async def send_mailing(request: Request,  # НЕ УДАЛЯТЬ! Требует�
 
 @app.post('/api/send_message')
 @lan_require
-async def send_mailing(request: Request,
-                       response: Response,
-                       background_tasks: BackgroundTasks):
+async def send_message_request(
+        request: Request,
+        response: Response,
+        background_tasks: BackgroundTasks
+):
     """
     Отправить сообщение
     если передан
         chat_id - сообщение напрямую в конкретный чат
-        user_id - рассылка всем чатам (chat_id), у которых подключен этот user_id (billing)
-        agrm_id - рассылка всем чатам (chat_id), аккаунту которых (billing) принадлежит договор agrm_id
-        agrm    - тоже тамое, только по agrm (через login)
+        user_id - рассылка всем чатам (chat_id) пользователя (user_id)
+        agrm_id - рассылка всем чатам (chat_id), у кого подключен договор (agrm_id)
+        agrm    - тоже cамое, только по (agrm login), а не через (agrm_id)
     """
     data = await get_request_data(request)
     if data:
-        chat_id = data.get('chat_id', 0)
-        user_id = data.get('uid', data.get('userid', data.get('user_id', 0)))
-        agrm_id = data.get('aid', data.get('agrmid', data.get('agrm_id', 0)))
-        agrm = data.get('agrm', data.get('agrmnum', data.get('agrm_num', '')))
-        text = data.get('text', '')
-        parse_mode = data.get('parse_mode') or None
-        if text and (user_id or chat_id or agrm_id or agrm):
-            if user_id:
-                type_ = 'userid'
-                if await sql.find_user_chats(user_id):
-                    targets = [user_id]
-                    mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
-                else:
-                    targets, mail_id = [], 0
-            elif chat_id:
-                type_ = 'direct'
+        chat_id = data.get('chat_id')
+        user_id = data.get('user_id')
+        agrm_id = data.get('agrm_id')
+        agrm = data.get('agrm') or data.get('agrm_num')
+        text = data.get('text')
+        parse_mode = data.get('parse_mode')
+        if text and (chat_id or user_id or agrm_id or agrm):
+            targets = []
+            mail_id = 0
+            if chat_id:
+                target_type = 'direct'
                 targets = [chat_id]
-                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+                mail_id = await sql.add_mailing('direct', text, targets, parse_mode)
                 msg = await send_message(chat_id, text, parse_mode=parse_mode)
                 if msg:
                     await sql.upd_mailing_status(mail_id, 'complete')
                     return {'response': 1, 'id': mail_id}
-            elif agrm_id:
-                type_ = 'agrmid'
-                targets = [agrm_id]
-                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
-            elif agrm:
-                type_ = 'agrm'
-                targets = [agrm]
-                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+            elif user_id:
+                target_type = 'userid'
+                if await sql.find_user_chats(user_id):
+                    targets = [user_id]
+                    mail_id = await sql.add_mailing(target_type, text, targets, parse_mode)
+            elif agrm_id or agrm:
+                target_type = 'direct'
+                res = await lb.direct_request('getAccounts', {'agrmid': agrm_id} if agrm_id else {'agrmnum': agrm})
+                targets = await sql.find_user_chats(res[0].account.uid)
+                mail_id = await sql.add_mailing(target_type, text, targets, parse_mode)
             else:
-                type_ = None
+                target_type = None
                 targets = []
                 mail_id = -1
-            if mail_id > 0 and type_:
-                payload = dict(id=mail_id, type=type_, targets=targets, text=text, parse_mode=parse_mode)
+            if mail_id > 0 and target_type:
+                payload = dict(id=mail_id, type=target_type, targets=targets, text=text, parse_mode=parse_mode)
                 background_tasks.add_task(broadcast, payload, logger)
                 response.status_code = 202
                 return {'response': 1, 'id': mail_id}
             elif mail_id == 0:
                 response.status_code = 500
-                return {'response': -1, 'error': 'Message registration error'}
+                return {'response': -1, 'error': 'Message registration error. Check the given data.'}
         response.status_code = 400
-        return {'response': 0, 'error': f'Target not exist: {user_id or chat_id or agrm_id or agrm=}'}
+        return {'response': 0, 'error': f'Target not exist [{user_id or chat_id or agrm_id or agrm=}]'}
     response.status_code = 400
     return {'response': 0, 'error': 'Empty data'}
 
@@ -337,7 +358,7 @@ async def api_status(request: Request):  # для декоратора lan_requi
     """
     output = 1
     try:
-        res1 = await sql.get_sub(config['irobot']['me'])
+        res1 = await sql.get_sub(TEST_CHAT_ID)
         res2 = await telegram_api.get_me()
     except Exception as e:
         await logger.error(e)

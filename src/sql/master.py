@@ -183,10 +183,10 @@ sql = SQLMaster()
 
 if __name__ == '__main__':
     import asyncio
-    from src.utils import config
+    from src.parameters import TEST_CHAT_ID
 
     async def main():
-        res = await sql.get_accounts(config['irobot']['me'])
+        res = await sql.get_accounts(TEST_CHAT_ID)
         print(res)
 
     asyncio.run(main())
