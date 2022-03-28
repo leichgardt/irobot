@@ -1,6 +1,5 @@
 __author__ = 'leichgardt'
 
-import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -30,7 +29,6 @@ try:
     )
 except ImportError as e:
     raise ImportError(f'{e}. Bad $PATH variable: {":".join(sys.path)}')
-app = FastAPI(debug=True)
 
 
 default_context = GlobalDict('web-default-context')
@@ -132,4 +130,6 @@ async def mailing_page(request: Request):
 
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug, workers=4)
