@@ -1,6 +1,5 @@
 __author__ = 'leichgardt'
 
-import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +14,7 @@ try:
 
     from src.guni import workers
     from src.lb import lb
-    from src.parameters import SUPPORT_BOT
+    from src.parameters import ABOUT, SUPPORT_BOT
     from src.routers import api, login
     from src.sql import sql
     from src.text import Texts
@@ -30,11 +29,7 @@ try:
     )
 except ImportError as e:
     raise ImportError(f'{e}. Bad $PATH variable: {":".join(sys.path)}')
-app = FastAPI(debug=True)
 
-
-default_context = GlobalDict('web-default-context')
-default_params = GlobalDict('web-default-parameters')
 
 app = FastAPI(debug=False, root_path='/irobot')
 app.add_middleware(HTTPSRedirectMiddleware)
@@ -51,14 +46,9 @@ api.router.logger = logger
 login.router.logger = logger
 sw = SoloWorker(logger=logger, workers=workers)
 
+default_context = GlobalDict('web-default-context')
+default_params = GlobalDict('web-default-parameters')
 
-VERSION = '1.0.3a'
-ABOUT = (
-    'Веб-приложение IroBot-web предназначено для рассылки новостей и уведомлений пользователям бота @{}, '
-    'а так же для обработки запросов платежей от системы Yoomoney.\n'
-    'Сервис регистрирует новые платежи и мониторит их выполнение через систему LanBilling; и при обнаружении '
-    'завершенного платежа сервис уведомляет пользователя через бота об успешной оплате.'
-)
 BOT_NAME = ''
 BACK_TO_BOT_URL = '<script>window.location = "tg://resolve?domain={}";</script>'
 BACK_LINK = '<a href="https://t.me/{bot_name}">Вернуться к боту @{bot_name}</a>'
@@ -117,19 +107,18 @@ async def close_connections():
 
 
 @app.get('/')
-@lan_require
 async def index_page(request: Request):
-    return templates.TemplateResponse('index.html', dict(title='IroBot', about=ABOUT, version=VERSION))
-
-
-@app.get('/mailing')
-@lan_require
-async def mailing_page(request: Request):
-    table = await get_subscriber_table() or ''
-    history = await get_mailing_history() or ''
-    context = dict(title='IroBot', about=ABOUT, version=VERSION, tables=dict(subs=table.get_html(), history=history))
-    return templates.TemplateResponse('index.html', context)
+    text = [
+        'С нашим телеграм ботом ты сможешь пополнять баланс, подключать обещанный платеж, получать уведомления о '
+        'заканчивающимся балансе и о работах на сети.',
+        'Переходи по ссылке ниже, чтобы начать'
+    ]
+    message = {'title': 'Добро пожаловать!', 'textlines': text}
+    context = dict(request=request, title='IroBot', message=message, **default_context)
+    return templates.TemplateResponse('page.html', context, headers=default_params['headers'])
 
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug, workers=4)
