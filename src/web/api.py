@@ -25,7 +25,8 @@ __all__ = (
     'broadcast',
     'logining',
     'get_subscriber_table',
-    'get_mailing_history'
+    'get_mailing_history',
+    'message_distribute'
 )
 
 
@@ -96,7 +97,6 @@ async def broadcast(data: dict, logger: Logger):
         parse_mode: str         - метод парсинга для форматирования текста (html, markdown, markdown_v2, ...)
     }
     """
-    count = 0
     if data:
         await sql.upd_mailing_status(data['id'], 'processing')
         try:
@@ -106,16 +106,6 @@ async def broadcast(data: dict, logger: Logger):
                 targets = [data[0] for data in await sql.get_subs(mailing=True) if data]
             elif data['type'] == 'direct':
                 targets = data['targets']
-            elif data['type'] == 'userid':
-                targets = [await sql.find_user_chats(uid) for uid in data['targets']]
-                targets = [chat_id for group in targets for chat_id in group]
-            elif data['type'] in ('agrmid', 'agrm'):
-                if data['type'] == 'agrmid':
-                    agrm_groups = [await lb.get_account_agrms(agrm_id=agrm_id) for agrm_id in data['targets']]
-                else:
-                    agrm_groups = [await lb.get_account_agrms(agrm) for agrm in data['targets']]
-                groups = [await sql.find_user_chats(agrm['user_id']) for agrms in agrm_groups for agrm in agrms]
-                targets = [chat_id for chats in groups for chat_id in chats]
             else:
                 await logger.warning(f'Broadcast error [{data["id"]}]: wrong mail type ID "{data["type"]}"')
                 await sql.upd_mailing_status(data['id'], 'error')
@@ -127,14 +117,11 @@ async def broadcast(data: dict, logger: Logger):
         else:
             if targets:
                 for chat_id in set(targets):
-                    if await send_message(chat_id, data['text'], parse_mode=data['parse_mode']):
-                        count += 1
-                    await asyncio.sleep(.05)
+                    await send_message(chat_id, data['text'], parse_mode=data['parse_mode'])
                 await sql.upd_mailing_status(data['id'], 'complete')
             else:
                 await logger.warning(f'Broadcast error [{data["id"]}]: failed to get targets {data["targets"]}')
                 await sql.upd_mailing_status(data['id'], 'missed')
-    return count
 
 
 async def get_subscriber_table():
@@ -162,6 +149,21 @@ async def get_mailing_history():
         for line in table:
             line[4].value = '\n'.join(line[4].value) if isinstance(line[4].value, list) else line[4].value
         return table.get_html()
+
+
+async def message_distribute(text, parse_mode, target_type, target):
+    mail_id, targets = 0, []
+    if target_type == 'user_id':
+        targets = [chat_id for uid in targets for chat_id in await sql.find_user_chats(uid)]
+    elif target_type == 'chat_id':
+        targets = [target]
+    elif target_type in ['agrm_id', 'agrm']:
+        accounts = await lb.direct_request('getAccounts',
+                                           {'agrmid': target} if target_type == 'agrmid' else {'agrmnum': target})
+        targets = [chat_id for acc in accounts for chat_id in await sql.find_user_chats(acc.account.uid)]
+    if targets:
+        mail_id = await sql.add_mailing('direct', text, list(set(targets)), parse_mode)
+    return mail_id, targets
 
 
 if __name__ == '__main__':

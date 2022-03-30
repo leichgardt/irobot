@@ -9,33 +9,13 @@
     <script src="{{ url_for('static', path='js/jquery-3.4.1.js') }}"></script>
     <script src="{{ url_for('static', path='js/popper.min.js') }}"></script>
     <script src="{{ url_for('static', path='js/bootstrap.min.4.4.1.js') }}"></script>
+    <script src="{{ url_for('static', path='js/base.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap_4.4.1.css') }}">
 
     <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
 {% block imports %}{% endblock %}
 </head>
 {% block style %}{% endblock %}
-<style>
-    body { background-color:rgba(0,0,0,0); }
-    footer {
-        position:fixed;
-        height:25px;
-        width:100%;
-        bottom:1%;
-        opacity:0.8;
-        color:#d4d4d4;
-        pointer-events:none;
-    }
-    .navbar { background-color: #00141E; }
-    #ironnet-img {
-        border-style:hidden;
-        width:155px;
-        height:33px;
-        background: url({{ url_for('static', path='img/png/Ironnet_logo.png') }}) 0 50%;
-        background-size: 100%;
-        opacity:1;
-    }
-</style>
 <header>
 <nav class="navbar sticky-top navbar-expand-lg navbar-dark">
     <div class="container">

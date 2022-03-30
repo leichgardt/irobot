@@ -1,29 +1,20 @@
 {% extends "base.html" %}
 {% block imports %}
     <script type="text/javascript"
-            src="{{ url_for('static', path='js/index.js') }}"></script>
+            src="{{ url_for('static', path='js/mailing.js') }}"></script>
     <link rel="stylesheet"
-          href="{{ url_for('static', path='css/index.css') }}">
+          href="{{ url_for('static', path='css/mailing.css') }}">
     <link rel="shortcut icon"
           href="{{ url_for('static', path='favicon.ico') }}">
 {% endblock %}
 {% block style %}
-<style>
 {#* { border: 1px solid #cfcece }#}
-html {
-    background: #00141E url({{ url_for('static', path='img/jpg/wallpaper.jpg') }}) center center no-repeat fixed;
-    -webkit-background-size:cover;
-    -moz-background-size:cover;
-    -o-background-size:cover;
-    background-size:cover;
-}
 .table {
     background: #ffffff;
 }
 .table-sm {
     font-size: 14px;
 }
-</style>
 {% endblock %}
 {% block content %}
 <div class="container">

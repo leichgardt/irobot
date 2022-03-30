@@ -108,6 +108,15 @@ async def send_chat_action(chat_id, action):
         pass
 
 
+async def webhook_request(data: dict):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f'http://localhost:{WEBAPP_PORT}/', json=data) as res:
+            try:
+                return await res.json()
+            except aiohttp.client_exceptions.ContentTypeError:
+                return {'ok': True}
+
+
 telegram_api = TelegramAPI()
 
 

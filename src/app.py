@@ -15,7 +15,7 @@ try:
     from src.guni import workers
     from src.lb import lb
     from src.parameters import ABOUT, SUPPORT_BOT
-    from src.routers import api, login
+    from src.routers import admin, api, login
     from src.sql import sql
     from src.text import Texts
     from src.utils import aio_logger
@@ -34,6 +34,7 @@ except ImportError as e:
 app = FastAPI(debug=False, root_path='/irobot')
 app.add_middleware(HTTPSRedirectMiddleware)
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
+app.include_router(admin.router)
 app.include_router(api.router)
 app.include_router(login.router)
 

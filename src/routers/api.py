@@ -12,8 +12,8 @@ from src.web import (
     Table,
     telegram_api,
     broadcast,
-    send_message,
     send_feedback,
+    message_distribute
 )
 
 router = APIRouter(prefix='/api')
@@ -42,10 +42,12 @@ class MailingItem(BaseModel):
 
 @router.post('/send_mail')
 @lan_require
-async def send_mailing(request: Request,  # НЕ УДАЛЯТЬ! Требуется для декоратора `lan_require`
-                       response: Response,
-                       background_tasks: BackgroundTasks,
-                       item: MailingItem):
+async def send_mailing(
+        request: Request,  # НЕ УДАЛЯТЬ! Требуется для декоратора `lan_require`
+        response: Response,
+        background_tasks: BackgroundTasks,
+        item: MailingItem
+):
     """Добавить новую рассылку"""
     if item.type in ('notify', 'mailing'):
         mail_id = await sql.add_mailing(item.type, item.text)
@@ -66,9 +68,11 @@ async def send_mailing(request: Request,  # НЕ УДАЛЯТЬ! Требует�
 
 @router.post('/send_message')
 @lan_require
-async def send_message_request(request: Request,
-                               response: Response,
-                               background_tasks: BackgroundTasks):
+async def send_message_request(
+        request: Request,
+        response: Response,
+        background_tasks: BackgroundTasks
+):
     """
     Отправить сообщение
     если передан
@@ -86,39 +90,24 @@ async def send_message_request(request: Request,
         text = data.get('text')
         parse_mode = data.get('parse_mode')
         if text and (user_id or chat_id or agrm_id or agrm):
-            targets, mail_id = [], 0
             if user_id:
-                type_ = 'userid'
-                if await sql.find_user_chats(user_id):
-                    targets = [user_id]
-                    mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+                target_type = 'user_id'
             elif chat_id:
-                type_ = 'direct'
-                targets = [chat_id]
-                mail_id = await sql.add_mailing('direct', text, targets, parse_mode)
-                msg = await send_message(chat_id, text, parse_mode=parse_mode)
-                if msg:
-                    await sql.upd_mailing_status(mail_id, 'complete')
-                    return {'response': 1, 'id': mail_id}
-            elif agrm_id or agrm:
-                type_ = 'direct'
-                res = await lb.direct_request('getAccounts', {'agrmid': agrm_id} if agrm_id else {'agrmnum': agrm})
-                targets = await sql.find_user_chats(res[0].account.uid)
-                mail_id = await sql.add_mailing(type_, text, targets, parse_mode)
+                target_type = 'chat_id'
+            elif agrm_id:
+                target_type = 'agrm_id'
             else:
-                type_ = None
-                targets = []
-                mail_id = -1
-            if mail_id > 0 and type_:
-                payload = dict(id=mail_id, type=type_, targets=targets, text=text, parse_mode=parse_mode)
+                target_type = 'agrm'
+            mail_id, targets = await message_distribute(text, parse_mode, target_type,
+                                                        user_id or chat_id or agrm_id or agrm)
+            if mail_id > 0:
+                payload = dict(id=mail_id, type='direct', targets=targets, text=text, parse_mode=parse_mode)
                 background_tasks.add_task(broadcast, payload, router.logger)
                 response.status_code = 202
-                return {'response': 1, 'id': mail_id}
-            elif mail_id == 0:
+                return {'response': 1}
+            else:
                 response.status_code = 500
-                return {'response': -1, 'error': 'Message registration error. Check the given data.'}
-        response.status_code = 400
-        return {'response': 0, 'error': f'Target not exist: {user_id or chat_id or agrm_id or agrm=}'}
+                return {'response': 0, 'error': 'Message registration error. Check the given data'}
     response.status_code = 400
     return {'response': 0, 'error': 'Empty data'}
 
