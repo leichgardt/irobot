@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     let btn_mailing = document.getElementById('send-mailing');
     let btn_update = document.getElementById('update-history');
     let textarea = document.getElementById('input-text');
+    let table_subs = document.getElementById('table');
     let table_history = document.getElementById('history-table');
     let radio_parse = document.getElementsByName('parse-radio');
 
@@ -15,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     btn_update.onclick = function () {
-        get_history();
+        get_mailing_data();
     }
 
     function start_broadcast(type) {
@@ -37,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
                 if (data['response'] !== 1) {
                     console.log('Error:', data['error']);
                 } else {
-                    get_history();
+                    get_mailing_data();
                 }
             })
             .catch(error => {
@@ -45,10 +46,11 @@ document.addEventListener('DOMContentLoaded', function (event) {
             });
     }
 
-    function get_history() {
-        let url = 'api/get_history';
+    function get_mailing_data() {
+        let url = 'api/get_mailing_data';
         fetch(url, {
             method: 'GET',
+            headers: {'Authorization': `Bearer ${get_cookie('access_token')}`}
         })
             .then(response => response.json())
             .then(data => {
@@ -57,10 +59,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
                     console.log('Error:', data['error']);
                 } else {
                     table_history.innerHTML = data['table'];
+                    table_subs.innerHTML = data['subs'];
                 }
             })
             .catch(error => {
                 console.log('[get_history]:', error);
             });
     }
-})
+
+    get_mailing_data()
+});

@@ -1,15 +1,10 @@
-__author__ = 'leichgardt'
-
-import sys
 from datetime import datetime
-from pathlib import Path
 from pprint import pprint
 
-from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
-
-sys.path.append(str(Path(__file__).parent.parent.resolve()))
 
 from src.parameters import ABOUT, VERSION
 from src.sql import sql
@@ -20,8 +15,12 @@ from src.web import (
     telegram_api,
     get_subscriber_table,
     get_mailing_history,
-    ConnectionManager
+    ConnectionManager,
+    get_profile_photo
 )
+from src.web.schemas import opers
+from src.web.utils import opers as opers_utils
+from src.web.utils.dependecies import get_current_oper
 
 
 router = APIRouter(prefix='/admin')
@@ -29,21 +28,56 @@ templates = Jinja2Templates(directory='templates')
 manager = ConnectionManager()
 
 
-@router.get('/mailing')
-@lan_require
-async def mailing_page(request: Request):
-    table = await get_subscriber_table() or ''
-    history = await get_mailing_history() or ''
-    context = dict(request=request, title='IroBot', about=ABOUT, version=VERSION,
-                   tables=dict(subs=table, history=history))
-    return templates.TemplateResponse('mailing.html', context)
-
-
 @router.get('/')
 @lan_require
-async def chat_page(request: Request):
-    context = dict(request=request, title='IroBot', about=ABOUT, version=VERSION)
-    return templates.TemplateResponse('chat.html', context)
+async def index_page(request: Request):
+    context = {
+        'request': request,
+        'timestamp': datetime.now().timestamp(),
+        'title': 'Admin',
+        'about': ABOUT,
+        'version': VERSION
+    }
+    if 'access_token' in request.cookies:
+        oper = await get_current_oper(request.cookies['access_token'])
+        if oper:
+            context['name'] = oper['full_name']
+    return templates.TemplateResponse(f'admin/index.html', context)
+
+
+@router.post('/api/sign-up', response_model=opers.Oper)
+@lan_require
+async def sign_up_request(request: Request, oper: opers.OperCreate):
+    db_oper = await opers_utils.get_user_by_login(oper.login)
+    if db_oper:
+        raise HTTPException(status_code=400, detail='Login already registered')
+    return await opers_utils.create_oper(oper)
+
+
+@router.post('/api/auth', response_model=opers.TokenBase)
+@lan_require
+async def auth_request(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    oper = await opers_utils.get_user_by_login(form_data.username)
+    print('oper', oper)
+    if not oper:
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    if not opers_utils.validate_password(form_data.password, oper['hashed_password']):
+        raise HTTPException(status_code=400, detail='Incorrect email or password')
+    token = await opers_utils.create_oper_token(oper['oper_id'])
+    print('token', token)
+    return token
+
+
+@router.post('/api/me', response_model=opers.OperBase)
+@lan_require
+async def read_opers_me(request: Request, current_oper: opers.Oper = Depends(get_current_oper)):
+    return current_oper
+
+
+@router.get('/api/get_mailing_data')
+@lan_require
+async def get_mailing_data(request: Request, _: opers.Oper = Depends(get_current_oper)):
+    return {'response': 1, 'table': await get_mailing_history(), 'subs': await get_subscriber_table()}
 
 
 @router.websocket('/ws')

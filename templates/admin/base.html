@@ -11,9 +11,9 @@
     <script src="{{ url_for('static', path='js/bootstrap.min.4.4.1.js') }}"></script>
     <script src="{{ url_for('static', path='js/base.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap_4.4.1.css') }}">
-
     <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
-{% block imports %}{% endblock %}
+    <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}">
+    {% block imports %}{% endblock %}
 </head>
 {% block style %}{% endblock %}
 <header>
@@ -22,7 +22,7 @@
         <a class="navbar-brand" href="https://ironnet.info/">
             <div id="ironnet-img"></div>
         </a>
-        <a class="navbar-brand" href="/">
+        <a class="navbar-brand" href="/admin/">
             {{ title }}
         </a>
         <div class="navbar-toggler-div">
@@ -34,7 +34,7 @@
                 </button>
             </div>
         </div>
-        <div class="collapse navbar-collapse  justify-content-start" id="navbarSupportedContent">
+        <div class="collapse navbar-collapse justify-content-start" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item">
                     <a href="https://cup.ironnet.info/" class="nav-link">Приложения</a>
@@ -49,6 +49,20 @@
                     </div>
                 </li>
             </ul>
+        </div>
+        <div id="oper-menu" class="d-flex justify-content-end sr-only">
+            <div class="btn-group" role="group">
+                <button id="oper-btn" type="button" class="btn btn-sm btn-outline-success dropdown-toggle"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{ name }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="oper-btn">
+                    <a id="btn-change-pwd" class="dropdown-item" href="#">Сменить пароль</a>
+                    <a id="btn-logout" class="dropdown-item" href="#">Выйти</a>
+                </div>
+            </div>
+            <div id="oper-menu" class="text-white"></div>
+            <input id="oper-name" class="sr-only" value="{{ name }}">
         </div>
     </div>
 </nav>

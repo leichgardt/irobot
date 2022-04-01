@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}
+{% block imports %}
+    <script type="text/javascript" src="{{ url_for('static', path='js/index.js') }}?{{ timestamp }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', path='js/auth.js') }}?{{ timestamp }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', path='js/mailing.js') }}?{{ timestamp }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', path='js/chat.js') }}?{{ timestamp }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/index.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/mailing.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div id="auth-window">
+        {% include "admin/auth.html" %}
+    </div>
+    <div id="main-window" class="sr-only">
+        <div class="row justify-content-center tab text-center">
+            <button id="btn-1" class="tablinks index-group" onclick="open_block(event, 'mailing', 'index-group')">Mailing</button>
+            <button id="btn-2" class="tablinks index-group" onclick="open_block(event, 'chat', 'index-group')">Chat</button>
+        </div>
+        <div class="text-center justify-content-center">
+            <div id="mailing" class="tabcontent index-group">
+                {% include "admin/mailing.html" %}
+            </div>
+            <div id="chat" class="tabcontent index-group">
+                {% include "admin/chat.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

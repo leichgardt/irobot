@@ -1,0 +1,7 @@
+#invalid-form-data {
+    color: red;
+    text-align: center;
+}
+#invalid-form-data::before {
+    content: "* ";
+}

@@ -24,10 +24,10 @@ logger = aio_logger('irobot-web')
 async def login_page(request: Request, hash_code: str = None):
     if hash_code and await sql.find_chat_by_hash(hash_code):
         context = dict(request=request, title=Texts.web.auth, hash_code=hash_code, **default_context)
-        return templates.TemplateResponse('login.html', context, headers=default_params['headers'])
+        return templates.TemplateResponse('user/login.html', context, headers=default_params['headers'])
     message = {'title': Texts.web.error, 'textlines': Texts.web.login_try_again}
     context = dict(request=request, title=Texts.web.auth, message=message, **default_context)
-    return templates.TemplateResponse('page.html', context, headers=default_params['headers'])
+    return templates.TemplateResponse('user/page.html', context, headers=default_params['headers'])
 
 
 class LoginItem(BaseModel):
@@ -73,4 +73,4 @@ async def login_try_request(response: Response, background_tasks: BackgroundTask
 @router.get('/login_success')
 async def successful_login_page(request: Request):
     context = {'request': request, 'title': Texts.web.auth, 'message': {'title': Texts.web.auth_success}}
-    return templates.TemplateResponse('page.html', context, headers=default_params['headers'])
+    return templates.TemplateResponse('user/page.html', context, headers=default_params['headers'])
