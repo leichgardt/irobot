@@ -21,7 +21,8 @@ __all__ = (
     'webhook_request',
     'edit_inline_message',
     'delete_message',
-    'send_chat_action'
+    'send_chat_action',
+    'get_profile_photo'
 )
 
 
@@ -115,6 +116,17 @@ async def webhook_request(data: dict):
                 return await res.json()
             except aiohttp.client_exceptions.ContentTypeError:
                 return {'ok': True}
+
+
+async def get_profile_photo(chat_id):
+    try:
+        res = await telegram_api.get_user_profile_photos(chat_id, limit=1)
+    except:
+        pass
+    else:
+        if res['total_count']:
+            file = await telegram_api.get_file(res['photos'][0][0]['file_id'])
+            return telegram_api.get_file_url(file['file_path'])
 
 
 telegram_api = TelegramAPI()

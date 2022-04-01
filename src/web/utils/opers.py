@@ -24,7 +24,7 @@ def validate_password(password: str, hashed_password: str):
     return hash_password(password, salt) == hashed
 
 
-async def get_user_by_login(login: str):
+async def get_oper_by_login(login: str):
     res = await sql.execute('select * from irobot.operators where login=%s', login, as_dict=True)
     return res[0] if res else []
 

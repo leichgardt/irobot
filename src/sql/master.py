@@ -179,9 +179,10 @@ class SQLMaster(SQLCore):
                           'VALUES (%s, %s, %s, %s, %s, %s)', chat_id, message_id, writer, message_type, message_data, datetime.now())
 
     async def get_support_dialog_list(self):
-        res = await self.execute('SELECT d.chat_id, MAX(d.datetime) AS datetime, s.support_mode, s.first_name '
-                                 'FROM irobot.support_dialogs d JOIN irobot.subs s ON d.chat_id=s.chat_id '
-                                 'GROUP BY d.chat_id, s.support_mode, s.first_name ORDER BY datetime DESC', as_dict=True)
+        res = await self.execute(
+            'SELECT d.chat_id, MAX(d.datetime) AS datetime, s.support_mode, s.first_name, s.photo '
+            'FROM irobot.support_dialogs d JOIN irobot.subs s ON d.chat_id=s.chat_id '
+            'GROUP BY d.chat_id, s.support_mode, s.first_name, s.photo ORDER BY datetime DESC', as_dict=True)
         return {i: {key: value.strftime('%Y-%m-%d %H:%M:%S') if isinstance(value, datetime) else value
                     for key, value in chat.items()}
                 for i, chat in enumerate(res)} if res else {}

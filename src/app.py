@@ -124,7 +124,7 @@ async def index_page(request: Request):
     ]
     message = {'title': 'Добро пожаловать!', 'textlines': text}
     context = dict(request=request, title='IroBot', message=message, **default_context)
-    return templates.TemplateResponse('page.html', context, headers=default_params['headers'])
+    return templates.TemplateResponse('user/page.html', context, headers=default_params['headers'])
 
 
 if __name__ == "__main__":

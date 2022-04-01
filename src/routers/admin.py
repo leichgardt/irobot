@@ -33,7 +33,7 @@ manager = ConnectionManager()
 async def index_page(request: Request):
     context = {
         'request': request,
-        'timestamp': datetime.now().timestamp(),
+        'timestamp': int(datetime.now().timestamp()),
         'title': 'Admin',
         'about': ABOUT,
         'version': VERSION
@@ -48,7 +48,7 @@ async def index_page(request: Request):
 @router.post('/api/sign-up', response_model=opers.Oper)
 @lan_require
 async def sign_up_request(request: Request, oper: opers.OperCreate):
-    db_oper = await opers_utils.get_user_by_login(oper.login)
+    db_oper = await opers_utils.get_oper_by_login(oper.login)
     if db_oper:
         raise HTTPException(status_code=400, detail='Login already registered')
     return await opers_utils.create_oper(oper)
@@ -57,7 +57,7 @@ async def sign_up_request(request: Request, oper: opers.OperCreate):
 @router.post('/api/auth', response_model=opers.TokenBase)
 @lan_require
 async def auth_request(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    oper = await opers_utils.get_user_by_login(form_data.username)
+    oper = await opers_utils.get_oper_by_login(form_data.username)
     print('oper', oper)
     if not oper:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
@@ -81,18 +81,20 @@ async def get_mailing_data(request: Request, _: opers.Oper = Depends(get_current
 
 
 @router.websocket('/ws')
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    chat_list = await sql.get_support_dialog_list()
-    for i, chat in chat_list.items():
+async def websocket_endpoint(websocket: WebSocket, access_token: str):
+    oper = await opers_utils.get_oper_by_token(access_token)
+    print('ws token', access_token, 'oper_id', oper['oper_id'])
+    await manager.connect(websocket, oper)
+    if oper:
+        chats = await sql.get_support_dialog_list()
+        await websocket.send_json({'action': 'get_chats', 'data': chats})
         try:
-            res = await telegram_api.get_user_profile_photos(chat['chat_id'], limit=1)
-        except:
-            continue
-        if res['total_count']:
-            file = await telegram_api.get_file(res['photos'][0][0]['file_id'])
-            chat['photo'] = telegram_api.get_file_url(file['file_path'])
-    await websocket.send_json(chat_list)
+            while True:
+                data = await websocket.receive_json()
+                print(data)  # todo send message to TG user from oper
+                await websocket.send_text('data received')
+        except WebSocketDisconnect:
+            manager.remove(websocket)
 
 
 async def new_message_notify():
@@ -105,28 +107,11 @@ async def new_message_notify():
 
 
 @router.on_event('startup')
-@repeat_every(seconds=2)
+@repeat_every(seconds=30)
 async def olo_monitor():
-    await manager.broadcast(f'Broadcast elmav {datetime.now()}')
-
-
-@router.websocket('/ws/{client_id}')
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    try:
-        await manager.connect(websocket)
-        while True:
-            data = await websocket.receive_text()
-            await manager.broadcast(f'Client {client_id}: {data}')
-            print('websocket', websocket, client_id, data)
-    except WebSocketDisconnect:
-        manager.remove(websocket)
-
-
-@router.get('/test1')
-async def test1_request(request: Request):
-    data = await get_request_data(request)
-    [print(key, value) for key, value in data.items()]
-    return 1
+    if manager.connections:
+        print('broadcast', manager.connections)
+    await manager.broadcast('broadcast', {'text': f'Broadcast elmav {datetime.now()}'})
 
 
 @router.post('/webhook')
