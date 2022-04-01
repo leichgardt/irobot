@@ -6,10 +6,10 @@ from src.sql import sql
 from src.text import Texts
 from src.parameters import CARDINALIS_URL, TELEGRAM_NOTIFY_BOT_URL, TEST_CHAT_ID
 from src.utils import post_request
-from src.web.telegram_api import send_message
+from src.web.telegram_api import send_message, get_profile_photo
 
 
-__all__ = ('auto_feedback_monitor', 'auto_payment_monitor')
+__all__ = ('auto_feedback_monitor', 'auto_payment_monitor', 'update_all_chat_photo')
 
 
 async def auto_payment_monitor(logger, tries_num=5):
@@ -99,3 +99,11 @@ async def send_feedback_to_cardinalis(logger, input_task_id, input_text):
     res = await post_request(f'{CARDINALIS_URL}/api/save_feedback', _logger=logger,
                              json={'task_id': input_task_id, 'text': input_text, 'service': 'telegram'})
     return res.get('response', 0)
+
+
+async def update_all_chat_photo():
+    chats = await sql.get_support_dialog_list()
+    for i, chat in chats.items():
+        photo = await get_profile_photo(chat['chat_id'])
+        if photo:
+            await sql.update('irobot.subs', f'chat_id={chat["chat_id"]}', photo=photo)

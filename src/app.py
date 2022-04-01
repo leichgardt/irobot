@@ -26,6 +26,7 @@ try:
         get_subscriber_table,
         get_mailing_history,
         GlobalDict,
+        update_all_chat_photo
     )
 except ImportError as e:
     raise ImportError(f'{e}. Bad $PATH variable: {":".join(sys.path)}')
@@ -78,6 +79,13 @@ async def update_params():
 
     await sw.clean_old_pid_list()
     await logger.info(f'Irobot Web App [{sw.pid}] started. Hello there!')
+
+
+@app.on_event('startup')
+@repeat_every(seconds=60 * 60)
+@sw.solo_worker(task='payments')
+async def photo_updater():
+    await update_all_chat_photo()
 
 
 @app.on_event('startup')
