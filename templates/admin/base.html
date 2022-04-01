@@ -54,15 +54,15 @@
             <div class="btn-group" role="group">
                 <button id="oper-btn" type="button" class="btn btn-sm btn-outline-success dropdown-toggle"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {{ name }}
+                    {{ oper.full_name }}
                 </button>
-                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="oper-btn">
+                <div class="dropdown-menu dropdown-menu-right dropdown-menu-sm-right" aria-labelledby="oper-btn">
                     <a id="btn-change-pwd" class="dropdown-item" href="#">Сменить пароль</a>
                     <a id="btn-logout" class="dropdown-item" href="#">Выйти</a>
                 </div>
             </div>
-            <div id="oper-menu" class="text-white"></div>
-            <input id="oper-name" class="sr-only" value="{{ name }}">
+            <input id="oper-name" class="sr-only" value="{{ oper.full_name }}">
+            <input id="oper-id" class="sr-only" value="{{ oper.oper_id }}">
         </div>
     </div>
 </nav>

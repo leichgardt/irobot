@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function (event) {
     let oper_name = document.getElementById('oper-name');
+    let oper_id = document.getElementById('oper-id');
     let oper_menu = document.getElementById('oper-menu');
     let oper_btn = document.getElementById('oper-btn');
     let auth_window = document.getElementById('auth-window');
@@ -87,15 +88,16 @@ document.addEventListener('DOMContentLoaded', function (event) {
         })
             .then(response => response.json())
             .then(data => {
-                set_name_on_navbar(data['full_name']);
+                set_name_on_navbar(data['full_name'], data['oper_id']);
             })
             .catch(error => {
                 console.log('Error [oper]:', error);
             })
     }
 
-    function set_name_on_navbar(name) {
+    function set_name_on_navbar(name, id) {
         oper_name.value = name;
+        oper_id.value = id;
         oper_btn.innerText = name;
         oper_menu.classList.remove('sr-only');
     }
@@ -103,5 +105,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     if (oper_name.value !== '') {
         show_main_menu();
         set_name_on_navbar(oper_name.value);
+        document.getElementById('btn-2').click();
     }
 });

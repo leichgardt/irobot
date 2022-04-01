@@ -12,7 +12,7 @@ from src.web import (
     lan_require,
     get_request_data,
     webhook_request,
-    telegram_api,
+    send_message,
     get_subscriber_table,
     get_mailing_history,
     ConnectionManager,
@@ -41,7 +41,7 @@ async def index_page(request: Request):
     if 'access_token' in request.cookies:
         oper = await get_current_oper(request.cookies['access_token'])
         if oper:
-            context['name'] = oper['full_name']
+            context['oper'] = oper
     return templates.TemplateResponse(f'admin/index.html', context)
 
 
@@ -80,6 +80,34 @@ async def get_mailing_data(request: Request, _: opers.Oper = Depends(get_current
     return {'response': 1, 'table': await get_mailing_history(), 'subs': await get_subscriber_table()}
 
 
+async def select_chat(data):
+    res = await sql.execute(
+        'select message_id, datetime, from_oper, content_type, content from irobot.support_messages '
+        'where chat_id=%s order by datetime desc offset %s limit 10', data['chat_id'], data['page'] * 10, as_dict=True
+    )
+    for chat in res:
+        chat.update({'datetime': chat['datetime'].strftime('%Y-%m-%d %H:%M:%S')})
+    res.reverse()
+    return res
+
+
+async def send_oper_message(data, oper_id):
+    res = await send_message(data['chat_id'], data['text'])
+    if res and res.message_id > 0:
+        date = await sql.insert(
+            'insert into irobot.support_messages (chat_id, message_id, from_oper, content_type, content) values ('
+            '%s, %s, %s, %s, %s) returning datetime', data['chat_id'], res.message_id, oper_id, 'text',
+            {'text': data['text']}
+        )
+        return {
+            'message_id': res.message_id,
+            'datetime': date.strftime('%Y-%m-%d %H:%M:%S'),
+            'oper_id': oper_id,
+            'content_type': 'text',
+            'content': {'text': data['text']}
+        }
+
+
 @router.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket, access_token: str):
     oper = await opers_utils.get_oper_by_token(access_token)
@@ -91,8 +119,16 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
         try:
             while True:
                 data = await websocket.receive_json()
-                print(data)  # todo send message to TG user from oper
-                await websocket.send_text('data received')
+                if data['action'] == 'get_chat':
+                    res = await select_chat(data['data'])
+                    await websocket.send_json({'action': 'get_chat', 'data': res})
+                elif data['action'] == 'send_message':
+                    msg = await send_oper_message(data['data'], oper['oper_id'])
+                    if msg:
+                        await websocket.send_json({'action': 'get_message', 'data': msg})
+                else:
+                    print('ws received data:', data)  # todo send message to TG user from oper
+                    await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
             manager.remove(websocket)
 
@@ -109,9 +145,7 @@ async def new_message_notify():
 @router.on_event('startup')
 @repeat_every(seconds=30)
 async def olo_monitor():
-    if manager.connections:
-        print('broadcast', manager.connections)
-    await manager.broadcast('broadcast', {'text': f'Broadcast elmav {datetime.now()}'})
+    await manager.broadcast('broadcast', {'text': f'Broadcast elmav'})
 
 
 @router.post('/webhook')
