@@ -38,7 +38,7 @@ async def get_oper_by_token(token: str):
 
 async def create_oper_token(oper_id: int):
     res = await sql.execute('insert into irobot.tokens (expires, oper_id) VALUES (%s, %s) returning token, expires',
-                            datetime.now() + timedelta(days=14), oper_id, as_dict=True)
+                            datetime.now() + timedelta(days=2), oper_id, as_dict=True)
     return res[0] if res else None
 
 

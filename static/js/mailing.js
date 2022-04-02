@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function get_mailing_data() {
+        if (!get_cookie('access_token'))
+            return;
         let url = 'api/get_mailing_data';
         fetch(url, {
             method: 'GET',

@@ -180,10 +180,21 @@ class SQLMaster(SQLCore):
 
     async def get_support_dialog_list(self):
         res = await self.execute(
-            'SELECT d.chat_id, MAX(d.datetime) AS datetime, s.support_mode, s.first_name, s.photo '
-            'FROM irobot.support_dialogs d JOIN irobot.subs s ON d.chat_id=s.chat_id '
-            'GROUP BY d.chat_id, s.support_mode, s.first_name, s.photo ORDER BY datetime DESC', as_dict=True)
-        return {i: {key: value.strftime('%Y-%m-%d %H:%M:%S') if isinstance(value, datetime) else value
+            'SELECT c.chat_id, MAX(m.datetime) AS datetime, c.support_mode, s.first_name, s.photo, c.oper_id, c.read '
+            'FROM irobot.support_chats c '
+            'JOIN irobot.subs s on c.chat_id=s.chat_id '
+            'JOIN irobot.support_messages m on c.chat_id=m.chat_id '
+            'GROUP BY c.chat_id, s.support_mode, s.first_name, s.photo '
+            'ORDER BY datetime DESC',
+            as_dict=True
+        )
+        for chat in res:
+            chat.update({'oper_name': None})
+            if chat['oper_id']:
+                oper = await self.execute('select full_name from irobot.operators where oper_id=%s', chat['oper_id'])
+                if oper:
+                    chat.update({'oper_name': oper[0][0]})
+        return {i: {key: value.strftime('%H:%M:%S %d.%m.%Y') if isinstance(value, datetime) else value
                     for key, value in chat.items()}
                 for i, chat in enumerate(res)} if res else {}
 

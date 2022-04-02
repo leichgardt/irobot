@@ -93,6 +93,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
             .then(response => response.json())
             .then(data => {
                 set_name_on_navbar(data['full_name'], data['oper_id']);
+                save_oper(data['oper_id'], data['full_name']);
+                location.reload();
             })
             .catch(error => {
                 console.log('Error [oper]:', error);

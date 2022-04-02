@@ -87,7 +87,7 @@ async def select_chat(data):
         'where chat_id=%s order by datetime desc offset %s limit 10', data['chat_id'], data['page'] * 10, as_dict=True
     )
     for chat in res:
-        chat.update({'datetime': chat['datetime'].strftime('%Y-%m-%d %H:%M:%S')})
+        chat.update({'datetime': chat['datetime'].strftime('%H:%M:%S %d.%m.%Y')})
     res.reverse()
     return res
 
@@ -96,13 +96,13 @@ async def send_oper_message(data, oper_id):
     res = await send_message(data['chat_id'], data['text'])
     if res and res.message_id > 0:
         date = await sql.insert(
-            'insert into irobot.support_messages (chat_id, message_id, from_oper, content_type, content) values ('
-            '%s, %s, %s, %s, %s) returning datetime', data['chat_id'], res.message_id, oper_id, 'text',
-            {'text': data['text']}
+            'insert into irobot.support_messages (chat_id, message_id, from_oper, content_type, content) '
+            'values (%s, %s, %s, %s, %s) returning datetime',
+            data['chat_id'], res.message_id, oper_id, 'text', {'text': data['text']}
         )
         return {
             'message_id': res.message_id,
-            'datetime': date.strftime('%Y-%m-%d %H:%M:%S'),
+            'datetime': date.strftime('%H:%M:%S %d.%m.%Y'),
             'oper_id': oper_id,
             'content_type': 'text',
             'content': {'text': data['text']}
