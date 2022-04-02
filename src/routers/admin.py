@@ -36,7 +36,8 @@ async def index_page(request: Request):
         'timestamp': int(datetime.now().timestamp()),
         'title': 'Admin',
         'about': ABOUT,
-        'version': VERSION
+        'version': VERSION,
+        'oper': {}
     }
     if 'access_token' in request.cookies:
         oper = await get_current_oper(request.cookies['access_token'])
@@ -108,6 +109,18 @@ async def send_oper_message(data, oper_id):
         }
 
 
+async def take_chat(chat_id, oper_id):
+    res = await sql.execute('select oper_id from irobot.support_chats where chat_id=%s and oper_id is not null',
+                            chat_id, as_dict=True)
+    if res:
+        await manager.send_to_oper(res[0]['oper_id'], {'action': 'drop_chat', 'oper_id': oper_id})
+    await sql.update('irobot.support_chats', f'chat_id={chat_id}', oper_id=oper_id)
+
+
+async def drop_chat(chat_id, oper_id):
+    await sql.update('irobot.support_chats', f'chat_id={chat_id} and oper_id={oper_id}', oper_id=None)
+
+
 @router.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket, access_token: str):
     oper = await opers_utils.get_oper_by_token(access_token)
@@ -126,65 +139,20 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     msg = await send_oper_message(data['data'], oper['oper_id'])
                     if msg:
                         await websocket.send_json({'action': 'get_message', 'data': msg})
+                elif data['action'] == 'take_chat':
+                    await take_chat(data['data'], oper['oper_id'])
+                    await websocket.send_json({'action': 'take_chat', 'data': data['data']})
+                elif data['action'] == 'drop_chat':
+                    await drop_chat(data['data'], oper['oper_id'])
+                    await websocket.send_json({'action': 'drop_chat', 'data': data['data']})
                 else:
-                    print('ws received data:', data)  # todo send message to TG user from oper
+                    print('ws received data:', data)
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
             manager.remove(websocket)
-
-
-async def new_message_notify():
-    """
-    1 определить кто из операторов взял клиента
-    2 отправить оператору
-    3 или броадкаст
-    """
-    pass
 
 
 @router.on_event('startup')
 @repeat_every(seconds=30)
 async def olo_monitor():
     await manager.broadcast('broadcast', {'text': f'Broadcast elmav'})
-
-
-@router.post('/webhook')
-async def webhook_gateway(request: Request):
-    """
-    Шлюз между сервером Telegram и Ботом. Шлюз получает запрос от Telegram, обрабатывает его и передает боту через
-    функцию `webhook_request`. А серверу возвращает ответ от бота.
-    Шлюз предназначен для введения возможности общаться с пользователями Бота через админку.
-    """
-    data = await get_request_data(request)
-    pprint(data)
-    if 'callback_query' not in data:
-        res = await sql.execute('SELECT datetime FROM irobot.subs WHERE chat_id=%s AND subscribed=true '
-                                'AND support_mode=true', data['message']['chat']['id'])
-        if res:
-            msg = data['message']
-            if 'text' in msg:
-                type_ = 'text'
-                data = {'entities': msg['entities']} if 'entities' in msg else {}
-                data = {'text': msg['text'], **data}
-            elif 'document' in msg:
-                type_ = 'document'
-                data = {'caption': msg['caption']} if 'caption' in msg else {}
-                data = {'file_id': msg['document']['file_id'], 'mime_type': msg['document']['mime_type'], **data}
-            elif 'photo' in msg:
-                type_ = 'photo'
-                data = {'caption': msg['caption']} if 'caption' in msg else {}
-                data = {'file_id': msg['photo'][-1]['file_id'], **data}
-            elif 'sticker' in msg:
-                type_ = 'photo'
-                data = {'file_id': msg['sticker']['file_id']}
-            elif 'voice' in msg:
-                type_ = 'voice'
-                data = {'file_id': msg['voice']['file_id'], 'mime_type': msg['document']['mime_type']}
-            else:
-                type_ = 'other'
-                data = {k: v for k, v in msg.items() if k not in ('chat', 'date', 'from', 'message_id')}
-            await sql.insert('INSERT INTO irobot.support_dialogs (message_id, chat_id, type, data) '
-                             'VALUES (%s, %s, %s, %s)', msg['message_id'], msg['chat']['id'], type_, data)
-            return {'ok': True}
-    res = await webhook_request(data)
-    return res

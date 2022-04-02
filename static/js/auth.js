@@ -43,8 +43,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function save_token(token) {
-        sessionStorage.setItem('access_token', token);
         document.cookie = `access_token=${token}; `;
+    }
+
+    function save_oper(oper_id, oper_name) {
+        document.cookie = `oper_id=${oper_id}; `;
+        document.cookie = `oper_name=${oper_name}; `;
     }
 
     function auth() {

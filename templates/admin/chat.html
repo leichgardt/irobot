@@ -24,46 +24,30 @@
                         <div class="row">
                             <div class="col-lg-6">
                                 <a href="javascript:void(0);" data-toggle="modal" data-target="#view_info">
-                                    <img id="selected-photo" src="https://bootdey.com/img/Content/avatar/avatar2.png" alt="ava">
+                                    <img id="selected-photo" src="" alt="ava">
                                 </a>
                                 <div id="selected-man" class="chat-about">
-                                    <h6 class="m-b-0">Aiden Chavez</h6>
-                                    <small>Support required</small>
+                                    <h6 class="m-b-0 text-left"></h6>
+                                    <small></small>
                                 </div>
                             </div>
                             <div class="col-lg-6 hidden-sm text-right">
-                                <a href="javascript:void(0);" class="btn btn-outline-secondary"><i class="fa fa-camera"></i></a>
-                                <a href="javascript:void(0);" class="btn btn-outline-primary"><i class="fa fa-image"></i></a>
-                                <a href="javascript:void(0);" class="btn btn-outline-info"><i class="fa fa-cogs"></i></a>
-                                <a href="javascript:void(0);" class="btn btn-outline-warning"><i class="fa fa-question"></i></a>
+                                <button id="btn-drop" class="collapse btn btn-outline-danger"><i class="fa fa-times"></i></button>
+{#                                <a href="javascript:void(0);" class="btn btn-outline-secondary"><i class="fa fa-camera"></i></a>#}
+{#                                <a href="javascript:void(0);" class="btn btn-outline-primary"><i class="fa fa-image"></i></a>#}
+{#                                <a href="javascript:void(0);" class="btn btn-outline-info"><i class="fa fa-cogs"></i></a>#}
+{#                                <a href="javascript:void(0);" class="btn btn-outline-warning"><i class="fa fa-question"></i></a>#}
                             </div>
                         </div>
                     </div>
                     <div class="chat-history">
-                        <ul id="chat-history" class="m-b-0">
-                            <li class="clearfix">
-                                <div class="message-data text-right">
-                                    <span class="message-data-time">10:10 AM, Today</span>
-{#                                    <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="avatar">#}
-                                </div>
-                                <div class="message other-message float-right"> Hi Aiden, how are you? How is the project coming along? </div>
-                            </li>
-                            <li class="clearfix">
-                                <div class="message-data">
-                                    <span class="message-data-time">10:12 AM, Today</span>
-                                </div>
-                                <div class="message my-message float-left">Are we meeting today?</div>
-                            </li>
-                            <li class="clearfix">
-                                <div class="message-data">
-                                    <span class="message-data-time">10:15 AM, Today</span>
-                                </div>
-                                <div class="message my-message float-left">Project has been already finished and I have results to show you.</div>
-                            </li>
-                        </ul>
+                        <ul id="chat-history" class="m-b-0"></ul>
                     </div>
                     <div class="chat-message clearfix">
-                        <div class="input-group mb-0" id="input-group">
+                        <div id="btn-take" class="collapse btn-group btn-group-sm mb-0 w-50">
+                            <button class="btn btn-outline-dark">Take the chat</button>
+                        </div>
+                        <div id="input-group" class="collapse input-group mb-0">
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fa fa-send"></i></span>
                             </div>
