@@ -9,9 +9,9 @@
     <script src="{{ url_for('static', path='js/jquery-3.4.1.js') }}"></script>
     <script src="{{ url_for('static', path='js/popper.min.js') }}"></script>
     <script src="{{ url_for('static', path='js/bootstrap.min.4.4.1.js') }}"></script>
-    <script src="{{ url_for('static', path='js/base.js') }}"></script>
+    <script src="{{ url_for('static', path='js/base.js') }}?t={{ timestamp }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap_4.4.1.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}?t={{ timestamp }}">
     <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}">
     {% block imports %}{% endblock %}
 </head>
@@ -22,9 +22,11 @@
         <a class="navbar-brand" href="https://ironnet.info/">
             <div id="ironnet-img"></div>
         </a>
-        <a class="navbar-brand" href="/admin/">
-            {{ title }}
+        {% for page in pages %}
+        <a class="navbar-brand" href="{{ page.url }}">
+            {{ page.title }}
         </a>
+        {% endfor %}
         <div class="navbar-toggler-div">
             <div class="text-right">
                 <button class="navbar-toggler justify-content-start" type="button" data-toggle="collapse"
@@ -50,7 +52,7 @@
                 </li>
             </ul>
         </div>
-        <div id="oper-menu" class="d-flex justify-content-end sr-only">
+        <div id="oper-menu" class="d-flex justify-content-end collapse">
             <div class="btn-group" role="group">
                 <button id="oper-btn" type="button" class="btn btn-sm btn-outline-success dropdown-toggle"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

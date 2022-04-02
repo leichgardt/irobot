@@ -1,7 +1,7 @@
 from datetime import datetime
-from pprint import pprint
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
@@ -10,13 +10,10 @@ from src.parameters import ABOUT, VERSION
 from src.sql import sql
 from src.web import (
     lan_require,
-    get_request_data,
-    webhook_request,
     send_message,
     get_subscriber_table,
     get_mailing_history,
     ConnectionManager,
-    get_profile_photo
 )
 from src.web.schemas import opers
 from src.web.utils import opers as opers_utils
@@ -28,22 +25,32 @@ templates = Jinja2Templates(directory='templates')
 manager = ConnectionManager()
 
 
-@router.get('/')
-@lan_require
-async def index_page(request: Request):
-    context = {
+def get_context(request: Request, **kwargs):
+    return {
         'request': request,
         'timestamp': int(datetime.now().timestamp()),
-        'title': 'Admin',
+        'title': 'Irobot Admin',
+        'pages': [
+            {'title': 'Mailing', 'url': 'mailing'},
+            {'title': 'Chat', 'url': 'chat'},
+        ],
         'about': ABOUT,
         'version': VERSION,
-        'oper': {}
+        'oper': {},
+        **kwargs
     }
+
+
+@router.get('/')
+@lan_require
+async def auth_page(request: Request):
+    context = get_context(request)
     if 'access_token' in request.cookies:
         oper = await get_current_oper(request.cookies['access_token'])
         if oper:
             context['oper'] = oper
-    return templates.TemplateResponse(f'admin/index.html', context)
+            return RedirectResponse('chat')
+    return templates.TemplateResponse(f'admin/auth.html', context)
 
 
 @router.post('/api/sign-up', response_model=opers.Oper)
@@ -79,6 +86,21 @@ async def read_opers_me(request: Request, current_oper: opers.Oper = Depends(get
 @lan_require
 async def get_mailing_data(request: Request, _: opers.Oper = Depends(get_current_oper)):
     return {'response': 1, 'table': await get_mailing_history(), 'subs': await get_subscriber_table()}
+
+
+@router.get('/chat')
+@router.get('/mailing')
+@lan_require
+async def admin_page(request: Request):
+    if 'access_token' in request.cookies:
+        oper = await get_current_oper(request.cookies['access_token'])
+        if oper:
+            context = get_context(request, oper=oper)
+            if '/admin/chat' in str(request.url):
+                return templates.TemplateResponse(f'admin/chat.html', context)
+            else:
+                return templates.TemplateResponse(f'admin/mailing.html', context)
+    return RedirectResponse('/admin/')
 
 
 async def select_chat(data):

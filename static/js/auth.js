@@ -1,10 +1,4 @@
 document.addEventListener('DOMContentLoaded', function (event) {
-    let oper_name = document.getElementById('oper-name');
-    let oper_id = document.getElementById('oper-id');
-    let oper_menu = document.getElementById('oper-menu');
-    let oper_btn = document.getElementById('oper-btn');
-    let auth_window = document.getElementById('auth-window');
-    let main_window = document.getElementById('main-window');
     let invalid_auth = document.getElementById('invalid-form-data');
     let btn_login = document.getElementById('login-btn');
     let input_login = document.getElementById('login-input');
@@ -12,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     let on_auth = false;
 
     btn_login.onclick = function () {
-        console.log('click');
         if (auth_input_valid())
             auth();
         else
@@ -32,28 +25,24 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
     function auth_loading(flag) {
         on_auth = flag;
-        btn_login.enabled = !flag;
-        input_login.enabled = !flag;
-        input_pwd.enabled = !flag;
-    }
-    
-    function show_main_menu() {
-        auth_window.classList.add('sr-only');
-        main_window.classList.remove('sr-only');
+        btn_login.disabled = flag;
+        input_login.disabled = flag;
+        input_pwd.disabled = flag;
     }
 
     function save_token(token) {
         document.cookie = `access_token=${token}; `;
+        console.log('token saved');
     }
 
     function save_oper(oper_id, oper_name) {
         document.cookie = `oper_id=${oper_id}; `;
         document.cookie = `oper_name=${oper_name}; `;
+        console.log('oper saved');
     }
 
     function auth() {
         auth_loading(true);
-        show_auth_error();
         fetch('api/auth', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded', 'accept': 'application/json'},
@@ -62,9 +51,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
             .then(response => response.json())
             .then(data => {
                 if (data['access_token']) {
-                    console.log('success auth', data);
+                    console.log('success auth');
                     save_token(data['access_token']);
-                    show_main_menu();
                     get_oper_data_request();
                 }
                 else {
@@ -92,25 +80,11 @@ document.addEventListener('DOMContentLoaded', function (event) {
         })
             .then(response => response.json())
             .then(data => {
-                set_name_on_navbar(data['full_name'], data['oper_id']);
                 save_oper(data['oper_id'], data['full_name']);
                 location.reload();
             })
             .catch(error => {
                 console.log('Error [oper]:', error);
             })
-    }
-
-    function set_name_on_navbar(name, id) {
-        oper_name.value = name;
-        oper_id.value = id;
-        oper_btn.innerText = name;
-        oper_menu.classList.remove('sr-only');
-    }
-
-    if (oper_name.value !== '') {
-        show_main_menu();
-        set_name_on_navbar(oper_name.value);
-        document.getElementById('btn-2').click();
     }
 });

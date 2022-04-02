@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     function get_photo(chat_id) {
         let photo = document.createElement('img');
         photo.alt = 'ava';
-        photo.src = chat_data[chat_id]['photo'];
+        photo.src = chat_data[chat_id]['photo'] ? chat_data[chat_id]['photo'] : '';
         return photo;
     }
 
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function set_chat_photo(photo) {
-        document.getElementById('selected-photo').src = photo;
+        document.getElementById('selected-photo').src = photo ? photo : '';
     }
 
     function select_and_load_chat(chat_id, page=0) {
