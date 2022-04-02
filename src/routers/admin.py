@@ -124,9 +124,8 @@ async def drop_chat(chat_id, oper_id):
 @router.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket, access_token: str):
     oper = await opers_utils.get_oper_by_token(access_token)
-    print('ws token', access_token, 'oper_id', oper['oper_id'])
-    await manager.connect(websocket, oper)
     if oper:
+        await manager.connect(websocket, oper['oper_id'])
         chats = await sql.get_support_dialog_list()
         await websocket.send_json({'action': 'get_chats', 'data': chats})
         try:
