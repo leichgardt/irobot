@@ -45,12 +45,17 @@ async def get_request_data(request: Request):
 def lan_require(func):
     """ Декоратор-ограничитель: разрешает доступ, если IP-адрес запроса из локальной сети или от сервера """
     @wraps(func)
-    async def wrapper(request: Request, *args, **kwargs):
-        ip = request.client.host or '127.0.0.1'
+    async def wrapper(*args, **kwargs):
+        request = [arg for arg in args if isinstance(arg, Request)]
+        if not request:
+            request = [arg for arg in kwargs.values() if isinstance(arg, Request)]
+        if not request:
+            return Response(status_code=403)
+        ip = request[0].client.host or '127.0.0.1'
         lan_networks = [ip_network('192.168.0.0/16'), ip_network('172.16.0.0/12'), ip_network('10.0.0.0/8')]
         if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip in HOST_IP_LIST or
                 [True for network in lan_networks if ip_address(ip) in network]):
-            return await func(request, *args, **kwargs)
+            return await func(*args, **kwargs)
         else:
             return Response(status_code=403)
     return wrapper

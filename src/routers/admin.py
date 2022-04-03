@@ -15,8 +15,8 @@ from src.web import (
     get_mailing_history,
     ConnectionManager,
 )
-from src.web.schemas import opers
-from src.web.utils import opers as opers_utils
+from src.web.schemas import ops
+from src.web.utils import ops as ops_utils
 from src.web.utils.dependecies import get_current_oper
 
 
@@ -45,46 +45,46 @@ def get_context(request: Request, **kwargs):
 @lan_require
 async def auth_page(request: Request):
     context = get_context(request)
-    if 'access_token' in request.cookies:
-        oper = await get_current_oper(request.cookies['access_token'])
+    if request.cookies.get('access_token'):
+        oper = await ops_utils.get_oper_by_token(request.cookies['access_token'])
         if oper:
             context['oper'] = oper
             return RedirectResponse('chat')
     return templates.TemplateResponse(f'admin/auth.html', context)
 
 
-@router.post('/api/sign-up', response_model=opers.Oper)
+@router.post('/api/sign-up', response_model=ops.Oper)
 @lan_require
-async def sign_up_request(request: Request, oper: opers.OperCreate):
-    db_oper = await opers_utils.get_oper_by_login(oper.login)
+async def sign_up_request(_: Request, oper: ops.OperCreate):
+    db_oper = await ops_utils.get_oper_by_login(oper.login)
     if db_oper:
         raise HTTPException(status_code=400, detail='Login already registered')
-    return await opers_utils.create_oper(oper)
+    return await ops_utils.create_oper(oper)
 
 
-@router.post('/api/auth', response_model=opers.TokenBase)
+@router.post('/api/auth', response_model=ops.TokenBase)
 @lan_require
-async def auth_request(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    oper = await opers_utils.get_oper_by_login(form_data.username)
+async def auth_request(_: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    oper = await ops_utils.get_oper_by_login(form_data.username)
     print('oper', oper)
     if not oper:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    if not opers_utils.validate_password(form_data.password, oper['hashed_password']):
+    if not ops_utils.validate_password(form_data.password, oper['hashed_password']):
         raise HTTPException(status_code=400, detail='Incorrect email or password')
-    token = await opers_utils.create_oper_token(oper['oper_id'])
+    token = await ops_utils.create_oper_token(oper['oper_id'])
     print('token', token)
     return token
 
 
-@router.post('/api/me', response_model=opers.OperBase)
+@router.post('/api/me', response_model=ops.OperBase)
 @lan_require
-async def read_opers_me(request: Request, current_oper: opers.Oper = Depends(get_current_oper)):
+async def get_oper_me(_: Request, current_oper: ops.Oper = Depends(get_current_oper)):
     return current_oper
 
 
 @router.get('/api/get_mailing_data')
 @lan_require
-async def get_mailing_data(request: Request, _: opers.Oper = Depends(get_current_oper)):
+async def get_mailing_data(_: Request, __: ops.Oper = Depends(get_current_oper)):
     return {'response': 1, 'table': await get_mailing_history(), 'subs': await get_subscriber_table()}
 
 
@@ -92,8 +92,8 @@ async def get_mailing_data(request: Request, _: opers.Oper = Depends(get_current
 @router.get('/mailing')
 @lan_require
 async def admin_page(request: Request):
-    if 'access_token' in request.cookies:
-        oper = await get_current_oper(request.cookies['access_token'])
+    if request.cookies.get('access_token'):
+        oper = await ops_utils.get_oper_by_token(request.cookies['access_token'])
         if oper:
             context = get_context(request, oper=oper)
             if '/admin/chat' in str(request.url):
@@ -145,7 +145,7 @@ async def drop_chat(chat_id, oper_id):
 
 @router.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket, access_token: str):
-    oper = await opers_utils.get_oper_by_token(access_token)
+    oper = await ops_utils.get_oper_by_token(access_token)
     if oper:
         await manager.connect(websocket, oper['oper_id'])
         chats = await sql.get_support_dialog_list()

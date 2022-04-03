@@ -4,7 +4,7 @@ import string
 from datetime import datetime, timedelta
 
 from src.sql import sql
-from src.web.schemas import opers as oper_schema
+from src.web.schemas import ops as oper_schema
 
 
 def get_random_string(length=12):
