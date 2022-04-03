@@ -31,8 +31,8 @@ def get_context(request: Request, **kwargs):
         'timestamp': int(datetime.now().timestamp()),
         'title': 'Irobot Admin',
         'pages': [
-            {'title': 'Mailing', 'url': 'mailing'},
-            {'title': 'Chat', 'url': 'chat'},
+            {'title': 'Чат', 'url': 'chat'},
+            {'title': 'Рассылка', 'url': 'mailing'},
         ],
         'about': ABOUT,
         'version': VERSION,
@@ -159,7 +159,7 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                 elif data['action'] == 'send_message':
                     msg = await send_oper_message(data['data'], oper['oper_id'])
                     if msg:
-                        await websocket.send_json({'action': 'get_message', 'data': msg})
+                        await websocket.send_json({'action': 'send_message', 'data': msg})
                 elif data['action'] == 'take_chat':
                     await take_chat(data['data'], oper['oper_id'])
                     await websocket.send_json({'action': 'take_chat', 'data': data['data']})

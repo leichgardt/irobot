@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     let chat_data = {};
     let chat_list_block = document.getElementById('chat-list');
     let ws = null;
-    let selected_chat = {};
+    let selected_chat = 0;
     let input = document.getElementById('message-input-text');
     let chat_inputs = {};
     let btn_take = document.getElementById('btn-take');
@@ -17,24 +17,36 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function get_chat_operator(chat_id) {
-        return chat_data[chat_id]['oper_name'] ? `Operator: ${chat_data[chat_id]['oper_name']}` : 'No operator!';
+        if (chat_data[chat_id]['oper_name']) {
+            return `Оператор: ${chat_data[chat_id]['oper_name']}`
+        } else if (chat_data[chat_id]['support_mode'] === true) {
+            return 'Нет оператора!'
+        } else {
+            return 'Проблем нет'
+        }
+    }
+
+    function get_chat_support_mode_icon(chat_id) {
+        return chat_data[chat_id]['oper_id'] ? '<i class="fa fa-circle online"></i>' : '<i class="fa fa-circle offline"></i>'
+    }
+
+    function get_chat_support_mode_oper_icon(chat_id) {
+        if (chat_data[chat_id]['support_mode'] === true)
+            return chat_data[chat_id]['oper_id'] ? '<i class="fa fa-circle online"></i>' : '<i class="fa fa-circle offline"></i>'
+        return ''
     }
 
     function get_chat_about(chat_id) {
         let name_block = document.createElement('div');
         name_block.classList.add('name', 'text-left');
-        name_block.innerHTML = chat_data[chat_id]['support_mode'] === true ? '<i class="fa fa-circle online"></i>' : '';
+        name_block.innerHTML = get_chat_support_mode_oper_icon(chat_id);
         name_block.innerHTML += chat_data[chat_id]['first_name'];
-        let oper_block = document.createElement('div');
-        oper_block.classList.add('status', 'text-left', 'operator');
-        oper_block.innerHTML = get_chat_operator(chat_id);
         let date = document.createElement('div');
         date.classList.add('status', 'text-left', 'last-update-datetime');
         date.innerText = `${chat_data[chat_id]['datetime']}`;
         let about = document.createElement('div');
         about.classList.add('about');
         about.appendChild(name_block);
-        about.appendChild(oper_block);
         about.appendChild(date);
         return about;
     }
@@ -52,15 +64,14 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function take_chat_start() {
-        ws.send(JSON.stringify({'action': 'take_chat', 'data': selected_chat['chat_id']}));
+        ws.send(JSON.stringify({'action': 'take_chat', 'data': selected_chat}));
     }
 
-    function take_chat_end(chat_id) {
-        selected_chat['oper_id'] = get_cookie('oper_id', true);
+    function oper_take_chat_end(chat_id) {
         chat_data[chat_id]['oper_id'] = get_cookie('oper_id', true);
         chat_data[chat_id]['oper_name'] = get_cookie('oper_name');
         update_chat_block(chat_id);
-        set_chat_status(`Operator: ${get_cookie('oper_name')}`);
+        new_chat_status(chat_id);
         show_message_buttons(true);
     }
 
@@ -69,15 +80,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function drop_chat_start() {
-        ws.send(JSON.stringify({'action': 'drop_chat', 'data': selected_chat['chat_id']}));
+        ws.send(JSON.stringify({'action': 'drop_chat', 'data': selected_chat}));
     }
 
-    function drop_chat_end(chat_id) {
+    function oper_drop_chat_end(chat_id) {
         selected_chat['oper_id'] = null;
         chat_data[chat_id]['oper_id'] = null;
         chat_data[chat_id]['oper_name'] = null;
         update_chat_block(chat_id);
-        set_chat_status(get_chat_operator(chat_id));
+        new_chat_status(chat_id);
         show_message_buttons(false);
     }
 
@@ -102,9 +113,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function set_chat_status(status) {
+    function new_chat_status(chat_id) {
         let selected_chat_name = document.getElementById('selected-man');
-        selected_chat_name.getElementsByTagName('small')[0].innerText = status;
+        let small = selected_chat_name.getElementsByTagName('small');
+        small[0].innerText = get_chat_operator(chat_id);
+        small[1].innerHTML = get_chat_support_mode_icon(chat_id);
+        small[1].innerHTML += chat_data[chat_id]['support_mode'] === true ? ' Требуется поддержка!' : 'Поддержка не требуется';
     }
 
     function set_chat_name(name) {
@@ -117,14 +131,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function select_and_load_chat(chat_id, page=0) {
-        if (selected_chat['chat_id'] !== chat_id) {
-            selected_chat['chat_id'] = chat_id;
-            selected_chat['oper_id'] = chat_data[chat_id]['oper_id'];
+        if (selected_chat !== chat_id) {
+            selected_chat = chat_id;
             load_saved_value_to_input(chat_id);
             set_chat_photo(chat_data[chat_id]['photo']);
             set_chat_name(chat_data[chat_id]['first_name']);
-            set_chat_status(get_chat_operator(chat_id));
-            let data = {'action': 'get_chat', 'data': {'chat_id': selected_chat['chat_id'], 'page': page}};
+            new_chat_status(chat_id);
+            let data = {'action': 'get_chat', 'data': {'chat_id': selected_chat, 'page': page}};
             ws.send(JSON.stringify(data));
         }
     }
@@ -161,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function get_chats(data) {
+    function fill_chat_list(data) {
         save_data_of_chats(data);
         chat_list_block.innerHTML = '';
         for (let i in data) {
@@ -215,12 +228,24 @@ document.addEventListener('DOMContentLoaded', function (event) {
         li.scrollIntoView(false);
     }
 
-    function get_chat(data) {
+    function fill_chat_history(data) {
         let chat = document.getElementById('chat-history');
         chat.innerHTML = '';
         for (let i in data) {
             add_chat_message(data[i]);
         }
+    }
+
+    function new_chat_datetime(chat_id, datetime) {
+        console.log(`chat-${chat_id}`);
+        let about = document.getElementById(`chat-${chat_id}`);
+        about = about.getElementsByClassName('about')[0].getElementsByTagName('div');
+        about[1].innerText = datetime;
+    }
+
+    function send_message_end(msg) {
+        add_chat_message(msg);
+        new_chat_datetime(selected_chat, msg['datetime']);
     }
 
     function connectWS() {
@@ -233,16 +258,25 @@ document.addEventListener('DOMContentLoaded', function (event) {
             let data = JSON.parse(event.data)['data'];
             console.log(`${command}:`, data);
             if (command === 'get_chats')
-                get_chats(data);
+                fill_chat_list(data);
             else if (command === 'get_chat')
-                get_chat(data);
-            else if (command === 'get_message')
-                add_chat_message(data);
+                fill_chat_history(data);
+            else if (command === 'send_message')
+                send_message_end(data);
             else if (command === 'take_chat')
-                take_chat_end(data);
+                oper_take_chat_end(data);
             else if (command === 'drop_chat')
-                drop_chat_end(data);
+                oper_drop_chat_end(data);
+
         }
+    }
+
+    btn_drop.onmouseenter = function () {
+        btn_drop.getElementsByTagName('span')[0].classList.add('show');
+    }
+
+    btn_drop.onmouseleave = function () {
+        btn_drop.getElementsByTagName('span')[0].classList.remove('show');
     }
 
     input.onkeyup = function (event) {
@@ -252,15 +286,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     input.oninput = function (event) {
-        chat_inputs[selected_chat['chat_id']] = input.value;
+        chat_inputs[selected_chat] = input.value;
     }
 
     function send_message() {
-        let text_input = input;
-        if (text_input.value.length > 0) {
-            ws.send(JSON.stringify({'action': 'send_message', 'data': {'chat_id': selected_chat['chat_id'], 'text': text_input.value}}));
-            text_input.value = '';
-            chat_inputs[selected_chat['chat_id']] = '';
+        if (input.value.length > 0) {
+            let data = {'chat_id': selected_chat, 'text': input.value};
+            ws.send(JSON.stringify({'action': 'send_message', 'data': data}));
+            input.value = '';
+            chat_inputs[selected_chat] = '';
         }
     }
 

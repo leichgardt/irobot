@@ -7,6 +7,7 @@
     position: relative;
     width: 100%;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 10%);
+    max-height: 80vh;
 }
 
 .chat-app .people-list {
@@ -70,21 +71,29 @@
 }
 
 .chat .chat-header {
-    max-height: 70vh;
-    overflow: auto;
     padding: 15px 20px;
     border-bottom: 2px solid #f4f7f6;
 }
 
+.chat .chat-header .row {
+    height: 100%;
+}
+
 .chat .chat-header img {
     float: left;
-    border-radius: 40px;
-    width: 40px;
+    border-radius: 62px;
+    height: 57px;
+    width: 57px;
+    object-fit: contain;
 }
 
 .chat .chat-header .chat-about {
     float: left;
     padding-left: 10px;
+}
+
+.chat .chat-header .chat-about div{
+    height: 19px;
 }
 
 .chat .chat-history {
@@ -232,7 +241,6 @@
     }
 
     .chat-app .chat-history {
-        height: 300px;
         overflow-x: auto;
     }
 }

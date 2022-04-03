@@ -30,17 +30,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
         input_pwd.disabled = flag;
     }
 
-    function save_token(token) {
-        document.cookie = `access_token=${token}; `;
-        console.log('token saved');
-    }
-
-    function save_oper(oper_id, oper_name) {
-        document.cookie = `oper_id=${oper_id}; `;
-        document.cookie = `oper_name=${oper_name}; `;
-        console.log('oper saved');
-    }
-
     function auth() {
         auth_loading(true);
         fetch('api/auth', {
@@ -51,8 +40,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
             .then(response => response.json())
             .then(data => {
                 if (data['access_token']) {
+                    set_cookie('access_token', data['access_token'])
                     console.log('success auth');
-                    save_token(data['access_token']);
                     get_oper_data_request();
                 }
                 else {
@@ -66,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
             })
             .finally(() => {
                 auth_loading(false);
+                location.reload();
             });
     }
 
@@ -80,8 +70,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
         })
             .then(response => response.json())
             .then(data => {
-                save_oper(data['oper_id'], data['full_name']);
-                location.reload();
+                set_cookie('oper_id', data['oper_id']);
+                set_cookie('oper_name', data['full_name']);
             })
             .catch(error => {
                 console.log('Error [oper]:', error);

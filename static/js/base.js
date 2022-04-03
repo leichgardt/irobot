@@ -8,8 +8,26 @@ function get_cookie(name, parse_int=false) {
     return parse_int ? null : '';
 }
 
+function set_cookie(name, value) {
+    document.cookie = `${name}=${value}; `;
+}
+
+function delete_cookie(name) {
+    document.cookie = `${name}=; `
+}
+
+
+function logout() {
+    delete_cookie('access_token');
+    delete_cookie('oper_id');
+    delete_cookie('oper_name');
+    location.reload();
+}
+
 
 document.addEventListener('DOMContentLoaded', function (event) {
+    document.getElementById('btn-logout').onclick = logout;
+
     if (get_cookie('oper_name') !== '' && get_cookie('oper_id') !== '') {
         document.getElementById('oper-name').value = get_cookie('oper_name');
         document.getElementById('oper-id').innerText = get_cookie('oper_name');
