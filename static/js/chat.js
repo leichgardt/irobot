@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         chat_data[chat_id]['oper_id'] = get_cookie('oper_id', true);
         chat_data[chat_id]['oper_name'] = get_cookie('oper_name');
         update_chat_block(chat_id);
-        new_chat_status(chat_id);
+        new_selected_chat_status(chat_id);
         show_message_buttons(true);
     }
 
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         chat_data[chat_id]['oper_id'] = null;
         chat_data[chat_id]['oper_name'] = null;
         update_chat_block(chat_id);
-        new_chat_status(chat_id);
+        new_selected_chat_status(chat_id);
         show_message_buttons(false);
     }
 
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function load_saved_value_to_input(chat_id) {
+    function load_saved_input_value(chat_id) {
         input.disabled = false;
         if (chat_inputs[chat_id]) {
             input.value = chat_inputs[chat_id];
@@ -113,33 +113,44 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function new_chat_status(chat_id) {
-        let selected_chat_name = document.getElementById('selected-man');
+    function new_selected_chat_status(chat_id) {
+        let selected_chat_name = document.getElementById('selected-chat');
         let small = selected_chat_name.getElementsByTagName('small');
         small[0].innerText = get_chat_operator(chat_id);
         small[1].innerHTML = get_chat_support_mode_icon(chat_id);
         small[1].innerHTML += chat_data[chat_id]['support_mode'] === true ? ' Требуется поддержка!' : 'Поддержка не требуется';
     }
 
-    function set_chat_name(name) {
-        let selected_chat_name = document.getElementById('selected-man');
-        selected_chat_name.getElementsByTagName('h6')[0].innerText = name;
+    function new_selected_chat_name(chat_id) {
+        let selected_chat_name = document.getElementById('selected-chat');
+        let name_block = selected_chat_name.getElementsByTagName('h6')[0];
+        name_block.innerHTML = chat_data[chat_id]['first_name'];
+        for (let i in chat_data[chat_id]['accounts']) {
+            let span = document.createElement('span');
+            span.classList.add('chat-account');
+            span.innerText = `[${chat_data[chat_id]['accounts'][i]}]`;
+            name_block.appendChild(span);
+        }
     }
 
-    function set_chat_photo(photo) {
+    function new_selected_chat_photo(chat_id) {
+        let photo = chat_data[chat_id]['photo'];
         document.getElementById('selected-photo').src = photo ? photo : '';
     }
 
-    function select_and_load_chat(chat_id, page=0) {
+    function select_chat(chat_id) {
         if (selected_chat !== chat_id) {
             selected_chat = chat_id;
-            load_saved_value_to_input(chat_id);
-            set_chat_photo(chat_data[chat_id]['photo']);
-            set_chat_name(chat_data[chat_id]['first_name']);
-            new_chat_status(chat_id);
-            let data = {'action': 'get_chat', 'data': {'chat_id': selected_chat, 'page': page}};
-            ws.send(JSON.stringify(data));
+            load_saved_input_value(chat_id);
+            new_selected_chat_photo(chat_id);
+            new_selected_chat_name(chat_id);
+            new_selected_chat_status(chat_id);
         }
+    }
+    
+    function load_chat(chat_id, page=0) {
+        let data = {'action': 'get_chat', 'data': {'chat_id': chat_id, 'page': page}};
+        ws.send(JSON.stringify(data));
     }
 
     function check_this_is_my_chat(chat_id) {
@@ -158,7 +169,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
         li.appendChild(get_chat_about(chat_id));
         li.onclick = function () {
             let chats = document.getElementsByClassName('chat-item');
-            select_and_load_chat(chat_id);
+            select_chat(chat_id);
+            load_chat(chat_id);
             check_this_is_my_chat(chat_id);
             for (let i = 0; i < chats.length; i++) {
                 chats[i].classList.remove('active');
@@ -168,17 +180,20 @@ document.addEventListener('DOMContentLoaded', function (event) {
         return li;
     }
 
-    function save_data_of_chats(data) {
-        for (let i in data) {
-            chat_data[data[i]['chat_id']] = data[i];
+    function save_data_of_chats(chats, accounts) {
+        for (let i in chats) {
+            chat_data[chats[i]['chat_id']] = chats[i];
+        }
+        for (let chat_id in accounts) {
+            chat_data[chat_id]['accounts'] = accounts[chat_id];
         }
     }
 
     function fill_chat_list(data) {
-        save_data_of_chats(data);
+        save_data_of_chats(data['chats'], data['accounts']);
         chat_list_block.innerHTML = '';
-        for (let i in data) {
-            let chat = get_chat_block(data[i]['chat_id'])
+        for (let i in data['chats']) {
+            let chat = get_chat_block(data['chats'][i]['chat_id'])
             chat_list_block.appendChild(chat);
         }
     }

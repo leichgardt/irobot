@@ -103,10 +103,10 @@ async def admin_page(request: Request):
     return RedirectResponse('/admin/')
 
 
-async def select_chat(data):
+async def get_chat_messages(chat_id, page=0):
     res = await sql.execute(
         'select message_id, datetime, from_oper, content_type, content from irobot.support_messages '
-        'where chat_id=%s order by datetime desc offset %s limit 10', data['chat_id'], data['page'] * 10, as_dict=True
+        'where chat_id=%s order by datetime desc offset %s limit 10', chat_id, page * 10, as_dict=True
     )
     for chat in res:
         chat.update({'datetime': chat['datetime'].strftime('%H:%M:%S %d.%m.%Y')})
@@ -143,19 +143,34 @@ async def drop_chat(chat_id, oper_id):
     await sql.update('irobot.support_chats', f'chat_id={chat_id} and oper_id={oper_id}', oper_id=None)
 
 
+async def get_chat_accounts_in_support_need():
+    res = await sql.execute(
+        'select chat_id, login from irobot.accounts where active=true '
+        'and chat_id in (select distinct chat_id from irobot.support_messages)', as_dict=True
+    )
+    accounts = {}
+    for line in res:
+        if line['chat_id'] not in accounts:
+            accounts[line['chat_id']] = [line['login']]
+        else:
+            accounts[line['chat_id']].append(line['login'])
+    return accounts
+
+
 @router.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket, access_token: str):
     oper = await ops_utils.get_oper_by_token(access_token)
     if oper:
         await manager.connect(websocket, oper['oper_id'])
         chats = await sql.get_support_dialog_list()
-        await websocket.send_json({'action': 'get_chats', 'data': chats})
+        accounts = await get_chat_accounts_in_support_need()
+        await websocket.send_json({'action': 'get_chats', 'data': {'chats': chats, 'accounts': accounts}})
         try:
             while True:
                 data = await websocket.receive_json()
                 if data['action'] == 'get_chat':
-                    res = await select_chat(data['data'])
-                    await websocket.send_json({'action': 'get_chat', 'data': res})
+                    messages = await get_chat_messages(data['data']['chat_id'], data['data']['page'])
+                    await websocket.send_json({'action': 'get_chat', 'data': messages})
                 elif data['action'] == 'send_message':
                     msg = await send_oper_message(data['data'], oper['oper_id'])
                     if msg:

@@ -1,3 +1,6 @@
+.chat-account { font-size: 14px; }
+.chat-account::before { content: ' '; }
+
 .card {
     background: #fff;
     transition: .5s;
