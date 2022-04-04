@@ -52,14 +52,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
         return about;
     }
 
-    function update_chat_block(chat_id) {
-        console.log('update', chat_id);
-        let oper = document.getElementById(`chat-${chat_id}`).getElementsByClassName('operator')[0];
-        oper.innerHTML = get_chat_operator(chat_id);
-        let date = document.getElementById(`chat-${chat_id}`).getElementsByClassName('last-update-datetime')[0];
-        date.innerHTML = chat_data[chat_id]['datetime'];
-    }
-
     btn_take.onclick = function (event) {
         take_chat_start();
     }
@@ -68,29 +60,40 @@ document.addEventListener('DOMContentLoaded', function (event) {
         ws.send(JSON.stringify({'action': 'take_chat', 'data': selected_chat}));
     }
 
-    function oper_take_chat_end(chat_id) {
-        chat_data[chat_id]['oper_id'] = get_cookie('oper_id', true);
-        chat_data[chat_id]['oper_name'] = get_cookie('oper_name');
-        update_chat_block(chat_id);
-        new_selected_chat_status(chat_id);
-        show_message_buttons(true);
+    function oper_take_chat_end(data) {
+        chat_data[data['chat_id']]['oper_id'] = data['oper_id'];
+        chat_data[data['chat_id']]['oper_name'] = data['oper_name'];
+        new_selected_chat_status(data['chat_id']);
+        if (data['oper_id'] === get_cookie('oper_id', true)) {
+            show_message_buttons(true);
+        } else {
+            show_message_buttons(false);
+        }
     }
 
     btn_drop.onclick = function (event) {
         drop_chat_start();
     }
 
+    btn_finish.onclick = function (event) {
+        finish_support_start();
+    }
+
     function drop_chat_start() {
         ws.send(JSON.stringify({'action': 'drop_chat', 'data': selected_chat}));
     }
 
-    function oper_drop_chat_end(chat_id) {
-        selected_chat['oper_id'] = null;
-        chat_data[chat_id]['oper_id'] = null;
-        chat_data[chat_id]['oper_name'] = null;
-        update_chat_block(chat_id);
-        new_selected_chat_status(chat_id);
-        show_message_buttons(false);
+    function finish_support_start() {
+        ws.send(JSON.stringify({'action': 'finish_support', 'data': selected_chat}));
+    }
+
+    function oper_drop_chat_end(data) {
+        chat_data[data['chat_id']]['oper_id'] = data['oper_id'];
+        chat_data[data['chat_id']]['oper_name'] = data['oper_name'];
+        new_selected_chat_status(data['chat_id']);
+        if (selected_chat === data['chat_id']) {
+            show_message_buttons(false);
+        }
     }
 
     function show_message_buttons(flag) {
@@ -226,18 +229,28 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
+    function add_message_writer(name) {
+        let writer = document.createElement('div');
+        writer.innerHTML = `<i><small>${name}</small></i>`;
+        return writer
+    }
+
     function create_message(msg) {
         let message = document.createElement('div');
         message.classList.add('message');
-        if (msg['from_oper'] === null) {
+        if (msg['oper_id'] === null) {
             message.classList.add('other-message', 'float-right');
-        } else {
+            message.appendChild(add_message_writer(chat_data[selected_chat]['first_name']));
+        } else if (msg['oper_id'] === get_cookie('oper_id', true)) {
             message.classList.add('my-message', 'float-left');
+        } else {
+            message.classList.add('other-message', 'float-right');
+            message.appendChild(add_message_writer(`Оператор: ${msg['oper_name']}`));
         }
         let datetime = document.createElement('small');
         datetime.classList.add('message-date')
         datetime.innerText = msg['time'];
-        message.innerHTML = get_message_content(msg);
+        message.innerHTML += get_message_content(msg);
         message.appendChild(datetime);
         return message;
     }
@@ -270,23 +283,26 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function new_chat_datetime(chat_id, datetime) {
-        console.log(`chat-${chat_id}`);
+    function new_chat_datetime(chat_id, date, time) {
         let about = document.getElementById(`chat-${chat_id}`);
         about = about.getElementsByClassName('about')[0].getElementsByTagName('div');
-        about[1].innerText = datetime;
-    }
-
-    function send_message_end(msg) {
-        add_chat_message(msg);
-        new_chat_datetime(selected_chat, msg['datetime']);
+        about[1].innerText = `${time} ${date}`;
     }
     
     function get_message(msg) {
-        new_chat_datetime(msg['chat_id'], msg['datetime']);
+        new_chat_datetime(msg['chat_id'], msg['date'], msg['time']);
         if (selected_chat === msg['chat_id']) {
             add_chat_message(msg);
             // todo add push notify
+        }
+    }
+
+    function finish_support(data) {
+        chat_data[data['chat_id']]['oper_id'] = null;
+        chat_data[data['chat_id']]['oper_name'] = null;
+        if (data['oper_id'] === get_cookie('oper_id', true)) {
+            new_selected_chat_status(data['chat_id']);
+            show_message_buttons(false);
         }
     }
 
@@ -303,14 +319,14 @@ document.addEventListener('DOMContentLoaded', function (event) {
                 fill_chat_list(data);
             else if (command === 'get_chat')
                 fill_chat_history(data);
-            else if (command === 'send_message')
-                send_message_end(data);
             else if (command === 'get_message')
                 get_message(data);
             else if (command === 'take_chat')
                 oper_take_chat_end(data);
             else if (command === 'drop_chat')
                 oper_drop_chat_end(data);
+            else if (command === 'finish_support')
+                finish_support(data);
         }
     }
 

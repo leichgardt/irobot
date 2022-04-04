@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 
+from src.bot.keyboards import main_menu_kb
 from src.parameters import ABOUT, VERSION
 from src.sql import sql
 from src.web import (
@@ -107,8 +108,9 @@ def split_datetime(dt):
 
 async def get_chat_messages(chat_id, page=0):
     res = await sql.execute(
-        'select message_id, datetime, from_oper, content_type, content from irobot.support_messages '
-        'where chat_id=%s order by datetime desc offset %s limit 10', chat_id, page * 10, as_dict=True
+        'select m.message_id, m.datetime, m.from_oper as oper_id, o.full_name as oper_name, m.content_type, m.content '
+        'from irobot.support_messages m left join irobot.operators o on m.from_oper=o.oper_id '
+        'where m.chat_id=%s order by datetime desc', chat_id, as_dict=True
     )
     for chat in res:
         date, time = split_datetime(chat['datetime'])
@@ -119,8 +121,8 @@ async def get_chat_messages(chat_id, page=0):
     return res
 
 
-async def send_oper_message(data, oper_id):
-    res = await send_message(data['chat_id'], data['text'])
+async def send_oper_message(data, oper_id, oper_name, **kwargs):
+    res = await send_message(data['chat_id'], data['text'], **kwargs)
     if res and res.message_id > 0:
         dt = await sql.insert(
             'insert into irobot.support_messages (chat_id, message_id, from_oper, content_type, content) '
@@ -129,25 +131,37 @@ async def send_oper_message(data, oper_id):
         )
         date, time = split_datetime(dt)
         return {
+            'chat_id': data['chat_id'],
             'message_id': res.message_id,
             'date': date,
             'time': time,
             'oper_id': oper_id,
+            'oper_name': oper_name,
             'content_type': 'text',
             'content': {'text': data['text']}
         }
 
 
-async def take_chat(chat_id, oper_id):
+async def take_chat(chat_id, oper_id, oper_name):
     res = await sql.execute('select oper_id from irobot.support_chats where chat_id=%s and oper_id is not null',
                             chat_id, as_dict=True)
     if res:
-        await manager.send_to_oper(res[0]['oper_id'], {'action': 'drop_chat', 'oper_id': oper_id})
+        output = {'chat_id': chat_id, 'oper_id': oper_id, 'oper_name': oper_name}
+        await manager.send_to_oper(res[0]['oper_id'], {'action': 'drop_chat', 'data': output})
     await sql.update('irobot.support_chats', f'chat_id={chat_id}', oper_id=oper_id)
 
 
 async def drop_chat(chat_id, oper_id):
     await sql.update('irobot.support_chats', f'chat_id={chat_id} and oper_id={oper_id}', oper_id=None)
+
+
+async def finish_support(chat_id, oper_id, oper_name):
+    # todo переделать support_chats в support (support_id, feedback) и support_operators (oper_id, datetime)
+    await sql.update('irobot.support_chats', f'chat_id={chat_id}', support_mode=False, oper_id=None)
+    text = 'Спасибо за обращение!'
+    res = await send_oper_message({'chat_id': chat_id, 'text': text}, oper_id, oper_name, reply_markup=main_menu_kb)
+    return res
+    # todo add review
 
 
 async def get_chat_accounts_in_support_need():
@@ -179,17 +193,22 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     messages = await get_chat_messages(data['data']['chat_id'], data['data']['page'])
                     await websocket.send_json({'action': 'get_chat', 'data': messages})
                 elif data['action'] == 'send_message':
-                    msg = await send_oper_message(data['data'], oper['oper_id'])
-                    if msg:
-                        await websocket.send_json({'action': 'send_message', 'data': msg})
-                        msg['chat_id'] = data['data']['chat_id']
-                        await manager.broadcast('get_message', msg, ignore_list=[websocket])
+                    msg = await send_oper_message(data['data'], oper['oper_id'], oper['full_name'])
+                    await manager.broadcast('get_message', msg, firstly=websocket)
                 elif data['action'] == 'take_chat':
-                    await take_chat(data['data'], oper['oper_id'])
-                    await websocket.send_json({'action': 'take_chat', 'data': data['data']})
+                    await take_chat(data['data'], oper['oper_id'], oper['full_name'])
+                    output = {'chat_id': data['data'], 'oper_id': oper['oper_id'], 'oper_name': oper['full_name']}
+                    await manager.broadcast('take_chat', output, firstly=websocket)
                 elif data['action'] == 'drop_chat':
                     await drop_chat(data['data'], oper['oper_id'])
-                    await websocket.send_json({'action': 'drop_chat', 'data': data['data']})
+                    output = {'chat_id': data['data'], 'oper_id': oper['oper_id']}
+                    await manager.broadcast('drop_chat', output, firstly=websocket)
+                elif data['action'] == 'finish_support':
+                    msg = await finish_support(data['data'], oper['oper_id'], oper['full_name'])
+                    output = {'chat_id': data['data'], 'oper_id': oper['oper_id']}
+                    await manager.broadcast('get_message', msg, firstly=websocket)
+                    await manager.broadcast('finish_support', output, firstly=websocket)
+                    # todo show results: messages count, time left, operators in the support
                 else:
                     print('ws received data:', data)
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
@@ -200,9 +219,10 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
 @router.post('/api/new_message')
 @lan_require
 async def new_message_request(request: Request):
+    """ Получить новое сообщение от бота и разослать его всем операторам """
     data = await get_request_data(request)
     msg = await sql.execute(
-        'select chat_id, message_id, datetime, from_oper, content_type, content from irobot.support_messages '
+        'select chat_id, message_id, datetime, from_oper as oper_id, content_type, content from irobot.support_messages '
         'where chat_id=%s and message_id=%s limit 1', data['chat_id'], data['message_id'], as_dict=True
     )
     if msg:
