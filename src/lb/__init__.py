@@ -1,1 +1,1 @@
-from .lb_api import lb
+from .api import lb

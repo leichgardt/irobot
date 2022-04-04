@@ -1,1 +1,1 @@
-from .asql_master import sql
+from .master import sql

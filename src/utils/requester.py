@@ -1,8 +1,12 @@
 import aiohttp
-from .logger import alogger
+
+from .async_logger import logger
 
 
-async def post_request(*args, _as_json=True, _logger=alogger, **kwargs):
+__all__ = ('post_request',)
+
+
+async def post_request(*args, _as_json=True, _logger=logger, **kwargs):
     res = {}
     async with aiohttp.ClientSession() as session:
         try:

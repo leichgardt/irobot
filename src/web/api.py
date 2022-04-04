@@ -1,8 +1,6 @@
-import asyncio
 import traceback
 
 from aiologger import Logger
-from collections.abc import Iterable
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from functools import wraps
@@ -11,20 +9,25 @@ from starlette.responses import Response
 from urllib.parse import urlparse, parse_qs
 
 from src.bot import keyboards
-from src.bot.api import main_menu, get_keyboard, get_all_agrm_data, get_payment_url, get_payment_tax
+from src.bot.api import get_all_agrm_data, Keyboard
 from src.lb import lb
+from src.parameters import HOST_IP_LIST
 from src.sql import sql
 from src.text import Texts
-from src.utils import config
 from src.web.table import Table
-from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action, edit_message_text
+from src.web.telegram_api import send_message, edit_inline_message, delete_message, send_chat_action
 
 
-async def edit_payment_message(hash_code, chat_id, agrm, amount, inline):
-    summ = amount + (tax := get_payment_tax(amount))
-    text, parse = Texts.payments_online_offer.pair(agrm=agrm, amount=amount, tax=tax, res=summ)
-    kb = get_keyboard(keyboards.payment_url_btn(get_payment_url(hash_code), summ))
-    await edit_message_text(text, chat_id, inline, parse_mode=parse, reply_markup=kb)
+__all__ = (
+    'get_query_params',
+    'get_request_data',
+    'lan_require',
+    'broadcast',
+    'logining',
+    'get_subscriber_table',
+    'get_mailing_history',
+    'message_distribute'
+)
 
 
 async def get_request_data(request: Request):
@@ -42,12 +45,17 @@ async def get_request_data(request: Request):
 def lan_require(func):
     """ Декоратор-ограничитель: разрешает доступ, если IP-адрес запроса из локальной сети или от сервера """
     @wraps(func)
-    async def wrapper(request: Request, *args, **kwargs):
-        ip = request.client.host or '127.0.0.1'
+    async def wrapper(*args, **kwargs):
+        request = [arg for arg in args if isinstance(arg, Request)]
+        if not request:
+            request = [arg for arg in kwargs.values() if isinstance(arg, Request)]
+        if not request:
+            return Response(status_code=403)
+        ip = request[0].client.host or '127.0.0.1'
         lan_networks = [ip_network('192.168.0.0/16'), ip_network('172.16.0.0/12'), ip_network('10.0.0.0/8')]
-        if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip in config['paladin']['ironnet-global'] or
+        if (ip in ['localhost', '0.0.0.0', '127.0.0.1'] or ip in HOST_IP_LIST or
                 [True for network in lan_networks if ip_address(ip) in network]):
-            return await func(request, *args, **kwargs)
+            return await func(*args, **kwargs)
         else:
             return Response(status_code=403)
     return wrapper
@@ -67,18 +75,19 @@ async def logining(chat_id: int, login: str):
     if not await sql.get_sub(chat_id):
         # если пользователь новый
         await sql.subscribe(chat_id)
-        inline, _, _ = await sql.get_inline(chat_id)
+        inline, _, _ = await sql.get_inline_message(chat_id)
         await delete_message(chat_id, inline)
-        _, text, parse = Texts.auth_success.full()
-        await send_message(chat_id, text.format(account=login), parse, reply_markup=main_menu)
+        text, parse_mode = Texts.auth_success.pair()
+        await send_message(chat_id, text.format(account=login), parse_mode, reply_markup=keyboards.main_menu_kb)
     else:
         # если пользователь добавил новый аккаунт
-        _, text, parse = Texts.settings_account_add_success.full()
-        await edit_inline_message(chat_id, text.format(account=login), parse)
+        text, parse_mode = Texts.settings_account_add_success.pair()
+        await edit_inline_message(chat_id, text.format(account=login), parse_mode)
         data = await get_all_agrm_data(chat_id, only_numbers=True)
-        kb = get_keyboard(await keyboards.get_agrms_btn(custom=data, prefix='account'), keyboards.account_settings_btn)
-        _, text, parse = Texts.settings_accounts.full()
-        await send_message(chat_id, text.format(accounts=Texts.get_account_agrm_list(data)), parse, reply_markup=kb)
+        text, parse_mode = Texts.settings_accounts.pair(accounts=Texts.get_account_agrm_list(data))
+        btn_list = await keyboards.get_agrms_btn(custom=data, prefix='account') + [keyboards.account_settings_btn]
+        kb = Keyboard(btn_list).inline()
+        await send_message(chat_id, text, parse_mode, reply_markup=kb)
 
 
 async def broadcast(data: dict, logger: Logger):
@@ -93,7 +102,6 @@ async def broadcast(data: dict, logger: Logger):
         parse_mode: str         - метод парсинга для форматирования текста (html, markdown, markdown_v2, ...)
     }
     """
-    count = 0
     if data:
         await sql.upd_mailing_status(data['id'], 'processing')
         try:
@@ -103,16 +111,6 @@ async def broadcast(data: dict, logger: Logger):
                 targets = [data[0] for data in await sql.get_subs(mailing=True) if data]
             elif data['type'] == 'direct':
                 targets = data['targets']
-            elif data['type'] == 'userid':
-                targets = [await sql.find_user_chats(uid) for uid in data['targets']]
-                targets = [chat_id for group in targets for chat_id in group]
-            elif data['type'] in ('agrmid', 'agrm'):
-                if data['type'] == 'agrmid':
-                    agrm_groups = [await lb.get_account_agrms(agrm_id=agrm_id) for agrm_id in data['targets']]
-                else:
-                    agrm_groups = [await lb.get_account_agrms(agrm) for agrm in data['targets']]
-                groups = [await sql.find_user_chats(agrm['user_id']) for agrms in agrm_groups for agrm in agrms]
-                targets = [chat_id for chats in groups for chat_id in chats]
             else:
                 await logger.warning(f'Broadcast error [{data["id"]}]: wrong mail type ID "{data["type"]}"')
                 await sql.upd_mailing_status(data['id'], 'error')
@@ -124,40 +122,11 @@ async def broadcast(data: dict, logger: Logger):
         else:
             if targets:
                 for chat_id in set(targets):
-                    if await send_message(chat_id, data['text'], parse_mode=data['parse_mode']):
-                        count += 1
-                    await asyncio.sleep(.05)
+                    await send_message(chat_id, data['text'], parse_mode=data['parse_mode'])
                 await sql.upd_mailing_status(data['id'], 'complete')
             else:
                 await logger.warning(f'Broadcast error [{data["id"]}]: failed to get targets {data["targets"]}')
                 await sql.upd_mailing_status(data['id'], 'missed')
-    return count
-
-
-class WebM:
-    def __init__(self):
-        """Класс для рендера HTML-шаблонов с аргументами (для сокращения кода)"""
-        self.templates: Jinja2Templates = None
-        self.back_link = ''
-        self.bot_name = ''
-        self.headers = {}
-
-    def update(self, link, name, headers, templates):
-        self.templates = templates
-        self.back_link = link
-        self.bot_name = name
-        self.headers = headers
-
-    def page(self, request: Request, data: dict = None, *, template: str = 'page.html', **kwargs):
-        return self.templates.TemplateResponse(template,
-                                               dict(request=request,
-                                                    domain=config['paladin']['domain'],
-                                                    back_link=self.back_link,
-                                                    bot_name=self.bot_name,
-                                                    support_bot_name=config['irobot']['chatbot'],
-                                                    **data),
-                                               headers=self.headers,
-                                               **kwargs)
 
 
 async def get_subscriber_table():
@@ -175,7 +144,7 @@ async def get_subscriber_table():
                 line[1].style = 'background-color: red;'
             else:
                 line[1].style = 'background-color: green; color: white;'
-        return table
+        return table.get_html()
 
 
 async def get_mailing_history():
@@ -184,7 +153,22 @@ async def get_mailing_history():
         table = Table(res)
         for line in table:
             line[4].value = '\n'.join(line[4].value) if isinstance(line[4].value, list) else line[4].value
-        return table
+        return table.get_html()
+
+
+async def message_distribute(text, parse_mode, target_type, target):
+    mail_id, targets = 0, []
+    if target_type == 'user_id':
+        targets = [chat_id for uid in targets for chat_id in await sql.find_user_chats(uid)]
+    elif target_type == 'chat_id':
+        targets = [target]
+    elif target_type in ['agrm_id', 'agrm']:
+        accounts = await lb.direct_request('getAccounts',
+                                           {'agrmid': target} if target_type == 'agrmid' else {'agrmnum': target})
+        targets = [chat_id for acc in accounts for chat_id in await sql.find_user_chats(acc.account.uid)]
+    if targets:
+        mail_id = await sql.add_mailing('direct', text, list(set(targets)), parse_mode)
+    return mail_id, targets
 
 
 if __name__ == '__main__':

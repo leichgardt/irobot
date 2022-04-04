@@ -1,5 +1,13 @@
-from datetime import datetime
+import hashlib
 import re
+from datetime import datetime
+
+
+__all__ = ('get_hash', 'map_format', 'get_datetime', 'get_phone_number')
+
+
+def get_hash(text: str):
+    return hashlib.md5(f'{datetime.now()}&{text}'.encode()).hexdigest()
 
 
 def map_format(text: str, **kwargs):

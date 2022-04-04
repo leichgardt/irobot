@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     function login() {
         btn_status(btn_login, 'loading');
         let hash = document.getElementById('hash-code').value;
-        let data = {'login': input_login.value, 'pwd': input_pwd.value, 'hash': hash};
+        let data = {'login': input_login.value, 'pwd': input_pwd.value, 'hash_code': hash};
         let url = 'api/login'
         fetch(url, {
             method: 'POST',

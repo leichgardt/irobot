@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {{ title }}
+    </title>
+    <script src="{{ url_for('static', path='js/fontawesome.js') }}"></script>
+    <script src="{{ url_for('static', path='js/jquery-3.4.1.js') }}"></script>
+    <script src="{{ url_for('static', path='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', path='js/bootstrap.min.4.4.1.js') }}"></script>
+    <script src="{{ url_for('static', path='js/base.js') }}?t={{ timestamp }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap_4.4.1.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}?t={{ timestamp }}">
+    <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}">
+    {% block imports %}{% endblock %}
+</head>
+{% block style %}{% endblock %}
+<header>
+<nav class="navbar sticky-top navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="https://ironnet.info/">
+            <div id="ironnet-img"></div>
+        </a>
+        {% for page in pages %}
+        <a class="navbar-brand" href="{{ page.url }}">
+            {{ page.title }}
+        </a>
+        {% endfor %}
+        <div class="navbar-toggler-div">
+            <div class="text-right">
+                <button class="navbar-toggler justify-content-start" type="button" data-toggle="collapse"
+                        data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                        aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+        </div>
+        <div class="collapse navbar-collapse justify-content-start" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a href="https://cup.ironnet.info/" class="nav-link">Приложения</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Помощь
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#banner-report">Сообщить о проблеме</a>
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#banner-about">О приложении</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div id="oper-menu" class="d-flex justify-content-end collapse">
+            <div class="btn-group" role="group">
+                <button id="oper-btn" type="button" class="btn btn-sm btn-outline-success dropdown-toggle"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{ oper.full_name }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-right dropdown-menu-sm-right" aria-labelledby="oper-btn">
+{#                    <a id="btn-change-pwd" class="dropdown-item" href="#">Сменить пароль</a>#}
+                    <button id="btn-logout" class="dropdown-item">Выйти</button>
+                </div>
+            </div>
+            <input id="oper-name" class="sr-only" value="{{ oper.full_name }}">
+            <input id="oper-id" class="sr-only" value="{{ oper.oper_id }}">
+        </div>
+    </div>
+</nav>
+<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="banner-about" aria-hidden="true" id="banner-about">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">О приложении</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            </div>
+            <div class="modal-body text-justify">
+                {{ about }}
+                <br>
+                Разработчик приложения - Имигеев Евгений.
+                <div class="text-center">
+                    <br>Северобайкальск, 2022.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="banner-report" aria-hidden="true" id="banner-report">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" >Сообщить о проблеме</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            </div>
+            <div class="modal-body text-justify">
+                Что-то не работает? Попробуйте следующее:
+                <ul>
+                    <li>Перезагрузить страницу F5 и попробуйте заново;</li>
+                    <li>Если не помогло, то сделайте это жёстко (Ctrl+F5);</li>
+                    <li>
+                        Сообщите мне:
+                        <ul>
+                            <li>Лично мне (2 этаж)</li>
+                            <li>Telegram: <a href="http://t.me/mamaragan">8-923-432-1676 @mamaragan</a></li>
+                            <li>E-mail: <a href="mailto:imigeev.e@gmail.com">imigeev.e@gmail.com</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <br>
+                Если вам чего-то не хватает, или вы хотели бы что-то предложите - говорите :)
+            </div>
+        </div>
+    </div>
+</div>
+</header>
+<body>
+{% block content %}{% endblock %}
+</body>
+<footer>
+&emsp;{{ version }}
+</footer>
+</html>

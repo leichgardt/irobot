@@ -3,18 +3,18 @@ __author__ = 'leichgardt'
 import asyncio
 import os
 import sys
-import uvloop
 
+import uvloop
 from aiogram.utils.executor import start_webhook
 
 sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '/../'))
 
-from src.bot.layers import bot, dp
+from src.bot import bot, dp
 from src.lb import lb
-from src.parameters import WEBHOOK_HOST
+from src.parameters import TEST_CHAT_ID, WEBHOOK_HOST
 from src.sql import sql
 from src.text import Texts
-from src.utils import config, alogger, logfile, logdir
+from src.utils import logger, logfile, logdir
 
 CERTIFICATE = ''
 WEBHOOK_PATH = '/'
@@ -34,25 +34,25 @@ async def upd_texts():
 async def on_startup(dp):
     try:
         # проверим БД конечного автомата
-        await dp.storage.get_data(chat=config['irobot']['me'])
+        await dp.storage.get_data(chat=TEST_CHAT_ID)
     except Exception:
         raise ConnectionError(f'Can\'t connect to MongoDB: {dp.storage.__dict__["_host"]}')
-    sql.logger = alogger
+    sql.logger = logger
     await upd_texts()
     await lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
-    await alogger.info(f'Bot activated. Look at the console output in file "{logdir + logfile.format(alogger.name)}"')
+    await logger.info(f'Bot activated. Look at the console output in file "{logdir + logfile.format(logger.name)}"')
 
 
 async def on_shutdown(dp):
-    await alogger.info('Shutting down..')
+    await logger.info('Shutting down..')
     await dp.storage.close()
     await bot.delete_webhook()
     await sql.close_pool()
     await dp.storage.wait_closed()
-    await alogger.shutdown()
+    await logger.shutdown()
     print('Bye!')
 
 

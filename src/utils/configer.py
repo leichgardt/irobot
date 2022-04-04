@@ -1,6 +1,10 @@
 import os
 import requests
 import re
+from pathlib import Path
+
+
+__all__ = ('config',)
 
 
 class Configer:
@@ -96,5 +100,5 @@ class Configer:
 
 
 config = Configer()
-path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '../..') + '/config_params.txt'
-config.config_params(path)
+path = Path(__file__).parent / 'config_params.txt'
+config.config_params(str(path.resolve()))
