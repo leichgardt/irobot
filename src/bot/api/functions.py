@@ -10,7 +10,7 @@ from src.lb import lb
 from src.parameters import HOST_URL, SBER_TOKEN, RECEIPT_EMAIL
 from src.sql import sql
 from src.text import Texts
-from src.utils import logger, get_hash
+from src.utils import logger, get_hash, post_request
 
 
 __all__ = (
@@ -21,7 +21,8 @@ __all__ = (
     'get_all_agrm_data',
     'get_login_url',
     'send_payment_invoice',
-    'save_dialog_message'
+    'save_dialog_message',
+    'broadcast_support_message'
 )
 
 
@@ -54,7 +55,7 @@ def get_payment_price(agrm: str, amount: Union[int, float], tax: Union[int, floa
 
 
 def get_login_url(hash_code: str):
-    return '{}login?hash_code={}'.format(HOST_URL, hash_code)
+    return f'{HOST_URL}/login?hash_code={hash_code}'
 
 
 async def get_agrm_balances(chat_id: int):
@@ -134,7 +135,7 @@ async def send_payment_invoice(chat_id, hash_code, agreement, amount, payload):
     )
 
 
-async def save_dialog_message(message: types.Message, user: str):
+async def save_dialog_message(message: types.Message):
     if message.content_type == 'text':
         data = {'text': message.text}
     elif message.content_type == 'document':
@@ -155,4 +156,8 @@ async def save_dialog_message(message: types.Message, user: str):
         await logger.warning(f'Unhandled support message content type: {message} [{message.chat.id}]')
         return
     data = {'caption': message.caption, **data} if 'caption' in message else data
-    await sql.add_support_message(message.chat.id, message.message_id, user, message.content_type, data)
+    await sql.add_support_message(message.chat.id, message.message_id, message.content_type, data)
+
+
+async def broadcast_support_message(chat_id, message_id):
+    await post_request(f'{HOST_URL}/admin/api/new_message', json={'chat_id': chat_id, 'message_id': message_id})

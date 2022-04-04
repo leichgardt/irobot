@@ -4,11 +4,11 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Depends,
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
-from fastapi_utils.tasks import repeat_every
 
 from src.parameters import ABOUT, VERSION
 from src.sql import sql
 from src.web import (
+    get_request_data,
     lan_require,
     send_message,
     get_subscriber_table,
@@ -66,13 +66,11 @@ async def sign_up_request(_: Request, oper: ops.OperCreate):
 @lan_require
 async def auth_request(_: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     oper = await ops_utils.get_oper_by_login(form_data.username)
-    print('oper', oper)
     if not oper:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     if not ops_utils.validate_password(form_data.password, oper['hashed_password']):
         raise HTTPException(status_code=400, detail='Incorrect email or password')
     token = await ops_utils.create_oper_token(oper['oper_id'])
-    print('token', token)
     return token
 
 
@@ -103,13 +101,20 @@ async def admin_page(request: Request):
     return RedirectResponse('/admin/')
 
 
+def split_datetime(dt):
+    return dt.strftime('%d.%m.%Y'), dt.strftime('%H:%M')
+
+
 async def get_chat_messages(chat_id, page=0):
     res = await sql.execute(
         'select message_id, datetime, from_oper, content_type, content from irobot.support_messages '
         'where chat_id=%s order by datetime desc offset %s limit 10', chat_id, page * 10, as_dict=True
     )
     for chat in res:
-        chat.update({'datetime': chat['datetime'].strftime('%H:%M:%S %d.%m.%Y')})
+        date, time = split_datetime(chat['datetime'])
+        chat.update({'date': date})
+        chat.update({'time': time})
+        chat.pop('datetime')
     res.reverse()
     return res
 
@@ -117,14 +122,16 @@ async def get_chat_messages(chat_id, page=0):
 async def send_oper_message(data, oper_id):
     res = await send_message(data['chat_id'], data['text'])
     if res and res.message_id > 0:
-        date = await sql.insert(
+        dt = await sql.insert(
             'insert into irobot.support_messages (chat_id, message_id, from_oper, content_type, content) '
             'values (%s, %s, %s, %s, %s) returning datetime',
             data['chat_id'], res.message_id, oper_id, 'text', {'text': data['text']}
         )
+        date, time = split_datetime(dt)
         return {
             'message_id': res.message_id,
-            'datetime': date.strftime('%H:%M:%S %d.%m.%Y'),
+            'date': date,
+            'time': time,
             'oper_id': oper_id,
             'content_type': 'text',
             'content': {'text': data['text']}
@@ -190,7 +197,17 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
             manager.remove(websocket)
 
 
-@router.on_event('startup')
-@repeat_every(seconds=30)
-async def olo_monitor():
-    await manager.broadcast('broadcast', {'text': f'Broadcast elmav'})
+@router.post('/api/new_message')
+@lan_require
+async def new_message_request(request: Request):
+    data = await get_request_data(request)
+    msg = await sql.execute(
+        'select chat_id, message_id, datetime, from_oper, content_type, content from irobot.support_messages '
+        'where chat_id=%s and message_id=%s limit 1', data['chat_id'], data['message_id'], as_dict=True
+    )
+    if msg:
+        date, time = split_datetime(msg[0]['datetime'])
+        msg[0]['date'] = date
+        msg[0]['time'] = time
+        msg[0].pop('datetime')
+        await manager.broadcast('get_message', msg[0])

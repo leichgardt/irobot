@@ -174,9 +174,11 @@ class SQLMaster(SQLCore):
         await self.execute('UPDATE cardinalis.tasks SET status=true, update_datetime=now() '
                            'WHERE status=false AND task_id=%s', task_id)
 
-    async def add_support_message(self, chat_id, message_id, writer, message_type, message_data):
-        await self.insert('INSERT INTO irobot.support_dialogs (chat_id, message_id, writer, type, data, datetime) '
-                          'VALUES (%s, %s, %s, %s, %s, %s)', chat_id, message_id, writer, message_type, message_data, datetime.now())
+    async def add_support_message(self, chat_id, message_id, message_type, message_data):
+        await self.insert(
+            'INSERT INTO irobot.support_messages (chat_id, message_id, content_type, content) '
+            'VALUES (%s, %s, %s, %s)', chat_id, message_id, message_type, message_data
+        )
 
     async def get_support_dialog_list(self):
         res = await self.execute(
@@ -189,6 +191,9 @@ class SQLMaster(SQLCore):
             as_dict=True
         )
         for chat in res:
+            chat['time'] = chat['datetime'].strftime('%H:%M')
+            chat['date'] = chat['datetime'].strftime('%d.%m.%Y')
+            chat.pop('datetime')
             chat.update({'oper_name': None})
             if chat['oper_id']:
                 oper = await self.execute('select full_name from irobot.operators where oper_id=%s', chat['oper_id'])

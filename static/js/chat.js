@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         name_block.innerHTML += chat_data[chat_id]['first_name'];
         let date = document.createElement('div');
         date.classList.add('status', 'text-left', 'last-update-datetime');
-        date.innerText = `${chat_data[chat_id]['datetime']}`;
+        date.innerText = `${chat_data[chat_id]['time']} ${chat_data[chat_id]['date']}`;
         let about = document.createElement('div');
         about.classList.add('about');
         about.appendChild(name_block);
@@ -204,55 +204,68 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function create_message_datetime(datetime) {
+    function create_message_datetime(date) {
         let span = document.createElement('span');
         span.classList.add('message-data-time');
-        span.innerText = `${datetime}`;
+        span.innerText = `${date}`;
         return span;
     }
 
-    function create_message_data(msg) {
+    function create_message_date(msg) {
         let message_data = document.createElement('div');
-        message_data.classList.add('message-data');
-        if (msg['from_oper'] === null)
-            message_data.classList.add('text-right');
-        else
-            message_data.classList.add('text-left');
-        message_data.appendChild(create_message_datetime(msg['datetime']))
+        message_data.classList.add('text-center');
+        message_data.appendChild(create_message_datetime(msg['date']))
         return message_data;
     }
 
     function get_message_content(msg) {
         if (msg['content_type'] === 'text') {
-            return msg['content']['text'];
+            return msg['content']['text']
+        } else {
+            return JSON.stringify(msg['content'])
         }
     }
 
     function create_message(msg) {
         let message = document.createElement('div');
         message.classList.add('message');
-        if (msg['from_oper'] === null)
+        if (msg['from_oper'] === null) {
             message.classList.add('other-message', 'float-right');
-        else
+        } else {
             message.classList.add('my-message', 'float-left');
+        }
+        let datetime = document.createElement('small');
+        datetime.classList.add('message-date')
+        datetime.innerText = msg['time'];
         message.innerHTML = get_message_content(msg);
+        message.appendChild(datetime);
         return message;
     }
 
     function add_chat_message(msg) {
         let li = document.createElement('li');
         li.classList.add('clearfix');
-        li.appendChild(create_message_data(msg));
         li.appendChild(create_message(msg));
         let chat = document.getElementById('chat-history');
         chat.appendChild(li);
         li.scrollIntoView(false);
     }
 
+    function add_message_date(msg) {
+        let li = document.createElement('li');
+        li.classList.add('clearfix');
+        li.appendChild(create_message_date(msg));
+        let chat = document.getElementById('chat-history');
+        chat.appendChild(li);
+    }
+
     function fill_chat_history(data) {
         let chat = document.getElementById('chat-history');
         chat.innerHTML = '';
         for (let i in data) {
+            if ((i === '0') || (parseInt(i) > 0 && data[i - 1]['date'] !== data[i]['date'])) {
+                add_message_date(data[i]);
+            }
             add_chat_message(data[i]);
         }
     }

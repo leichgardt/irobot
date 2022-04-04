@@ -124,6 +124,13 @@
     margin-bottom: 0;
 }
 
+.chat .chat-history .message-date {
+    color: #626262;
+    transform: translate(10px, -10px);
+}
+
+.chat .chat-history .message-date::before { content: ' '; }
+
 .chat .chat-history .message-data {
     margin-bottom: 15px;
 }

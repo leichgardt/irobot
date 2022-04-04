@@ -32,7 +32,7 @@ DB_HOST = config['postgres']['dbhost']
 
 CARDINALIS_URL = 'https://{}/cardinalis'.format(config['paladin']['cup-domain'])
 
-HOST_URL = 'https://{}/irobot/'.format(config['paladin']['maindomain'])
+HOST_URL = 'https://{}/irobot'.format(config['paladin']['maindomain'])
 
 API_TOKEN = config['irobot']['token']
 
