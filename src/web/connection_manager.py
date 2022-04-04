@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from fastapi import WebSocket, WebSocketDisconnect
 
@@ -25,9 +25,11 @@ class ConnectionManager:
         except WebSocketDisconnect:
             self.remove(connection)
 
-    async def broadcast(self, action: str, data: dict):
-        for connections in self.connections.values():
+    async def broadcast(self, action: str, data: dict, ignore_list: List[Union[WebSocket, int]] = None):
+        for oper_id, connections in self.connections.items():
             for connection in connections:
+                if ignore_list and (oper_id in ignore_list or connection in ignore_list):
+                    continue
                 await self._send_json(connection, {'action': action, 'data': data})
 
     async def send_to_oper(self, oper_id: int, data: dict):
