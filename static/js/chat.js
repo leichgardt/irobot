@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     let chat_inputs = {};
     let btn_take = document.getElementById('btn-take');
     let btn_drop = document.getElementById('btn-drop');
+    let btn_finish = document.getElementById('btn-finish');
     let input_group = document.getElementById('input-group');
 
     function get_photo(chat_id) {
@@ -96,10 +97,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
         if (flag) {
             btn_take.classList.remove('show');
             btn_drop.classList.add('show');
+            btn_finish.classList.add('show');
             input_group.classList.add('show');
         } else {
             btn_take.classList.add('show');
             btn_drop.classList.remove('show');
+            btn_finish.classList.remove('show');
             input_group.classList.remove('show');
         }
     }
@@ -196,6 +199,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
             let chat = get_chat_block(data['chats'][i]['chat_id'])
             chat_list_block.appendChild(chat);
         }
+        if (selected_chat !== 0) {
+            load_chat(selected_chat);
+        }
     }
 
     function create_message_datetime(datetime) {
@@ -275,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         if (!get_cookie('access_token'))
             return;
         ws = new WebSocket(`ws://${document.location.host}/ws?access_token=${get_cookie('access_token')}`);
-        ws.onclose = function (event) {setTimeout(connectWS, 200)};
+        ws.onclose = function () {setTimeout(connectWS, 500)};
         ws.onmessage = function (event) {
             let command = JSON.parse(event.data)['action'];
             let data = JSON.parse(event.data)['data'];
@@ -292,16 +298,18 @@ document.addEventListener('DOMContentLoaded', function (event) {
                 oper_take_chat_end(data);
             else if (command === 'drop_chat')
                 oper_drop_chat_end(data);
-
         }
     }
 
-    btn_drop.onmouseenter = function () {
-        btn_drop.getElementsByTagName('span')[0].classList.add('show');
-    }
+    for (let i in document.getElementsByClassName('show-under-mouse')) {
+        let btn = document.getElementsByClassName('show-under-mouse')[i];
+        btn.onmouseenter = function () {
+            btn.getElementsByTagName('span')[0].classList.add('show');
+        }
 
-    btn_drop.onmouseleave = function () {
-        btn_drop.getElementsByTagName('span')[0].classList.remove('show');
+        btn.onmouseleave = function () {
+            btn.getElementsByTagName('span')[0].classList.remove('show');
+        }
     }
 
     input.onkeyup = function (event) {

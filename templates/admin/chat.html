@@ -29,7 +29,7 @@
                     <div class="chat">
                         <div class="chat-header clearfix">
                             <div class="row">
-                                <div class="col-lg-9">
+                                <div class="col-lg-6">
                                     <a href="javascript:void(0);" data-toggle="modal" data-target="#view_info">
                                         <img id="selected-photo" src="" alt="ava">
                                     </a>
@@ -39,11 +39,17 @@
                                         <div><small>123</small></div>
                                     </div>
                                 </div>
-                                <div class="col-lg-3 text-right">
-                                    <button id="btn-drop" class="collapse btn btn-outline-danger">
-                                        <i class="fa fa-times"></i>
-                                        <span class="collapse">Выйти из чата</span>
-                                    </button>
+                                <div class="col-lg-6 text-right d-flex justify-content-end">
+                                    <div class="align-items-center btn-group btn-group-sm">
+                                        <button id="btn-finish" class="collapse btn btn-outline-success show-under-mouse">
+                                            <i class="fa fa-check"></i>
+                                            <span class="collapse">Завершить поддержку</span>
+                                        </button>
+                                        <button id="btn-drop" class="collapse btn btn-outline-danger show-under-mouse">
+                                            <i class="fa fa-times"></i>
+                                            <span class="collapse">Выйти из чата</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -52,7 +58,7 @@
                         </div>
                         <div class="chat-message clearfix text-center">
                             <div id="btn-take" class="collapse btn-group btn-group-sm mb-0 w-50">
-                                <button class="btn btn-outline-secondary">Войти в чат</button>
+                                <button class="btn btn-outline-primary">Войти в чат</button>
                             </div>
                             <div id="input-group" class="collapse input-group mb-0">
                                 <div class="input-group-prepend">

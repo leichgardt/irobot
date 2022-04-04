@@ -1,3 +1,8 @@
+.show-under-mouse {
+    min-width: 40px;
+    height: 40px;
+}
+
 .chat-account { font-size: 14px; }
 .chat-account::before { content: ' '; }
 
