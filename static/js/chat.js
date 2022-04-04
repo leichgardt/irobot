@@ -262,6 +262,14 @@ document.addEventListener('DOMContentLoaded', function (event) {
         add_chat_message(msg);
         new_chat_datetime(selected_chat, msg['datetime']);
     }
+    
+    function get_message(msg) {
+        new_chat_datetime(msg['chat_id'], msg['datetime']);
+        if (selected_chat === msg['chat_id']) {
+            add_chat_message(msg);
+            // todo add push notify
+        }
+    }
 
     function connectWS() {
         if (!get_cookie('access_token'))
@@ -278,6 +286,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
                 fill_chat_history(data);
             else if (command === 'send_message')
                 send_message_end(data);
+            else if (command === 'get_message')
+                get_message(data);
             else if (command === 'take_chat')
                 oper_take_chat_end(data);
             else if (command === 'drop_chat')

@@ -175,6 +175,8 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     msg = await send_oper_message(data['data'], oper['oper_id'])
                     if msg:
                         await websocket.send_json({'action': 'send_message', 'data': msg})
+                        msg['chat_id'] = data['data']['chat_id']
+                        await manager.broadcast('get_message', msg, ignore_list=[websocket])
                 elif data['action'] == 'take_chat':
                     await take_chat(data['data'], oper['oper_id'])
                     await websocket.send_json({'action': 'take_chat', 'data': data['data']})
