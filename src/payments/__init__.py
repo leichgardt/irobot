@@ -1,1 +1,1 @@
-from src.payments.yandex import yoomoney_pay
+# from src.payments.yandex import yoomoney_pay

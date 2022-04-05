@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ ! -f ./src/config_params.txt ]; then
+if [ ! -f ./src/utils/config_params.txt ]; then
   flag=true
   while $flag
   do

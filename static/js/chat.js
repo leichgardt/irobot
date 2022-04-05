@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         if (!get_cookie('access_token'))
             return;
         ws = new WebSocket(`ws://${document.location.host}/ws?access_token=${get_cookie('access_token')}`);
-        ws.onclose = function () {setTimeout(connectWS, 500)};
+        ws.onclose = function () {setTimeout(connectWS, 1500)};
         ws.onmessage = function (event) {
             let command = JSON.parse(event.data)['action'];
             let data = JSON.parse(event.data)['data'];

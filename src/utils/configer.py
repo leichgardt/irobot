@@ -65,7 +65,7 @@ class Configer:
 
     def config_params(self, filepath='config_params.txt'):
         if not os.path.exists(filepath):
-            exit(1)
+            raise FileNotFoundError(filepath)
         with open(filepath, 'r') as f:
             text = [line.replace('\n', '').strip() for line in f.readlines()]
             self.url = text[0]
