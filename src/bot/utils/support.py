@@ -5,6 +5,14 @@ from src.parameters import HOST_URL
 from src.utils import logger, post_request
 
 
+async def create_support_chat(chat_id):
+    chat = await sql.execute('select chat_id from irobot.support_chats where chat_id=%s', chat_id, fetch_one=True)
+    if chat:
+        await sql.update('irobot.support_chats', f'chat_id={chat_id}', support_mode=True, datetime='now()', read=False)
+    else:
+        await sql.insert('insert into irobot.support_chats (chat_id) VALUES (%s)', chat_id)
+
+
 async def save_dialog_message(message: types.Message):
     if message.content_type == 'text':
         data = {'text': message.text}

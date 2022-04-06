@@ -57,6 +57,10 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     await manager.broadcast('get_message', msg, firstly=websocket)
                     await manager.broadcast('finish_support', output, firstly=websocket)
                     # todo show results: messages count, time left, operators in the support
+                elif data['action'] == 'read_chat':
+                    await chat_utils.read_chat(data['data'])
+                    chats = await chat_utils.get_accounts_and_chats()
+                    await manager.broadcast('get_chats', chats, ignore_list=[websocket])
                 else:
                     print('ws received data:', data)
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})

@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     let btn_take = document.getElementById('btn-take');
     let btn_drop = document.getElementById('btn-drop');
     let btn_finish = document.getElementById('btn-finish');
+    let btn_read = document.getElementById('btn-read');
     let input_group = document.getElementById('input-group');
 
     function get_photo(chat_id) {
@@ -57,6 +58,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
         return about;
     }
 
+    function get_chat_sign(chat_id) {
+        let block = document.createElement('div');
+        block.classList.add('col-1', 'text-right');
+        block.innerHTML = chat_data[chat_id]['read'] ? '' : '<i class="fa fa-eye-slash" ></i>';
+        return block
+    }
+
     btn_take.onclick = function (event) {
         take_chat_start();
     }
@@ -84,12 +92,35 @@ document.addEventListener('DOMContentLoaded', function (event) {
         finish_support_start();
     }
 
+    btn_finish.onmouseout = function () {
+        reset_finish_button();
+    }
+
+    btn_read.onclick = function () {
+        read_chat();
+    }
+
     function drop_chat_start() {
         ws.send(JSON.stringify({'action': 'drop_chat', 'data': selected_chat}));
     }
 
     function finish_support_start() {
-        ws.send(JSON.stringify({'action': 'finish_support', 'data': selected_chat}));
+        if (btn_finish.classList.contains('btn-outline-success')) {
+            btn_finish.classList.replace('btn-outline-success', 'btn-outline-warning');
+            btn_finish.getElementsByTagName('span')[0].innerText = 'Точно завершить?';
+        } else {
+            ws.send(JSON.stringify({'action': 'finish_support', 'data': selected_chat}));
+            reset_finish_button();
+        }
+    }
+
+    function reset_finish_button() {
+        btn_finish.classList.replace('btn-outline-warning', 'btn-outline-success');
+        btn_finish.getElementsByTagName('span')[0].innerText = 'Завершить поддержку';
+    }
+
+    function read_chat() {
+        ws.send(JSON.stringify({'action': 'read_chat', 'data': selected_chat}));
     }
 
     function oper_drop_chat_end(data) {
@@ -106,11 +137,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
             btn_take.classList.remove('show');
             btn_drop.classList.add('show');
             btn_finish.classList.add('show');
+            btn_read.classList.add('show');
             input_group.classList.add('show');
         } else {
             btn_take.classList.add('show');
             btn_drop.classList.remove('show');
             btn_finish.classList.remove('show');
+            btn_read.classList.remove('show');
             input_group.classList.remove('show');
         }
     }
@@ -180,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         li.id = `chat-${chat_id}`;
         li.appendChild(get_photo(chat_id));
         li.appendChild(get_chat_about(chat_id));
+        li.appendChild(get_chat_sign(chat_id));
         li.onclick = function () {
             let chats = document.getElementsByClassName('chat-item');
             select_chat(chat_id);

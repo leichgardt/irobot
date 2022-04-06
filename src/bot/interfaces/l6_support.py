@@ -37,6 +37,7 @@ async def support_message_h(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         if not data.get('live'):  # если это первое сообщение
             data['live'] = datetime.now().timestamp()  # сохранить время первого сообщения
+            await support.create_support_chat(message.chat.id)
         await support.save_dialog_message(message)
         await support.broadcast_support_message(message.chat.id, message.message_id)
 

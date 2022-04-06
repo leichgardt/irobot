@@ -81,3 +81,7 @@ async def get_chat_accounts_in_support_need():
         else:
             accounts[sub['chat_id']].append(sub['login'])
     return accounts
+
+
+async def read_chat(chat_id):
+    await sql.execute('update irobot.support_chats set read=true where chat_id=%s', chat_id)
