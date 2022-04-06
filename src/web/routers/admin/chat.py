@@ -34,7 +34,10 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
         try:
             while True:
                 data = await websocket.receive_json()
-                if data['action'] == 'get_chat':
+                if data['action'] == 'get_chats':
+                    chats = await chat_utils.get_accounts_and_chats()
+                    await websocket.send_json({'action': 'get_chats', 'data': chats})
+                elif data['action'] == 'get_chat':
                     messages = await chat_utils.get_chat_messages(data['data']['chat_id'], data['data']['page'])
                     await websocket.send_json({'action': 'get_chat', 'data': messages})
                 elif data['action'] == 'send_message':

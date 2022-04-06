@@ -292,18 +292,77 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
+    function get_message(msg) {
+        send_notification('Новое сообщение', get_message_content(msg));
+        if (msg['chat_id'] in chat_data) {
+            play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
+            update_chat_in_list(msg);
+            if (selected_chat === msg['chat_id']) {
+                add_chat_message(msg);
+            }
+        } else {
+            play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
+            force_get_chats();
+        }
+    }
+
+    function send_notification(title, text) {
+        if (('Notification' in window && document.hidden)) {
+            let options = {body: text, icon: '/static/img/png/logo.png', dir: 'auto'};
+            if (Notification.permission === 'granted') {
+                new Notification(title, options);
+            } else if (Notification.permission !== 'denied') {
+                Notification.requestPermission()
+                    .then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, options);
+                        }
+                    })
+                    .catch(e => {console.error(e)});
+            }
+        }
+    }
+
+    function play_audio(url) {
+        let audio = new Audio(url);
+        audio.play().then().catch();
+    }
+
+    function update_chat_in_list(msg) {
+        new_chat_datetime(msg['chat_id'], msg['date'], msg['time']);
+        check_read_icon(msg['chat_id'], msg['oper_id']);
+        check_read_btn(msg['chat_id'], msg['oper_id']);
+    }
+
     function new_chat_datetime(chat_id, date, time) {
         let about = document.getElementById(`chat-${chat_id}`);
         about = about.getElementsByClassName('about')[0].getElementsByTagName('div');
         about[1].innerText = `${time} ${date}`;
     }
 
-    function get_message(msg) {
-        new_chat_datetime(msg['chat_id'], msg['date'], msg['time']);
-        if (selected_chat === msg['chat_id']) {
-            add_chat_message(msg);
-            // todo add push notify
+    function check_read_icon(chat_id, oper_id) {
+        let chat_block = document.getElementById(`chat-${chat_id}`);
+        chat_block.getElementsByClassName('col-1')[0].remove();
+        chat_data[chat_id]['read'] = !!oper_id;
+        chat_block.appendChild(get_chat_sign(chat_id));
+    }
+
+    function check_read_btn(chat_id) {
+        btn_read.disabled = chat_data[chat_id]['read'];
+    }
+
+    function request_permission() {
+        if (('Notification' in window)) {
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then().catch();
+            }
         }
+    }
+
+    setTimeout(request_permission, 1000);
+
+    function force_get_chats() {
+        ws.send(JSON.stringify({'action': 'get_chats'}));
     }
 
     function finish_support(data) {
