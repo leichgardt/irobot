@@ -1,1 +1,0 @@
-# from src.payments.yandex import yoomoney_pay

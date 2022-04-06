@@ -1,7 +1,7 @@
 {% extends "admin/base.html" %}
 {% block imports %}
-    <script type="text/javascript" src="{{ url_for('static', path='js/chat.js') }}?t={{ timestamp }}"></script>
-    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}?t={{ timestamp }}">
+    <script type="text/javascript" src="{{ url_for('static', path='js/admin/chat.js') }}?t={{ timestamp }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/admin/chat.css') }}?t={{ timestamp }}">
 {% endblock %}
 {% block content %}
 <div class="container">
@@ -31,12 +31,12 @@
                             <div class="row">
                                 <div class="col-lg-6">
                                     <a href="javascript:void(0);" data-toggle="modal" data-target="#view_info">
-                                        <img id="selected-photo" src="" alt="ava">
+                                        <img id="selected-photo" src="" alt="">
                                     </a>
                                     <div id="selected-chat" class="chat-about">
-                                        <div><h6 class="m-0 text-left">123</h6></div>
-                                        <div><small>123</small></div>
-                                        <div><small>123</small></div>
+                                        <div><h6 class="m-0 text-left"></h6></div>
+                                        <div><small></small></div>
+                                        <div><small></small></div>
                                     </div>
                                 </div>
                                 <div class="col-lg-6 text-right d-flex justify-content-end">

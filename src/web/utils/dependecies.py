@@ -1,6 +1,7 @@
-from src.web.utils import ops as ops_utils
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+
+from src.web.utils import ops as ops_utils
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="admin/api/auth")

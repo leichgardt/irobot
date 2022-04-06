@@ -1,5 +1,6 @@
 #!/bin/bash
-if [ ! -f ./src/utils/config_params.txt ]; then
+config_file=./src/utils/config_params.txt
+if [ ! -f $config_file ]; then
   flag=true
   while $flag
   do
@@ -25,16 +26,16 @@ if [ ! -f ./src/utils/config_params.txt ]; then
     echo -n "Confirm this data input? (Y/n): "
     read -r res
     if [ "${res}" = "" ] || [ "${res}" = "y" ] || [ "${res}" = "Y" ]; then
-      echo "$url" > src/config_params.txt
-      echo "$login" >> src/config_params.txt
-      echo "$pwd" >> src/config_params.txt
+      echo "$url" > $config_file
+      echo "$login" >> $config_file
+      echo "$pwd" >> $config_file
       flag=false
       break
     fi
   done
 fi
 if [ "$1" = "web" ]; then
-  gunicorn -c src/guni.py src.app:app
+  /bin/bash src/app.sh
 else
-  python src/run_bot.py
+  /bin/bash src/bot.sh
 fi

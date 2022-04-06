@@ -9,7 +9,7 @@
     <script src="{{ url_for('static', path='js/jquery-3.4.1.js') }}"></script>
     <script src="{{ url_for('static', path='js/popper.min.js') }}"></script>
     <script src="{{ url_for('static', path='js/bootstrap.min.4.4.1.js') }}"></script>
-    <script src="{{ url_for('static', path='js/base.js') }}?t={{ timestamp }}"></script>
+    <script src="{{ url_for('static', path='js/admin/base.js') }}?t={{ timestamp }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap_4.4.1.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}?t={{ timestamp }}">
     <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}">
@@ -54,7 +54,7 @@
         </div>
         <div id="oper-menu" class="d-flex justify-content-end collapse">
             <div class="btn-group" role="group">
-                <button id="oper-btn" type="button" class="btn btn-sm btn-outline-success dropdown-toggle"
+                <button id="oper-btn" type="button" class="btn btn-sm btn-outline-success dropdown-toggle collapse"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     {{ oper.full_name }}
                 </button>

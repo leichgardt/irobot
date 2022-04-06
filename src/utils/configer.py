@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 
-__all__ = ('config',)
+__all__ = 'config',
 
 
 class Configer:

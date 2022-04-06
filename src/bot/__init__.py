@@ -1,1 +1,1 @@
-from .handlers import bot, dp
+from .interfaces import bot, dp

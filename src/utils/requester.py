@@ -3,7 +3,7 @@ import aiohttp
 from .async_logger import logger
 
 
-__all__ = ('post_request',)
+__all__ = 'post_request',
 
 
 async def post_request(*args, _as_json=True, _logger=logger, **kwargs):

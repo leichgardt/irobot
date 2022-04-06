@@ -3,7 +3,7 @@ import random
 import string
 from datetime import datetime, timedelta
 
-from src.sql import sql
+from src.modules import sql
 from src.web.schemas import ops as oper_schema
 
 
