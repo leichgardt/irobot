@@ -4,7 +4,7 @@ from aiogram.types import LabeledPrice
 
 from src.bot.core import bot
 from src.modules import lb, Texts
-from src.parameters import SBER_TOKEN, RECEIPT_EMAIL
+from parameters import BOT_PAYMENT_TOKEN, RECEIPT_EMAIL
 from src.utils import get_hash
 
 
@@ -50,7 +50,7 @@ async def get_promise_payment_agrms(agrms: List[str]) -> List[str]:
 async def send_payment_invoice(chat_id: int, hash_code: str, agreement: str, amount: int, payload: dict):
     return await bot.send_invoice(
         chat_id,
-        provider_token=SBER_TOKEN,
+        provider_token=BOT_PAYMENT_TOKEN,
         provider_data=dict(
             tax_system_code=0,
             customer=dict(

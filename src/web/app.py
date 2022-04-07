@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
 
 from src.web.gunicorn_config import workers
-from src.parameters import ABOUT, SUPPORT_BOT  # ABOUT не удалять
+from parameters import ABOUT, SUPPORT_BOT  # ABOUT не удалять
 from src.web.routers.admin import api, auth, chat, mailing
 from src.web.routers.user import login
 from src.modules import lb, sql, Texts

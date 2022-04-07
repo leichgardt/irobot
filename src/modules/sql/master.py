@@ -1,4 +1,4 @@
-from src.parameters import PID_TABLE
+from parameters import PID_TABLE
 from src.modules.sql.core import SQLCore
 
 
@@ -177,10 +177,10 @@ sql = SQLMaster()
 
 if __name__ == '__main__':
     import asyncio
-    from src.parameters import TEST_CHAT_ID
+    from parameters import TELEGRAM_TEST_CHAT_ID
 
     async def main():
-        res = await sql.get_accounts(TEST_CHAT_ID)
+        res = await sql.get_accounts(TELEGRAM_TEST_CHAT_ID)
         print(res)
 
     asyncio.run(main())

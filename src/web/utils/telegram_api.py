@@ -6,7 +6,7 @@ from aiogram.utils import exceptions
 
 from src.bot.schemas import keyboards, Keyboard
 from src.modules import sql, Texts
-from src.parameters import API_TOKEN
+from parameters import BOT_TOKEN
 
 __all__ = (
     'telegram_api',
@@ -23,7 +23,7 @@ __all__ = (
 class TelegramAPI(Bot):
     def __init__(self, **kwargs):
         if 'token' not in kwargs:
-            kwargs.update({'token': API_TOKEN})
+            kwargs.update({'token': BOT_TOKEN})
         super().__init__(**kwargs)
 
     def __del__(self):
@@ -118,10 +118,10 @@ telegram_api = TelegramAPI()
 
 
 if __name__ == '__main__':
-    from src.parameters import TEST_CHAT_ID
+    from parameters import TELEGRAM_TEST_CHAT_ID
 
     async def main():
-        res = await telegram_api.send_message(TEST_CHAT_ID, 'test message')
+        res = await telegram_api.send_message(TELEGRAM_TEST_CHAT_ID, 'test message')
         print(res)
 
     asyncio.run(main())

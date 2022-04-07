@@ -2,7 +2,7 @@ from aiologger import Logger
 from fastapi import APIRouter, Request, Response, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 
-from src.parameters import TEST_CHAT_ID
+from parameters import TELEGRAM_TEST_CHAT_ID
 from src.modules import lb, sql
 from src.web.utils import mailing as mailing_utils
 from src.web.utils.api import lan_require, get_request_data
@@ -130,7 +130,7 @@ async def api_status(_: Request):
     """
     output = 1
     try:
-        res1 = await sql.get_sub(TEST_CHAT_ID)
+        res1 = await sql.get_sub(TELEGRAM_TEST_CHAT_ID)
         res2 = await telegram_api.get_me()
     except Exception as e:
         await router.logger.error(e)

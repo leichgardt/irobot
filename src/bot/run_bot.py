@@ -6,13 +6,13 @@ import uvloop
 from aiogram.utils.executor import start_webhook
 
 from src.bot import bot, dp
-from src.parameters import TEST_CHAT_ID, WEBHOOK_HOST
+from parameters import TELEGRAM_TEST_CHAT_ID, BOT_WEBHOOK_URL
 from src.modules import lb, sql, Texts
 from src.utils import logger, logfile, logdir
 
 CERTIFICATE = ''
 WEBHOOK_PATH = '/'
-WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
+WEBHOOK_URL = f'{BOT_WEBHOOK_URL}{WEBHOOK_PATH}'
 
 WEBAPP_HOST = '0.0.0.0'
 WEBAPP_PORT = 5421
@@ -28,7 +28,7 @@ async def upd_texts():
 async def on_startup(dp):
     try:
         # проверим БД конечного автомата
-        await dp.storage.get_data(chat=TEST_CHAT_ID)
+        await dp.storage.get_data(chat=TELEGRAM_TEST_CHAT_ID)
     except Exception:
         raise ConnectionError(f'Can\'t connect to MongoDB: {dp.storage.__dict__["_host"]}')
     sql.logger = logger

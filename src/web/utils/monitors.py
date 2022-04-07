@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 from src.modules import lb, sql, Texts
-from src.parameters import CARDINALIS_URL, TELEGRAM_NOTIFY_BOT_URL, TEST_CHAT_ID
+from parameters import CARDINALIS_URL, TELEGRAM_NOTIFY_BOT_URL, TELEGRAM_TEST_CHAT_ID
 from src.utils import post_request
 from src.web.utils.chat import get_support_list
 from src.web.utils.telegram_api import send_message, get_profile_photo
@@ -55,7 +55,7 @@ async def auto_payment_monitor(logger, tries_num=5):
                     await sql.upd_payment(payment['hash'], status='failure')
                     await logger.warning(f'Payment monitor: FAILURE! Payment ID={payment["id"]}')
                     text = f'Irobot Payment Monitor [FAILURE]\nTries ended\nPayment ID = {payment["id"]}'
-                    await post_request(TELEGRAM_NOTIFY_BOT_URL, json={'chat_id': TEST_CHAT_ID, 'text': text},
+                    await post_request(TELEGRAM_NOTIFY_BOT_URL, json={'chat_id': TELEGRAM_TEST_CHAT_ID, 'text': text},
                                        _logger=logger)
             elif payment['status'] == 'processing':
                 # обработка платежа, который висит в состоянии 'processing' более часа

@@ -1,4 +1,4 @@
-from src.parameters import HOST_URL
+from parameters import HOST_URL
 
 
 def get_login_url(hash_code: str):

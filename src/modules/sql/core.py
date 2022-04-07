@@ -9,7 +9,7 @@ import psycopg2.errors
 import psycopg2.extensions
 import ujson
 
-from src.parameters import DB_NAME, DB_USER, DB_HOST
+from parameters import DB_NAME, DB_USER, DB_HOST
 
 
 class SQLCore:
@@ -36,9 +36,11 @@ class SQLCore:
     async def init_pool(self):
         if self.pool is not None:  # re-init pool
             await self.close_pool()
-        self.pool = await aiopg.create_pool(self._dsn.format(name=DB_NAME, user=DB_USER, host=DB_HOST),
-                                            minsize=self.pool_min_size,
-                                            maxsize=self.pool_max_size)
+        self.pool = await aiopg.create_pool(
+            self._dsn.format(name=DB_NAME, user=DB_USER, host=DB_HOST),
+            minsize=self.pool_min_size,
+            maxsize=self.pool_max_size
+        )
         if not self.logger:
             self.logger = aiologger.Logger(name='sql')
             self.logger.add_handler(aiologger.logger.AsyncStreamHandler())

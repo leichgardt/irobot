@@ -7,7 +7,7 @@ from zeep.client import Factory
 from zeep.exceptions import Fault
 from zeep.transports import AsyncTransport
 
-from src.parameters import LANBILLING_USER, LANBILLING_PASSWORD, LANBILLING_URL, LANBILLING_LOCATION
+from parameters import LAN_BILLING_USER, LAN_BILLING_PASSWORD, LAN_BILLING_URL, LAN_BILLING_LOCATION
 from src.utils import logger, get_datetime, get_phone_number
 
 
@@ -38,10 +38,10 @@ class LBZeepCore:
     get_phone_number = staticmethod(get_phone_number)
 
     def __init__(self, logger=logger):
-        self.user = LANBILLING_USER
-        self.__password = LANBILLING_PASSWORD
-        self._api_url = LANBILLING_URL
-        self._api_location = LANBILLING_LOCATION
+        self.user = LAN_BILLING_USER
+        self.__password = LAN_BILLING_PASSWORD
+        self._api_url = LAN_BILLING_URL
+        self._api_location = LAN_BILLING_LOCATION
         self.loop: uvloop.Loop = None
         self.client: CustomAsyncClient = None
         self.factory: Factory = None

@@ -5,7 +5,7 @@ from urllib.parse import urlparse, parse_qs
 
 from fastapi import Request, Response
 
-from src.parameters import ABOUT, HOST_IP_LIST, VERSION
+from parameters import ABOUT, HOST_IP_LIST, VERSION
 
 __all__ = (
     'get_query_params',

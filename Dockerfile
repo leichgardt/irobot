@@ -3,9 +3,9 @@ MAINTAINER leichgardt
 # copy project files and install environment
 COPY . /app
 RUN chown -R www-data:www-data /app &&  \
-    chmod 777 /var/log &&  \
     touch /var/log/irobot.log &&  \
     touch /var/log/irobot-web.log  && \
+    chmod 777 /var/log &&  \
     chown www-data:www-data /var/log/irobot*
 RUN apt-get update &&  \
     apt-get install -y bash git build-essential nano tzdata

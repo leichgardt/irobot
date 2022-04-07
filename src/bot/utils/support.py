@@ -1,7 +1,7 @@
 from aiogram import types
 
 from src.modules import sql
-from src.parameters import HOST_URL
+from parameters import HOST_URL
 from src.utils import logger, post_request
 
 
