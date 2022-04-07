@@ -120,6 +120,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function read_chat() {
+        chat_data[selected_chat]['read'] = true;
+        check_read_icon(selected_chat);
+        check_read_btn(selected_chat);
         ws.send(JSON.stringify({'action': 'read_chat', 'data': selected_chat}));
     }
 
@@ -364,8 +367,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
     function update_chat_in_list(msg) {
         new_chat_datetime(msg['chat_id'], msg['date'], msg['time']);
-        check_read_icon(msg['chat_id'], msg['oper_id']);
-        check_read_btn(msg['chat_id'], msg['oper_id']);
+        chat_data[msg['chat_id']]['read'] = !!msg['oper_id'];
+        check_read_icon(msg['chat_id']);
+        check_read_btn(msg['chat_id']);
     }
 
     function new_chat_datetime(chat_id, date, time) {
@@ -374,11 +378,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
         about[1].innerText = `${time} ${date}`;
     }
 
-    function check_read_icon(chat_id, oper_id) {
+    function check_read_icon(chat_id) {
         let chat_block = document.getElementById(`chat-${chat_id}`);
         chat_block.getElementsByClassName('col-1')[0].remove();
-        chat_data[chat_id]['read'] = !!oper_id;
-        chat_block.appendChild(get_chat_sign(chat_id));
+        chat_block.appendChild(get_chat_read_eye(chat_id));
     }
 
     function check_read_btn(chat_id) {

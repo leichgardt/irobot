@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from src.modules import lb, sql, Texts
 from src.parameters import CARDINALIS_URL, TELEGRAM_NOTIFY_BOT_URL, TEST_CHAT_ID
 from src.utils import post_request
+from src.web.utils.chat import get_support_list
 from src.web.utils.telegram_api import send_message, get_profile_photo
 
 
@@ -100,7 +101,7 @@ async def send_feedback_to_cardinalis(logger, input_task_id, input_text):
 
 
 async def update_all_chat_photo():
-    chats = await sql.get_support_dialog_list()
+    chats = await get_support_list()
     for i, chat in chats.items():
         photo = await get_profile_photo(chat['chat_id'])
         if photo:

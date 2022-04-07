@@ -1,10 +1,48 @@
+from datetime import datetime
 from src.bot.schemas import keyboards
+from src.bot.utils import support
 from src.modules import sql
-from src.web.utils.telegram_api import send_message
+from src.web.utils import telegram_api
+
+
+async def get_support_list():
+    """ Получить список чатов, находящихся в поддержке """
+    chats = await sql.execute(
+        '''
+        SELECT c.chat_id, c.closed, c.oper_id, o.full_name as oper_name, s.first_name, s.photo, MAX(m.datetime) as dt, 
+        m.read
+            FROM irobot.support c
+            LEFT JOIN irobot.support cc
+                ON c.chat_id = cc.chat_id AND c.opened < cc.opened
+            LEFT JOIN irobot.operators o
+                ON c.oper_id = o.oper_id
+            LEFT JOIN irobot.subs s
+                ON c.chat_id = s.chat_id
+            JOIN (
+                SELECT m.chat_id, MAX(m.datetime) as datetime, m.read 
+                    FROM irobot.support_messages m
+                    LEFT JOIN irobot.support_messages mm
+                        ON m.chat_id = mm.chat_id AND m.datetime < mm.datetime
+                    WHERE mm.chat_id IS null
+                    GROUP BY m.chat_id, m.read
+            ) m
+                ON c.chat_id = m.chat_id
+            WHERE cc.chat_id IS NULL
+            GROUP BY c.chat_id, c.closed, c.oper_id, oper_name, s.first_name, s.photo, m.read
+            ORDER BY dt DESC''',
+        as_dict=True
+    )
+    for chat in chats:
+        sql.split_datetime(chat, 'dt')
+        chat.update({'support_mode': True if not chat['closed'] else False})
+        chat.pop('closed')
+    return {i: {key: value.strftime('%H:%M:%S %d.%m.%Y') if isinstance(value, datetime) else value
+                for key, value in chat.items()}
+            for i, chat in enumerate(chats)} if chats else {}
 
 
 async def get_accounts_and_chats():
-    chats = await sql.get_support_dialog_list()
+    chats = await get_support_list()
     accounts = await get_chat_accounts_in_support_need()
     return {'chats': chats, 'accounts': accounts}
 
@@ -33,14 +71,13 @@ async def get_chat_messages(chat_id, page=0):
 
 
 async def send_oper_message(data, oper_id, oper_name, **kwargs):
-    msg = await send_message(data['chat_id'], data['text'], **kwargs)
+    msg = await telegram_api.send_message(data['chat_id'], data['text'], **kwargs)
     if msg and msg.message_id > 0:
-        dt = await sql.insert(
-            'insert into irobot.support_messages (chat_id, message_id, from_oper, content_type, content) '
-            'values (%s, %s, %s, %s, %s) returning datetime',
-            data['chat_id'], msg.message_id, oper_id, 'text', {'text': data['text']}
+        await read_chat(data['chat_id'])
+        msg_date = await support.add_support_message_to_db(
+            data['chat_id'], msg.message_id, 'text', {'text': data['text']}, oper_id, read=True
         )
-        date, time = sql.split_datetime(dt)
+        date, time = sql.split_datetime(msg_date if msg_date else datetime.now())
         return {
             'chat_id': data['chat_id'],
             'message_id': msg.message_id,
@@ -54,19 +91,38 @@ async def send_oper_message(data, oper_id, oper_name, **kwargs):
 
 
 async def take_chat(chat_id, oper_id):
-    await sql.update('irobot.support_chats', f'chat_id={chat_id}', oper_id=oper_id)
+    sup = await get_live_support(chat_id)
+    await set_oper_to_support(sup['support_id'], oper_id)
+    await add_support_operation(sup['support_id'], oper_id, 'take')
 
 
 async def drop_chat(chat_id, oper_id):
-    await sql.update('irobot.support_chats', f'chat_id={chat_id} and oper_id={oper_id}', oper_id=None)
+    sup = await get_live_support(chat_id)
+    await set_oper_to_support(sup['support_id'], None)
+    await add_support_operation(sup['support_id'], oper_id, 'drop')
 
 
 async def finish_support(chat_id, oper_id, oper_name):
-    # todo переделать support_chats в support (support_id, feedback) и support_operators (oper_id, datetime)
-    await sql.update('irobot.support_chats', f'chat_id={chat_id}', support_mode=False, oper_id=None)
+    sup = await get_live_support(chat_id)
+    await set_oper_to_support(sup['support_id'], None)
+    await add_support_operation(sup['support_id'], oper_id, 'close')
     return await send_oper_message({'chat_id': chat_id, 'text': 'Спасибо за обращение!'}, oper_id, oper_name,
                                    reply_markup=keyboards.main_menu_kb)
     # todo add review
+
+
+async def get_live_support(chat_id):
+    return await sql.execute('SELECT support_id FROM irobot.support WHERE chat_id=%s AND closed is null',
+                             chat_id, as_dict=True, fetch_one=True)
+
+
+async def set_oper_to_support(support_id, oper_id):
+    await sql.execute('UPDATE irobot.support SET oper_id= %s WHERE support_id=%s', oper_id, support_id)
+
+
+async def add_support_operation(support_id, oper_id, operation):
+    await sql.execute('INSERT INTO irobot.support_oper_history (support_id, oper_id, operation) VALUES (%s, %s, %s)',
+                      support_id, oper_id, operation)
 
 
 async def get_chat_accounts_in_support_need():
@@ -84,4 +140,4 @@ async def get_chat_accounts_in_support_need():
 
 
 async def read_chat(chat_id):
-    await sql.execute('update irobot.support_chats set read=true where chat_id=%s', chat_id)
+    await sql.execute('UPDATE irobot.support_messages SET read=true WHERE chat_id=%s', chat_id)

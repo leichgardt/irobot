@@ -5,5 +5,4 @@ __all__ = 'SupportFSM',
 
 class SupportFSM(StatesGroup):
     # Техподдержка
-    operator = State()
-    live = State()
+    support = State()

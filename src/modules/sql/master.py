@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from src.parameters import PID_TABLE
 from src.modules.sql.core import SQLCore
 
@@ -173,43 +171,6 @@ class SQLMaster(SQLCore):
     async def finish_feedback_task(self, task_id):
         await self.execute('UPDATE cardinalis.tasks SET status=true, update_datetime=now() '
                            'WHERE status=false AND task_id=%s', task_id)
-
-    async def add_support_message(self, chat_id, message_id, message_type, message_data):
-        await self.insert(
-            'INSERT INTO irobot.support_messages (chat_id, message_id, content_type, content) '
-            'VALUES (%s, %s, %s, %s)', chat_id, message_id, message_type, message_data
-        )
-
-    async def get_support_dialog_list(self):
-        operators = await self.execute('select oper_id, full_name from irobot.operators', as_dict=True)
-        operators = {oper['oper_id']: oper['full_name'] for oper in operators}
-        chats = await self.execute(
-            'SELECT c.chat_id, MAX(m.datetime) AS datetime, c.support_mode, s.first_name, s.photo, c.oper_id, c.read '
-            'FROM irobot.support_chats c '
-            'JOIN irobot.subs s on c.chat_id=s.chat_id '
-            'JOIN irobot.support_messages m on c.chat_id=m.chat_id '
-            'GROUP BY c.chat_id, s.support_mode, s.first_name, s.photo '
-            'ORDER BY datetime DESC',
-            as_dict=True
-        )
-        for chat in chats:
-            self.split_datetime(chat)
-            if chat['oper_id']:
-                chat.update({'oper_name': operators[chat['oper_id']]})
-            else:
-                chat.update({'oper_name': None})
-        return {i: {key: value.strftime('%H:%M:%S %d.%m.%Y') if isinstance(value, datetime) else value
-                    for key, value in chat.items()}
-                for i, chat in enumerate(chats)} if chats else {}
-
-    async def get_last_support_dialog_update(self, chat_id):
-        res = await self.execute('SELECT datetime, writer, type FROM irobot.support_dialogs WHERE chat_id=%s '
-                                 'ORDER BY datetime DESC LIMIT 1', chat_id)
-        return res[0] if res else []
-
-    async def get_support_dialog(self, chat_id, offset=0):
-        return await self.execute('SELECT datetime, writer, type, data FROM irobot.support_dialogs WHERE chat_id=%s '
-                                  'ORDER BY datetime OFFSET %s LIMIT 10', chat_id, offset)
 
 
 sql = SQLMaster()
