@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function get_chat_support_mode_icon(chat_id) {
-        return chat_data[chat_id]['oper_id'] ? '<i class="fa fa-circle online"></i>' : '<i class="fa fa-circle offline"></i>'
+        return chat_data[chat_id]['support_mode'] === false ? '<i class="fa fa-circle online"></i>' : '<i class="fa fa-circle offline"></i>'
     }
 
     function get_chat_support_mode_oper_icon(chat_id) {
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
             let icon = document.createElement('i');
             icon.classList.add('fa', 'fa-circle');
             icon.style.marginLeft = '3px';
-            chat_data[chat_id]['oper_id'] ? icon.classList.add('online') : icon.classList.add('offline');
+            icon.classList.add('offline');
             return icon
         }
         return ''
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         return about;
     }
 
-    function get_chat_sign(chat_id) {
+    function get_chat_read_eye(chat_id) {
         let block = document.createElement('div');
         block.classList.add('col-1', 'text-right');
         block.innerHTML = chat_data[chat_id]['read'] ? '' : '<i class="fa fa-eye-slash" ></i>';
@@ -216,15 +216,18 @@ document.addEventListener('DOMContentLoaded', function (event) {
         li.id = `chat-${chat_id}`;
         li.appendChild(get_photo(chat_id));
         li.appendChild(get_chat_about(chat_id));
-        li.appendChild(get_chat_sign(chat_id));
+        li.appendChild(get_chat_read_eye(chat_id));
         li.onclick = function () {
-            let chats = document.getElementsByClassName('chat-item');
-            select_chat(chat_id);
-            load_chat(chat_id);
-            check_this_is_my_chat(chat_id);
-            for (let i = 0; i < chats.length; i++) {
-                chats[i].classList.remove('active');
-                li.classList.add('active');
+            if (!(li.classList.contains('active'))) {
+                let chats = document.getElementsByClassName('chat-item');
+                select_chat(chat_id);
+                check_read_btn(chat_id);
+                load_chat(chat_id);
+                check_this_is_my_chat(chat_id);
+                for (let i = 0; i < chats.length; i++) {
+                    chats[i].classList.remove('active');
+                    li.classList.add('active');
+                }
             }
         }
         return li;
@@ -247,6 +250,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
             chat_list_block.appendChild(chat);
         }
         if (selected_chat !== 0) {
+            document.getElementById(`chat-${selected_chat}`).classList.add('active');
             load_chat(selected_chat);
         }
     }
@@ -254,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     function create_message_datetime(date) {
         let span = document.createElement('span');
         span.classList.add('message-data-time');
-        span.innerText = `${date}`;
+        span.innerText = date;
         return span;
     }
 
@@ -273,16 +277,18 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function add_message_header(name, time) {
-        let name_small = document.createElement('small');
-        name_small.innerText = name;
-        let time_small = document.createElement('small');
-        time_small.classList.add('message-date');
-        time_small.innerHTML = `<i>${time}</i>`;
+    function add_message_name(name) {
         let header = document.createElement('div');
-        header.appendChild(name_small);
-        header.appendChild(time_small);
+        header.classList.add('message-name');
+        header.innerHTML = name
         return header
+    }
+
+    function add_message_time(time) {
+        let time_small = document.createElement('small');
+        time_small.classList.add('message-date', 'pl-2');
+        time_small.innerText = time;
+        return time_small
     }
 
     function create_message(msg) {
@@ -290,14 +296,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
         message.classList.add('message');
         if (msg['oper_id'] === null) {
             message.classList.add('other-message', 'float-right');
-            message.appendChild(add_message_header(chat_data[selected_chat]['first_name'], msg['time']));
-        } else if (msg['oper_id'] === get_cookie('oper_id', true)) {
-            message.classList.add('my-message', 'float-left');
-        } else {
+            message.appendChild(add_message_name(chat_data[selected_chat]['first_name']));
+        } else if (msg['oper_id'] !== get_cookie('oper_id', true)) {
             message.classList.add('other-message', 'float-right');
-            message.appendChild(add_message_header(`Оператор: ${msg['oper_name']}`));
+            message.appendChild(add_message_name(`Оператор: ${msg['oper_name']}`));
+        } else {
+            message.classList.add('my-message', 'float-left');
         }
         message.innerHTML += get_message_content(msg);
+        message.appendChild(add_message_time(msg['time']));
         return message;
     }
 
