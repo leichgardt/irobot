@@ -1,3 +1,8 @@
+.load-link {
+    text-align: center;
+    font-size: 14px;
+}
+
 @keyframes append-animate {
 	from {
 		transform: scale(0);
@@ -144,7 +149,7 @@
     margin-bottom: 0;
 }
 
-.chat .chat-history .message-date {
+.chat .chat-history .message-time {
     color: #626262;
     position: absolute;
     bottom: 3px;
@@ -152,22 +157,13 @@
     font-style: italic;
 }
 
-.chat .chat-history .message-date::before {
+.chat .chat-history .message-time::before {
     content: ' ';
 }
 
-.chat .chat-history .message-data-time {
+.chat .chat-history .message-date {
     font-style: italic;
     font-size: 14px;
-}
-
-.chat .chat-history .message-data {
-    margin-bottom: 15px;
-}
-
-.chat .chat-history .message-data img {
-    border-radius: 40px;
-    width: 40px;
 }
 
 .chat .chat-history .message-name {

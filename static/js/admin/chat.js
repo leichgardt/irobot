@@ -1,5 +1,6 @@
-document.addEventListener('DOMContentLoaded', function (event) {
+document.addEventListener('DOMContentLoaded', function () {
     let chat_data = {};
+    let chat_history = {};
     let chat_list_block = document.getElementById('chat-list');
     let ws = null;
     let selected_chat = 0;
@@ -33,14 +34,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function get_chat_support_mode_oper_icon(chat_id) {
+        let icon = document.createElement('i');
         if (chat_data[chat_id]['support_mode'] === true) {
-            let icon = document.createElement('i');
-            icon.classList.add('fa', 'fa-circle');
+            icon.classList.add('fa', 'fa-circle', 'offline');
             icon.style.marginLeft = '3px';
-            icon.classList.add('offline');
-            return icon
         }
-        return ''
+        return icon
     }
 
     function get_chat_about(chat_id) {
@@ -65,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         return block
     }
 
-    btn_take.onclick = function (event) {
+    btn_take.onclick = function () {
         take_chat_start();
     }
 
@@ -190,6 +189,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     function select_chat(chat_id) {
         if (selected_chat !== chat_id) {
             selected_chat = chat_id;
+            document.getElementById('chat-history').innerHTML = '';
             load_saved_input_value(chat_id);
             new_selected_chat_photo(chat_id);
             new_selected_chat_name(chat_id);
@@ -197,9 +197,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function load_chat(chat_id, page = 0) {
-        let data = {'action': 'get_chat', 'data': {'chat_id': chat_id, 'page': page}};
-        ws.send(JSON.stringify(data));
+    function load_chat(chat_id) {
+        let message_id = ('first_message_id' in chat_data[chat_id]) ? chat_data[chat_id]['first_message_id'] : 0;
+        if (chat_history[chat_id] === undefined) {
+            let data = {'action': 'get_chat', 'data': {'chat_id': chat_id, 'message_id': message_id}};
+            ws.send(JSON.stringify(data));
+        } else {
+            let old_messages = {'messages': chat_history[chat_id], 'chat_id': chat_id, 'first_message_id': message_id};
+            fill_block_of_chat_history(old_messages, true);
+        }
     }
 
     function check_this_is_my_chat(chat_id) {
@@ -219,15 +225,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
         li.appendChild(get_chat_read_eye(chat_id));
         li.onclick = function () {
             if (!(li.classList.contains('active'))) {
-                let chats = document.getElementsByClassName('chat-item');
                 select_chat(chat_id);
-                check_read_btn(chat_id);
                 load_chat(chat_id);
+                check_read_btn(chat_id);
                 check_this_is_my_chat(chat_id);
+                let chats = document.getElementsByClassName('chat-item');
                 for (let i = 0; i < chats.length; i++) {
                     chats[i].classList.remove('active');
-                    li.classList.add('active');
                 }
+                li.classList.add('active');
             }
         }
         return li;
@@ -255,17 +261,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    function create_message_datetime(date) {
-        let span = document.createElement('span');
-        span.classList.add('message-data-time');
-        span.innerText = date;
-        return span;
-    }
-
     function create_message_date(msg) {
         let message_data = document.createElement('div');
         message_data.classList.add('text-center');
-        message_data.appendChild(create_message_datetime(msg['date']))
+        let span = document.createElement('span');
+        span.innerText = msg['date'];
+        message_data.appendChild(span)
         return message_data;
     }
 
@@ -286,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
     function add_message_time(time) {
         let time_small = document.createElement('small');
-        time_small.classList.add('message-date', 'pl-2');
+        time_small.classList.add('message-time', 'pl-2');
         time_small.innerText = time;
         return time_small
     }
@@ -308,36 +309,126 @@ document.addEventListener('DOMContentLoaded', function (event) {
         return message;
     }
 
-    function add_chat_message(msg) {
+    function add_chat_message(msg, to_start=false) {
         let li = document.createElement('li');
         li.classList.add('clearfix');
         li.appendChild(create_message(msg));
         let chat = document.getElementById('chat-history');
-        chat.appendChild(li);
+        if (to_start) {
+            insert_into_chat_end(li);
+        } else {
+            chat.appendChild(li);
+        }
         li.scrollIntoView(false);
     }
 
-    function add_message_date(msg) {
+    function add_message_date(msg, to_start=false) {
         let li = document.createElement('li');
-        li.classList.add('clearfix');
+        li.classList.add('clearfix', 'message-date');
         li.appendChild(create_message_date(msg));
         let chat = document.getElementById('chat-history');
-        chat.appendChild(li);
+        if (to_start)
+            insert_into_chat_end(li);
+        else
+            chat.appendChild(li);
     }
 
-    function fill_chat_history(data) {
-        let chat = document.getElementById('chat-history');
-        chat.innerHTML = '';
-        for (let i in data) {
-            if ((i === '0') || (parseInt(i) > 0 && data[i - 1]['date'] !== data[i]['date'])) {
-                add_message_date(data[i]);
+    function fill_block_of_chat_history(data, skip_saving=false) {
+        let chat_id = data['chat_id'];
+        let messages = data['messages'];
+        let first_message_id = data['first_message_id'];
+        if (!skip_saving)
+            save_data_of_chat_messages(chat_id, messages);
+        chat_data[chat_id]['first_message_id'] = first_message_id;
+        let keys = Object.keys(messages).sort();
+        for (let i in keys) {
+            let message_id = keys[i];
+            if ((message_id - first_message_id === 0) ||
+                (message_id - 1 in messages && messages[message_id - 1]['date'] !== messages[message_id]['date'])) {
+                add_message_date(messages[message_id]);
             }
-            add_chat_message(data[i]);
+            add_chat_message(messages[message_id]);
         }
+        add_message_download_link(chat_id);
+    }
+
+    function insert_into_chat_end(element) {
+        let chat = document.getElementById('chat-history');
+        chat.insertBefore(element, chat.getElementsByTagName('li')[0])
+    }
+
+    function save_data_of_chat_messages(chat_id, messages) {
+        for (let message_id in messages) {
+            let mid = parseInt(message_id);
+            if (chat_id in chat_history) {
+                chat_history[chat_id][mid] = messages[message_id];
+            } else {
+                chat_history[chat_id] = {};
+                chat_history[chat_id][mid] = messages[message_id];
+            }
+        }
+    }
+
+    function add_new_messages_before(data) {
+        let chat_id = data['chat_id'];
+        let messages = data['messages'];
+        chat_data[chat_id]['first_message_id'] = data['first_message_id'];
+        save_data_of_chat_messages(chat_id, messages);
+        let chat = document.getElementById('chat-history');
+        clean_load_links_into_chat(chat);
+        let keys = Object.keys(messages).reverse();
+        delete_chat_date_if_one_date(messages[keys[0]]);
+        for (let i = 0; i < keys.length; i++) {
+            if (i > 0 && messages[keys[i]]['date'] !== messages[keys[i - 1]]['date'])
+                add_message_date(messages[keys[i - 1]], true);
+            add_chat_message(messages[keys[i]], true);
+        }
+        add_message_date(messages[keys[keys.length - 1]], true);
+        add_message_download_link(chat_id);
+    }
+
+    function delete_chat_date_if_one_date(message) {
+        let first_msg = document.getElementById('chat-history').getElementsByTagName('li')[0];
+        if (first_msg.classList.contains('message-date') && message['date'] === first_msg.innerText)
+            first_msg.remove()
+    }
+
+    function clean_load_links_into_chat(chat) {
+        let messages = chat.getElementsByTagName('li');
+        if (messages.length > 0) {
+            for (let i in messages) {
+                if (typeof messages[i] === 'object' && messages[i].classList.contains('load-link')) {
+                    messages[i].remove();
+                }
+            }
+        }
+    }
+
+    function add_message_download_link(chat_id) {
+        if (chat_data[chat_id]['first_message_id'] > chat_data[chat_id]['min_message_id']) {
+            let link = document.createElement('a');
+            link.onclick = function () {
+                load_messages(chat_id, chat_data[chat_id]['first_message_id']);
+            }
+            link.href = '#';
+            link.innerText = `Загрузить ещё ${chat_data[chat_id]['first_message_id']}`;
+            let block = document.createElement('li');
+            block.classList.add('text-center', 'load-link');
+            block.appendChild(link);
+            insert_into_chat_end(block);
+        }
+    }
+
+    function load_messages(chat_id, first_message_id) {
+        let data = {'chat_id': chat_id, 'message_id': first_message_id};
+        ws.send(JSON.stringify({'action': 'load_messages', 'data': data}));
     }
 
     function get_message(msg) {
         send_notification('Новое сообщение', get_message_content(msg));
+        let messages = {};
+        messages[msg['message_id']] = msg;
+        save_data_of_chat_messages(msg['chat_id'], msg);
         if (msg['chat_id'] in chat_data) {
             play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
             update_chat_in_list(msg);
@@ -435,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         }
     }
 
-    input.oninput = function (event) {
+    input.oninput = function () {
         chat_inputs[selected_chat] = input.value;
     }
 
@@ -453,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
             return;
         ws = new WebSocket(`ws://${document.location.host}/ws?access_token=${get_cookie('access_token')}`);
         ws.onclose = function () {
-            setTimeout(connectWS, 1500)
+            setTimeout(connectWS, 1500);
         }
         ws.onmessage = function (event) {
             let command = JSON.parse(event.data)['action'];
@@ -462,7 +553,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
             if (command === 'get_chats')
                 fill_chat_list(data);
             else if (command === 'get_chat')
-                fill_chat_history(data);
+                fill_block_of_chat_history(data);
+            else if (command === 'load_messages')
+                add_new_messages_before(data);
             else if (command === 'get_message')
                 get_message(data);
             else if (command === 'take_chat')

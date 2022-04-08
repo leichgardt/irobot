@@ -6,11 +6,11 @@ from src.web.utils import telegram_api
 
 
 async def get_support_list():
-    """ Получить список чатов, находящихся в поддержке """
+    """ Получить список чатов, находящихся в поддержке, и данных о них """
     chats = await sql.execute(
         '''
-        SELECT c.chat_id, c.closed, c.oper_id, o.full_name as oper_name, s.first_name, s.photo, MAX(m.datetime) as dt, 
-        m.read
+        SELECT c.chat_id, c.closed, o.oper_id, o.full_name as oper_name, s.first_name, s.photo, MAX(m.datetime) as dt, 
+        m.read, m2.min_message_id
             FROM irobot.support c
             LEFT JOIN irobot.support cc
                 ON c.chat_id = cc.chat_id AND c.opened < cc.opened
@@ -27,9 +27,15 @@ async def get_support_list():
                     GROUP BY m.chat_id, m.read
             ) m
                 ON c.chat_id = m.chat_id
+            JOIN (
+                SELECT chat_id, MIN(message_id) as min_message_id
+                    FROM irobot.support_messages
+                    GROUP BY chat_id
+            ) m2
+                ON c.chat_id = m2.chat_id
             WHERE cc.chat_id IS NULL
-            GROUP BY c.chat_id, c.closed, c.oper_id, oper_name, s.first_name, s.photo, m.read
-            ORDER BY dt DESC''',
+            GROUP BY c.chat_id, c.closed, o.oper_id, oper_name, s.first_name, s.photo, m.read, m2.min_message_id
+            ORDER BY dt DESC;''',
         as_dict=True
     )
     for chat in chats:
@@ -58,16 +64,17 @@ async def get_subscriber_message(chat_id, message_id):
     return msg if msg else {}
 
 
-async def get_chat_messages(chat_id, page=0):
-    msgs = await sql.execute(
-        'select m.message_id, m.datetime, m.from_oper as oper_id, o.full_name as oper_name, m.content_type, m.content '
-        'from irobot.support_messages m left join irobot.operators o on m.from_oper=o.oper_id '
-        'where m.chat_id=%s order by datetime desc', chat_id, as_dict=True
+async def get_chat_messages(chat_id, end_message_id=0):
+    flt = '' if not end_message_id else f'AND message_id < {end_message_id}'
+    messages = await sql.execute(
+        f'SELECT m.message_id, m.datetime, m.from_oper AS oper_id, o.full_name AS oper_name, m.content_type, m.content '
+        f'FROM irobot.support_messages m LEFT JOIN irobot.operators o ON m.from_oper=o.oper_id '
+        f'WHERE m.chat_id=%s {flt} ORDER BY message_id DESC LIMIT 10', chat_id, as_dict=True
     )
-    for msg in msgs:
+    for msg in messages:
         sql.split_datetime(msg)
-    msgs.reverse()
-    return msgs
+    messages = {msg['message_id']: msg for msg in messages}
+    return {'messages': messages, 'chat_id': chat_id, 'first_message_id': min(messages.keys())}
 
 
 async def send_oper_message(data, oper_id, oper_name, **kwargs):
@@ -127,8 +134,8 @@ async def add_support_operation(support_id, oper_id, operation):
 
 async def get_chat_accounts_in_support_need():
     subs = await sql.execute(
-        'select chat_id, login from irobot.accounts where active=true '
-        'and chat_id in (select distinct chat_id from irobot.support_messages)', as_dict=True
+        'SELECT chat_id, login FROM irobot.accounts WHERE active=true '
+        'AND chat_id IN (SELECT DISTINCT chat_id FROM irobot.support_messages)', as_dict=True
     )
     accounts = {}
     for sub in subs:

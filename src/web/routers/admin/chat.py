@@ -33,32 +33,34 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
         await websocket.send_json({'action': 'get_chats', 'data': chats})
         try:
             while True:
-                data = await websocket.receive_json()
-                if data['action'] == 'get_chats':
+                input_data = await websocket.receive_json()
+                action = input_data.get('action')
+                data = input_data.get('data')
+                if action == 'get_chats':
                     chats = await chat_utils.get_accounts_and_chats()
                     await websocket.send_json({'action': 'get_chats', 'data': chats})
-                elif data['action'] == 'get_chat':
-                    messages = await chat_utils.get_chat_messages(data['data']['chat_id'], data['data']['page'])
-                    await websocket.send_json({'action': 'get_chat', 'data': messages})
-                elif data['action'] == 'send_message':
-                    msg = await chat_utils.send_oper_message(data['data'], oper['oper_id'], oper['full_name'])
+                elif action in ('get_chat', 'load_messages'):
+                    output = await chat_utils.get_chat_messages(data['chat_id'], data['message_id'])
+                    await websocket.send_json({'action': action, 'data': output})
+                elif action == 'send_message':
+                    msg = await chat_utils.send_oper_message(data, oper['oper_id'], oper['full_name'])
                     await manager.broadcast('get_message', msg, firstly=websocket)
-                elif data['action'] == 'take_chat':
-                    await chat_utils.take_chat(data['data'], oper['oper_id'])
-                    output = {'chat_id': data['data'], 'oper_id': oper['oper_id'], 'oper_name': oper['full_name']}
+                elif action == 'take_chat':
+                    await chat_utils.take_chat(data, oper['oper_id'])
+                    output = {'chat_id': data, 'oper_id': oper['oper_id'], 'oper_name': oper['full_name']}
                     await manager.broadcast('take_chat', output, firstly=websocket)
-                elif data['action'] == 'drop_chat':
-                    await chat_utils.drop_chat(data['data'], oper['oper_id'])
-                    output = {'chat_id': data['data'], 'oper_id': oper['oper_id']}
+                elif action == 'drop_chat':
+                    await chat_utils.drop_chat(data, oper['oper_id'])
+                    output = {'chat_id': data, 'oper_id': oper['oper_id']}
                     await manager.broadcast('drop_chat', output, firstly=websocket)
-                elif data['action'] == 'finish_support':
-                    msg = await chat_utils.finish_support(data['data'], oper['oper_id'], oper['full_name'])
-                    output = {'chat_id': data['data'], 'oper_id': oper['oper_id']}
+                elif action == 'finish_support':
+                    msg = await chat_utils.finish_support(data, oper['oper_id'], oper['full_name'])
+                    output = {'chat_id': data, 'oper_id': oper['oper_id']}
                     await manager.broadcast('get_message', msg, firstly=websocket)
                     await manager.broadcast('finish_support', output, firstly=websocket)
                     # todo show results: messages count, time left, operators in the support
-                elif data['action'] == 'read_chat':
-                    await chat_utils.read_chat(data['data'])
+                elif action == 'read_chat':
+                    await chat_utils.read_chat(data)
                     chats = await chat_utils.get_accounts_and_chats()
                     await manager.broadcast('get_chats', chats, ignore_list=[websocket])
                 else:
