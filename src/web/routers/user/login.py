@@ -1,19 +1,19 @@
+from aiologger import Logger
 from fastapi import APIRouter, Request, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 from starlette.responses import Response
-from pydantic import BaseModel
 
 from src.modules import lb, sql, Texts
-from src.utils import aio_logger
 from src.web import GlobalDict
+from src.web.schemas.login import LoginItem
 from src.web.utils.login import logining
 
 
 default_context = GlobalDict('web-default-context')
 default_params = GlobalDict('web-default-parameters')
 router = APIRouter()
+router.logger = Logger.with_default_handlers()
 templates = Jinja2Templates(directory='templates')
-logger = aio_logger('irobot-web')
 
 
 @router.get('/login')
@@ -24,12 +24,6 @@ async def login_page(request: Request, hash_code: str = None):
     message = {'title': Texts.web.error, 'textlines': Texts.web.login_try_again}
     context = dict(request=request, title=Texts.web.auth, message=message, **default_context)
     return templates.TemplateResponse('user/page.html', context, headers=default_params['headers'])
-
-
-class LoginItem(BaseModel):
-    login: str = ''
-    pwd: str = ''
-    hash: str = ''
 
 
 @router.post('/api/login')
@@ -48,25 +42,26 @@ async def login_try_request(response: Response, background_tasks: BackgroundTask
             chat_id = await sql.find_chat_by_hash(item.hash)
             if chat_id:
                 if item.login in await sql.get_accounts(chat_id):
-                    await logger.info(f'Login: account already added [{chat_id}]')
+                    await router.logger.info(f'Login: account already added [{chat_id}]')
                     return {'response': 2}
-                await logger.info(f'Logining [{chat_id}]')
+                await router.logger.info(f'Logining [{chat_id}]')
                 background_tasks.add_task(logining, chat_id, item.login)
                 response.status_code = 202
                 return {'response': 1}
             else:
-                await logger.info(f'Login: chat_id not found [{item.login}]')
+                await router.logger.info(f'Login: chat_id not found [{item.login}]')
                 return {'response': -1}
         elif res == 0:
-            await logger.info(f'Login: incorrect login or pwd [{item.login}]')
+            await router.logger.info(f'Login: incorrect login or pwd [{item.login}]')
             return {'response': 0}
         else:
-            await logger.info(f'Login: error [{item.login}]')
+            await router.logger.info(f'Login: error [{item.login}]')
             return {'response': -1}
     return {'response': -2}
 
 
 @router.get('/login_success')
 async def successful_login_page(request: Request):
-    context = {'request': request, 'title': Texts.web.auth, 'message': {'title': Texts.web.auth_success}}
+    message = dict(title=Texts.web.auth_success)
+    context = dict(request=request, title=Texts.web.auth, message=message, **default_context)
     return templates.TemplateResponse('user/page.html', context, headers=default_params['headers'])

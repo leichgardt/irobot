@@ -1,5 +1,8 @@
 __author__ = 'leichgardt'
 
+import asyncio
+
+import uvloop
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -18,6 +21,11 @@ from src.web import (
     update_all_chat_photo
 )
 
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+loop = asyncio.get_event_loop()
+lb.loop = loop
+
 app = FastAPI(debug=False, root_path='/irobot')
 app.add_middleware(HTTPSRedirectMiddleware)
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
@@ -29,7 +37,7 @@ app.include_router(login.router)
 
 templates = Jinja2Templates(directory='templates')
 
-logger = aio_logger('irobot-web')
+logger = aio_logger('irobot-web', loop=loop)
 sql.logger = logger
 lb.logger = logger
 api.router.logger = logger
