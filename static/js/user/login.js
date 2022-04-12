@@ -92,6 +92,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
             .catch(error => {
                 console.log('Error [login]:', error);
                 on_loading = false;
+                btn_status(btn_login, 'error', 'Ошибка');
+                setTimeout(btn_status, 10000, btn_login, 'start');
             });
     }
 });

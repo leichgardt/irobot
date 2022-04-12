@@ -206,6 +206,10 @@
     background: #e8f1f3;
 }
 
+.chat .chat-history .other-oper-message {
+    background: #dcf9ff;
+}
+
 .chat .chat-message {
     padding: 20px;
 }

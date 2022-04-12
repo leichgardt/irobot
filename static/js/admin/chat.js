@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function check_this_is_my_chat(chat_id) {
+    function is_my_chat_check(chat_id) {
         if (chat_data[chat_id]['oper_id'] === get_cookie('oper_id', true)) {
             show_message_buttons(true);
         } else {
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 select_chat(chat_id);
                 load_chat(chat_id);
                 check_read_btn(chat_id);
-                check_this_is_my_chat(chat_id);
+                is_my_chat_check(chat_id);
                 let chats = document.getElementsByClassName('chat-item');
                 for (let i = 0; i < chats.length; i++) {
                     chats[i].classList.remove('active');
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
             message.classList.add('other-message', 'float-right');
             message.appendChild(add_message_name(chat_data[selected_chat]['first_name']));
         } else if (msg['oper_id'] !== get_cookie('oper_id', true)) {
-            message.classList.add('other-message', 'float-right');
+            message.classList.add('other-oper-message', 'float-right');
             message.appendChild(add_message_name(`Оператор: ${msg['oper_name']}`));
         } else {
             message.classList.add('my-message', 'float-left');
