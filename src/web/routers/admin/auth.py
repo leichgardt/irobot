@@ -28,22 +28,35 @@ async def auth_page(request: Request):
     return templates.TemplateResponse(f'admin/auth.html', context)
 
 
-@router.post('/api/sign-up', response_model=ops.Oper)
+@router.post('/api/sign-up', response_model=ops.OperBase)
 @lan_require
-async def sign_up_request(_: Request, oper: ops.OperCreate):
-    db_oper = await ops_utils.get_oper_by_login(oper.login)
+async def sign_up_request(_: Request, new_oper: ops.OperCreate, current_oper: ops.Oper = Depends(get_current_oper)):
+    """ Создать нового оператора (только для администраторов) """
+    print('sign_up_request::', new_oper)
+    if not current_oper.root:
+        raise HTTPException(status_code=400, detail='Not permitted')
+    db_oper = await ops_utils.get_oper_by_login(new_oper.login)
     if db_oper:
-        raise HTTPException(status_code=400, detail='Login already registered')
-    return await ops_utils.create_oper(oper)
+        raise HTTPException(status_code=400, detail=f'Operator "{new_oper.login}" already registered')
+    return await ops_utils.create_oper(new_oper)
+
+
+@router.post('/api/change-password')
+@lan_require
+async def sign_up_request(_: Request, data: ops.NewPassword, current_oper: ops.OperBase = Depends(get_current_oper)):
+    db_oper = await ops_utils.get_oper_by_login(current_oper.login)
+    if not ops_utils.validate_password(data.password, db_oper['hashed_password']):
+        raise HTTPException(status_code=400, detail='Incorrect password')
+    return await ops_utils.set_new_password(db_oper['oper_id'], data.new_password)
 
 
 @router.post('/api/auth', response_model=ops.Oper)
 @lan_require
 async def auth_request(_: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    oper = await ops_utils.get_oper_by_login(form_data.username)
-    if not oper:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    if not ops_utils.validate_password(form_data.password, oper['hashed_password']):
-        raise HTTPException(status_code=400, detail='Incorrect email or password')
-    token = await ops_utils.create_oper_token(oper['oper_id'])
-    return {**oper, 'token': token}
+    db_oper = await ops_utils.get_oper_by_login(form_data.username)
+    if not db_oper:
+        raise HTTPException(status_code=400, detail='Incorrect login or password')
+    if not ops_utils.validate_password(form_data.password, db_oper['hashed_password']):
+        raise HTTPException(status_code=400, detail='Incorrect login or password')
+    token = await ops_utils.create_oper_token(db_oper['oper_id'])
+    return {**db_oper, 'token': token}

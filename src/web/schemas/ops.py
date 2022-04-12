@@ -7,6 +7,12 @@ class OperCreate(BaseModel):
     login: str
     full_name: str
     password: str
+    root: bool
+
+
+class NewPassword(BaseModel):
+    password: str
+    new_password: str
 
 
 class OperBase(BaseModel):

@@ -29,6 +29,10 @@ footer {
 
 .navbar { background-color: #00141E; }
 
+.base-pre-input {
+    width: 155px;
+}
+
 #ironnet-img {
     border-style: hidden;
     width: 155px;

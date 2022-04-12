@@ -59,8 +59,9 @@
                     {{ oper.full_name }}
                 </button>
                 <div class="dropdown-menu dropdown-menu-right dropdown-menu-sm-right" aria-labelledby="oper-btn">
-{#                    <a id="btn-change-pwd" class="dropdown-item" href="#">Сменить пароль</a>#}
-                    <button id="btn-logout" class="dropdown-item">Выйти</button>
+                    <a class="dropdown-item" href="#" data-toggle="modal" data-target="#banner-password">Сменить пароль</a>
+                    <a class="dropdown-item collapse" href="#" data-toggle="modal" data-target="#banner-operator" id="create-oper-link">Создать оператора</a>
+                    <button class="dropdown-item" id="btn-logout">Выйти</button>
                 </div>
             </div>
             <input id="oper-name" class="sr-only" value="{{ oper.full_name }}">
@@ -69,6 +70,88 @@
         </div>
     </div>
 </nav>
+<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="banner-password" aria-hidden="true" id="banner-password">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Сменить пароль</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            </div>
+            <div class="modal-body text-justify" id="modal-change-password">
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text base-pre-input" id="addon1">Текущий пароль</span>
+                    </div>
+                    <input type="password" class="form-control" id="password1" aria-describedby="addon1">
+                </div>
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text base-pre-input" id="addon2">Новый пароль</span>
+                    </div>
+                    <input type="password" class="form-control" id="password2" aria-describedby="addon2">
+                </div>
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text base-pre-input" id="addon3">Подтвердите пароль</span>
+                    </div>
+                    <input type="password" class="form-control" id="password3" aria-describedby="addon3">
+                </div>
+                <div class="text-center mb-3 collapse" id="invalid-password-data" style="color: red">
+                    <span>* Неверный пароль</span>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-sm btn-outline-primary" id="change-password-btn">Сменить пароль</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="banner-operator" aria-hidden="true" id="banner-operator">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Регистрация нового оператора</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            </div>
+            <div class="modal-body text-justify" id="modal-change-password">
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text base-pre-input" id="addon4">Логин</span>
+                    </div>
+                    <input type="text" class="form-control" id="new-oper-login-input" aria-describedby="addon4">
+                </div>
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text base-pre-input" id="addon5">Имя</span>
+                    </div>
+                    <input type="text" class="form-control" id="new-oper-name-input" aria-describedby="addon5">
+                </div>
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text base-pre-input" id="addon6">Пароль</span>
+                    </div>
+                    <input type="password" class="form-control" id="new-oper-password-input" aria-describedby="addon6">
+                </div>
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text base-pre-input" id="addon7">Подтвердите пароль</span>
+                    </div>
+                    <input type="password" class="form-control" id="new-oper-password-verify-input" aria-describedby="addon7">
+                </div>
+                <div class="form-check mb-3 ml-2">
+                    <input type="checkbox" class="form-check-input" id="new-root-input">
+                    <label class="form-check-label" for="new-root-input">Администратор</label>
+                </div>
+                <div class="text-center mb-3 collapse" id="invalid-new-oper-data" style="color: red">
+                    <span>* Проверьте введенные данные</span>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-sm btn-outline-primary" id="btn-new-operator">Зарегистрировать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="banner-about" aria-hidden="true" id="banner-about">
     <div class="modal-dialog modal-md">
         <div class="modal-content">
