@@ -62,7 +62,7 @@ class SQLCore:
             as_dict=False,
             fetch_one=False
     ) -> Union[dict, List[Dict], List[List]]:
-        res = []
+        res = {} if as_dict and fetch_one else []
         need_to_retry = not retrying
         if self.pool is None:
             await self.init_pool()
@@ -102,9 +102,10 @@ class SQLCore:
             res = await cur.fetchone() if fetch_one else await cur.fetchall()
         except psycopg2.ProgrammingError as e:
             if 'no results to fetch' in str(e):
-                return None
-            else:
-                return None
+                if fetch_one and dict_flag:
+                    return {}
+                else:
+                    return []
         else:
             if fetch_one:
                 res = list(res)

@@ -9,7 +9,7 @@ async def get_support_list():
     """ Получить список чатов, находящихся в поддержке, и данных о них """
     chats = await sql.execute(
         '''
-        SELECT c.chat_id, c.closed, o.oper_id, o.full_name as oper_name, s.first_name, s.photo, MAX(m.datetime) as dt, 
+        SELECT c.chat_id, c.closed, o.oper_id, o.full_name as oper_name, s.first_name, s.photo, MAX(m.datetime) as dt,
         m.read, m2.min_message_id
             FROM irobot.support c
             LEFT JOIN irobot.support cc
@@ -55,8 +55,8 @@ async def get_accounts_and_chats():
 
 async def get_subscriber_message(chat_id, message_id):
     msg = await sql.execute(
-        'select chat_id, message_id, datetime, from_oper as oper_id, content_type, content '
-        'from irobot.support_messages where chat_id=%s and message_id=%s', chat_id, message_id,
+        'SELECT chat_id, message_id, datetime, from_oper AS oper_id, content_type, content '
+        'FROM irobot.support_messages WHERE chat_id=%s AND message_id=%s', chat_id, message_id,
         as_dict=True, fetch_one=True
     )
     if msg:

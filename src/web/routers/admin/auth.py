@@ -22,7 +22,7 @@ async def auth_page(request: Request):
     if request.cookies.get('access_token'):
         oper = await ops_utils.get_oper_by_token(request.cookies['access_token'])
         if oper:
-            context['oper'] = oper
+            context['oper'] = oper.dict()
             return RedirectResponse('chat')
     context['pages'] = []
     return templates.TemplateResponse(f'admin/auth.html', context)
@@ -37,7 +37,7 @@ async def sign_up_request(_: Request, oper: ops.OperCreate):
     return await ops_utils.create_oper(oper)
 
 
-@router.post('/api/auth', response_model=ops.TokenBase)
+@router.post('/api/auth', response_model=ops.Oper)
 @lan_require
 async def auth_request(_: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     oper = await ops_utils.get_oper_by_login(form_data.username)
@@ -46,10 +46,4 @@ async def auth_request(_: Request, form_data: OAuth2PasswordRequestForm = Depend
     if not ops_utils.validate_password(form_data.password, oper['hashed_password']):
         raise HTTPException(status_code=400, detail='Incorrect email or password')
     token = await ops_utils.create_oper_token(oper['oper_id'])
-    return token
-
-
-@router.post('/api/me', response_model=ops.OperBase)
-@lan_require
-async def get_oper_me(_: Request, current_oper: ops.Oper = Depends(get_current_oper)):
-    return current_oper
+    return {**oper, 'token': token}

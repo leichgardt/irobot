@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional
 
 from pydantic import UUID4, BaseModel, Field, validator
@@ -14,11 +13,13 @@ class OperBase(BaseModel):
     oper_id: int
     login: str
     full_name: str
+    enabled: bool
+    root: bool
 
 
 class TokenBase(BaseModel):
     token: UUID4 = Field(..., alias='access_token')
-    expires: datetime
+    expires: int
     token_type: Optional[str] = 'bearer'
 
     class Config:

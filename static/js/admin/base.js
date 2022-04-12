@@ -19,6 +19,7 @@ function delete_cookie(name) {
 
 function logout() {
     delete_cookie('access_token');
+    delete_cookie('expires');
     delete_cookie('oper_id');
     delete_cookie('oper_name');
     location.reload();
@@ -28,7 +29,10 @@ function logout() {
 document.addEventListener('DOMContentLoaded', function (event) {
     document.getElementById('btn-logout').onclick = logout;
 
-    if (get_cookie('oper_name') !== '' && get_cookie('oper_id') !== '') {
+    let timestamp = document.getElementById('timestamp').value;
+    if (get_cookie('access_token') !== '' &&
+        get_cookie('expires', true) > parseInt(timestamp)) {
+
         document.getElementById('oper-name').value = get_cookie('oper_name');
         document.getElementById('oper-id').innerText = get_cookie('oper_name');
         document.getElementById('oper-menu').value = get_cookie('oper_id');

@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
         invalid_auth.classList.remove('sr-only');
     }
 
-    function auth_loading(flag) {
+    function set_auth_status_loading(flag) {
         on_auth = flag;
         btn_login.disabled = flag;
         input_login.disabled = flag;
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function auth() {
-        auth_loading(true);
+        set_auth_status_loading(true);
         fetch('api/auth', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded', 'accept': 'application/json'},
@@ -39,10 +39,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
         })
             .then(response => response.json())
             .then(data => {
-                if (data['access_token']) {
-                    set_cookie('access_token', data['access_token'])
+                if (data['token'] && data['token']['access_token']) {
+                    set_cookie('access_token', data['token']['access_token'])
+                    set_cookie('expires', data['token']['expires'])
+                    set_cookie('oper_id', data['oper_id']);
+                    set_cookie('oper_name', data['full_name']);
                     console.log('success auth');
-                    get_oper_data_request();
                 }
                 else {
                     console.error('Bad request', data);
@@ -54,27 +56,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
                 console.log('Error [login]:', error);
             })
             .finally(() => {
-                auth_loading(false);
+                set_auth_status_loading(false);
                 location.reload();
             });
-    }
-
-    function get_oper_data_request() {
-        fetch('api/me', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'accept': 'application/json',
-                'Authorization': `Bearer ${get_cookie('access_token')}`
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                set_cookie('oper_id', data['oper_id']);
-                set_cookie('oper_name', data['full_name']);
-            })
-            .catch(error => {
-                console.log('Error [oper]:', error);
-            })
     }
 });

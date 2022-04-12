@@ -22,7 +22,7 @@ async def admin_page(request: Request):
     if request.cookies.get('access_token'):
         oper = await ops_utils.get_oper_by_token(request.cookies['access_token'])
         if oper:
-            context = get_context(request, oper=oper)
+            context = get_context(request, oper=oper.dict())
             return templates.TemplateResponse(f'admin/mailing.html', context)
     return RedirectResponse('/admin/')
 
