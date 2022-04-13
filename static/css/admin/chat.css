@@ -169,7 +169,6 @@
 .chat .chat-history .message-name {
     font-weight: 600;
     text-align: left;
-    height: 20px;
 }
 
 .chat .chat-history .message {

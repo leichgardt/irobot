@@ -22,7 +22,7 @@ class SoloWorker:
     >>> @repeat_every(seconds=5)
     >>> @sw.solo_worker(name='monitor')
     >>> async def monitoring():
-    >>>     print('monitoring every 5 seconds at only one process of uvicorn processes')
+    >>>     print('monitoring for every 5 seconds at the only one process of uvicorn processes (workers)')
 
     Данные о процессах сохраняются в БД "irobot.pids"
     """
@@ -37,7 +37,7 @@ class SoloWorker:
         self.__closing = False
 
     async def close_tasks(self):
-        self.logger.info(f'Solo Worker: waiting for tasks [{self.pid}]')
+        self.logger.info(f'Solo Worker: waiting for tasks [{self.pid}] {self.running}')
         self.__closing = True
         while True in self.running.values():
             await asyncio.sleep(.1)
@@ -75,7 +75,7 @@ class SoloWorker:
                 if not self.__closing:
                     await self.update()
                     if self._is_my_task(task):
-                        if not parallel and self.running.get(task, False):
+                        if not parallel and self.running.get(task) is True:
                             return
                         self.running[task] = True
                         if task not in self.announcement:

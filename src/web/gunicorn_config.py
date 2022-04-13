@@ -1,8 +1,8 @@
 # server
 bind = '0.0.0.0:8000'
 worker_class = 'src.web.uviworker.CustomUviWorker'
-workers = 4
-threads = 2
+workers = 1
+threads = 4
 user = 'www-data'  # remove on development
 group = 'www-data'  # remove on development
 max_requests = 200

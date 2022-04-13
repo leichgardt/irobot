@@ -1,8 +1,10 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from src.modules import lb, sql, Texts
+from aiologger import Logger
+
 from parameters import CARDINALIS_URL, TELEGRAM_NOTIFY_BOT_URL, TELEGRAM_TEST_CHAT_ID
+from src.modules import lb, sql, Texts
 from src.utils import post_request
 from src.web.utils.chat import get_support_list
 from src.web.utils.connection_manager import ConnectionManager
@@ -12,7 +14,7 @@ from src.web.utils.telegram_api import send_message, get_profile_photo
 __all__ = ('auto_feedback_monitor', 'auto_payment_monitor', 'update_all_chat_photo', 'new_messages_monitor')
 
 
-async def auto_payment_monitor(logger, tries_num=5):
+async def auto_payment_monitor(logger: Logger, tries_num=5):
     """
     Поиск некорректных платежей
 
@@ -73,7 +75,7 @@ async def auto_payment_monitor(logger, tries_num=5):
                     await sql.upd_payment(payment['hash'], status='timed_out')
 
 
-async def auto_feedback_monitor(logger):
+async def auto_feedback_monitor(logger: Logger):
     """
     Мониторинг feedback-заявок Userside
 
@@ -95,7 +97,7 @@ async def auto_feedback_monitor(logger):
                 await logger.warning(f'Failed to save feedback [{chat_id}]')
 
 
-async def send_feedback_to_cardinalis(logger, input_task_id, input_text):
+async def send_feedback_to_cardinalis(logger: Logger, input_task_id: int, input_text: str):
     res = await post_request(f'{CARDINALIS_URL}/api/save_feedback', _logger=logger,
                              json={'task_id': input_task_id, 'text': input_text, 'service': 'telegram'})
     return res.get('response', 0)
@@ -109,15 +111,17 @@ async def update_all_chat_photo():
             await sql.update('irobot.subs', f'chat_id={chat["chat_id"]}', photo=photo)
 
 
-async def new_messages_monitor(logger, manager: ConnectionManager):
+async def new_messages_monitor(logger: Logger, manager: ConnectionManager):
     messages = await sql.execute(
         'SELECT chat_id, message_id, datetime, from_oper AS oper_id, content_type, content '
-        'FROM irobot.support_messages WHERE sent=false AND from_oper IS NULL ORDER BY datetime',
-        as_dict=True
+        'FROM irobot.support_messages WHERE status=%s AND from_oper IS NULL ORDER BY datetime',
+        'new', as_dict=True
     )
     for message in messages:
         sql.split_datetime(message)
         await logger.info(f'Get new support message [{message["chat_id"]}] {message["message_id"]}')
+        await sql.execute('UPDATE irobot.support_messages SET status= %s WHERE chat_id=%s AND message_id=%s',
+                          'sending', message['chat_id'], message['message_id'])
         await manager.broadcast('get_message', message)
-        await sql.execute('UPDATE irobot.support_messages SET sent=true WHERE chat_id=%s AND message_id=%s',
-                          message['chat_id'], message['message_id'])
+        await sql.execute('UPDATE irobot.support_messages SET status= %s WHERE chat_id=%s AND message_id=%s',
+                          'sent', message['chat_id'], message['message_id'])

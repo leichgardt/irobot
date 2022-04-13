@@ -40,7 +40,19 @@ async def add_support_message(message: types.Message):
         await logger.warning(f'Unhandled support message content type: {message} [{message.chat.id}]')
         return
     data = {'caption': message.caption, **data} if 'caption' in message else data
-    await add_support_message_to_db(message.chat.id, message.message_id, message.content_type, data)
+    await update_support_datetime(message.chat.id)
+    await add_support_message_to_db(message.chat.id, message.message_id, message.content_type, data, status='new')
+
+
+async def update_support_datetime(chat_id):
+    await sql.execute('''
+    UPDATE irobot.support SET closed=null WHERE support_id=(
+        SELECT support_id FROM irobot.support 
+            WHERE (chat_id=%(chat_id)s AND closed IS null) OR
+                closed=(SELECT MAX(closed) 
+                            FROM irobot.support 
+                        WHERE chat_id=%(chat_id)s)
+            ORDER BY closed DESC LIMIT 1)''', {'chat_id': chat_id})
 
 
 async def add_support_message_to_db(
@@ -49,17 +61,18 @@ async def add_support_message_to_db(
         message_type: str,
         message_data: dict,
         oper_id: int = None,
-        read=False
+        read: bool = False,
+        status: str = None
 ) -> datetime:
     return await sql.insert(
-        'INSERT INTO irobot.support_messages (chat_id, message_id, content_type, content, from_oper, read) '
-        'VALUES (%s, %s, %s, %s, %s, %s) RETURNING datetime',
-        chat_id, message_id, message_type, message_data, oper_id, read
+        'INSERT INTO irobot.support_messages (chat_id, message_id, content_type, content, from_oper, read, status) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING datetime',
+        chat_id, message_id, message_type, message_data, oper_id, read, status
     )
 
 
 async def add_system_support_message(chat_id: int, message_id: int, text: str):
-    await add_support_message_to_db(chat_id, message_id, 'text', {'text': text}, oper_id=0)
+    await add_support_message_to_db(chat_id, message_id, 'text', {'text': text}, oper_id=0, read=True, status=None)
 
 
 async def rate_support(support_id: int, rating: int):

@@ -57,6 +57,6 @@ urllib3==1.26.5
 uvicorn==0.17.6
 uvloop==0.15.2
 watchgod==0.8.2
-websockets==10.2
+websockets==10.1
 yarl==1.6.3
 zeep==4.0.0

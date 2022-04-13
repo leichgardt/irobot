@@ -26,8 +26,6 @@ from src.web import (
 
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-loop = asyncio.get_event_loop()
-lb.loop = loop
 
 app = FastAPI(debug=False, root_path='/irobot')
 app.add_middleware(HTTPSRedirectMiddleware)
@@ -40,7 +38,7 @@ app.include_router(login.router)
 
 templates = Jinja2Templates(directory='templates')
 
-logger = aio_logger('irobot-web', loop=loop)
+logger = aio_logger('irobot-web')
 sql.logger = logger
 lb.logger = logger
 api.router.logger = logger

@@ -1,11 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     let chat_data = {};
     let chat_history = {};
-    let chat_list_block = document.getElementById('chat-list');
     let ws = null;
     let selected_chat = 0;
-    let input = document.getElementById('message-input-text');
     let chat_inputs = {};
+    let input = document.getElementById('message-input-text');
     let btn_take = document.getElementById('btn-take');
     let btn_drop = document.getElementById('btn-drop');
     let btn_finish = document.getElementById('btn-finish');
@@ -109,7 +108,6 @@ document.addEventListener('DOMContentLoaded', function () {
             btn_finish.getElementsByTagName('span')[0].innerText = 'Точно завершить?';
         } else {
             ws.send(JSON.stringify({'action': 'finish_support', 'data': selected_chat}));
-            reset_finish_button();
         }
     }
 
@@ -126,8 +124,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function oper_drop_chat_end(data) {
-        chat_data[data['chat_id']]['oper_id'] = data['oper_id'];
-        chat_data[data['chat_id']]['oper_name'] = data['oper_name'];
+        chat_data[data['chat_id']]['oper_id'] = null;
+        chat_data[data['chat_id']]['oper_name'] = null;
         new_selected_chat_status(data['chat_id']);
         if (selected_chat === data['chat_id']) {
             show_message_buttons(false);
@@ -249,6 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function fill_chat_list(data) {
+        let chat_list_block = document.getElementById('chat-list');
         save_data_of_chats(data['chats'], data['accounts']);
         chat_list_block.innerHTML = '';
         for (let i in data['chats']) {
@@ -425,20 +424,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function get_message(msg) {
-        send_notification('Новое сообщение', get_message_content(msg));
         let messages = {};
         messages[msg['message_id']] = msg;
-        save_data_of_chat_messages(msg['chat_id'], msg);
         if (msg['chat_id'] in chat_data) {
-            play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
+            if (msg['oper_id'] === null)
+                chat_data[msg['chat_id']]['support_mode'] = true;
+            new_selected_chat_status(msg['chat_id']);
+            if (msg['chat_id'] in chat_history)
+                save_data_of_chat_messages(msg['chat_id'], messages);
             update_chat_in_list(msg);
-            if (selected_chat === msg['chat_id']) {
+            if (selected_chat === msg['chat_id'])
                 add_chat_message(msg);
-            }
+            play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
         } else {
-            play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
             force_get_chats();
+            play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
         }
+        send_notification('IroBot Admin - новое сообщение', get_message_content(msg));
     }
 
     function send_notification(title, text) {
@@ -500,11 +502,11 @@ document.addEventListener('DOMContentLoaded', function () {
         ws.send(JSON.stringify({'action': 'get_chats'}));
     }
 
-    function finish_support(data) {
-        chat_data[data['chat_id']]['oper_id'] = null;
-        chat_data[data['chat_id']]['oper_name'] = null;
-        if (data['oper_id'] === get_cookie('oper_id', true)) {
-            new_selected_chat_status(data['chat_id']);
+    function finish_support_end(data) {
+        fill_chat_list(data['chats']);
+        new_selected_chat_status(data['chat_id']);
+        if (data['oper_id'] === get_cookie('oper_id', true) && selected_chat === data['chat_id']) {
+            reset_finish_button();
             show_message_buttons(false);
         }
     }
@@ -563,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (command === 'drop_chat')
                 oper_drop_chat_end(data);
             else if (command === 'finish_support')
-                finish_support(data);
+                finish_support_end(data);
         }
     }
 

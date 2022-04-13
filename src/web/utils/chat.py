@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from src.bot.schemas import keyboards
 from src.bot.utils import support
 from src.modules import sql
@@ -35,12 +36,12 @@ async def get_support_list():
                 ON c.chat_id = m2.chat_id
             WHERE cc.chat_id IS NULL
             GROUP BY c.chat_id, c.closed, o.oper_id, oper_name, s.first_name, s.photo, m.read, m2.min_message_id
-            ORDER BY dt DESC;''',
+            ORDER BY dt DESC''',
         as_dict=True
     )
     for chat in chats:
         sql.split_datetime(chat, 'dt')
-        chat.update({'support_mode': True if not chat['closed'] else False})
+        chat.update({'support_mode': False if chat['closed'] else True})
         chat.pop('closed')
     return {i: {key: value.strftime('%H:%M:%S %d.%m.%Y') if isinstance(value, datetime) else value
                 for key, value in chat.items()}
@@ -82,7 +83,7 @@ async def send_oper_message(data, oper_id, oper_name, **kwargs):
     if msg and msg.message_id > 0:
         await read_chat(data['chat_id'])
         msg_date = await support.add_support_message_to_db(
-            data['chat_id'], msg.message_id, 'text', {'text': data['text']}, oper_id, read=True
+            data['chat_id'], msg.message_id, 'text', {'text': data['text']}, oper_id, read=True, status=None
         )
         date, time = sql.split_datetime(msg_date if msg_date else datetime.now())
         return {
@@ -113,14 +114,16 @@ async def finish_support(chat_id, oper_id, oper_name):
     sup = await get_live_support(chat_id)
     await set_oper_to_support(sup['support_id'], None)
     await add_support_operation(sup['support_id'], oper_id, 'close')
+    await close_support_line(chat_id)
     return await send_oper_message({'chat_id': chat_id, 'text': 'Спасибо за обращение!'}, oper_id, oper_name,
                                    reply_markup=keyboards.main_menu_kb)
     # todo add review
 
 
 async def get_live_support(chat_id):
-    return await sql.execute('SELECT support_id FROM irobot.support WHERE chat_id=%s AND closed is null',
-                             chat_id, as_dict=True, fetch_one=True)
+    return await sql.execute('SELECT support_id FROM irobot.support WHERE chat_id=%(chat_id)s AND (closed IS null OR '
+                             'closed=(SELECT MAX(closed) FROM irobot.support WHERE chat_id=%(chat_id)s))',
+                             {'chat_id': chat_id}, as_dict=True, fetch_one=True)
 
 
 async def set_oper_to_support(support_id, oper_id):
@@ -130,6 +133,10 @@ async def set_oper_to_support(support_id, oper_id):
 async def add_support_operation(support_id, oper_id, operation):
     await sql.execute('INSERT INTO irobot.support_oper_history (support_id, oper_id, operation) VALUES (%s, %s, %s)',
                       support_id, oper_id, operation)
+
+
+async def close_support_line(chat_id):
+    await sql.execute('UPDATE irobot.support SET closed=now() WHERE chat_id=%s AND closed IS null', chat_id)
 
 
 async def get_chat_accounts_in_support_need():

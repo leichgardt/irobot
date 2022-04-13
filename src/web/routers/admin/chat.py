@@ -51,12 +51,12 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     await manager.broadcast('take_chat', output, firstly=websocket)
                 elif action == 'drop_chat':
                     await chat_utils.drop_chat(data, oper.oper_id)
-                    output = {'chat_id': data, 'oper_id': oper.oper_id}
-                    await manager.broadcast('drop_chat', output, firstly=websocket)
+                    await manager.broadcast('drop_chat', {'chat_id': data}, firstly=websocket)
                 elif action == 'finish_support':
                     msg = await chat_utils.finish_support(data, oper.oper_id, oper.full_name)
-                    output = {'chat_id': data, 'oper_id': oper.oper_id}
                     await manager.broadcast('get_message', msg, firstly=websocket)
+                    chats = await chat_utils.get_accounts_and_chats()
+                    output = {'chat_id': data, 'oper_id': oper.oper_id, 'chats': chats}
                     await manager.broadcast('finish_support', output, firstly=websocket)
                     # todo show results: messages count, time left, operators in the support
                 elif action == 'read_chat':
@@ -64,7 +64,7 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     chats = await chat_utils.get_accounts_and_chats()
                     await manager.broadcast('get_chats', chats, ignore_list=[websocket])
                 else:
-                    print('ws received data:', data)
+                    print('ws received data:', input_data)
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
             manager.remove(websocket)
