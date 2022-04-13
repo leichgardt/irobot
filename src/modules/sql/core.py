@@ -69,7 +69,10 @@ class SQLCore:
         try:
             async with self.pool.acquire() as conn:
                 async with conn.cursor() as cur:
-                    args = [arg if not isinstance(arg, dict) else ujson.dumps(arg) for arg in args]
+                    if len(args) == 1 and isinstance(args[0], dict):
+                        args = args[0]
+                    else:
+                        args = [arg if not isinstance(arg, dict) else ujson.dumps(arg) for arg in args]
                     await cur.execute(cmd, args)
                     res = await self.get_res(cur, as_dict, fetch_one)
         except psycopg2.errors.lookup('57P01'):  # AdminShutdown
