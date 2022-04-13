@@ -11,6 +11,23 @@ document.addEventListener('DOMContentLoaded', function () {
     let btn_read = document.getElementById('btn-read');
     let input_group = document.getElementById('input-group');
 
+    let page_title = document.title;
+    let title_notification = 0;
+    let title_updater;
+
+    function update_title() {
+        document.title = title_notification ? 'Новое сообщение' : page_title;
+        title_notification = title_notification ? 0 : 1;
+    }
+
+    document.onmousemove = function () {
+        if (typeof title_updater === 'number') {
+            clearInterval(title_updater);
+            title_updater = undefined;
+            document.title = page_title;
+        }
+    }
+
     function get_photo(chat_id) {
         let photo = document.createElement('img');
         photo.alt = '';
@@ -444,6 +461,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function send_notification(title, text) {
+        if (typeof title_updater !== 'number')
+            title_updater = setInterval(update_title, 1000);
+        window.focus();
         if (('Notification' in window && document.hidden)) {
             let options = {body: text, icon: '/static/img/png/logo.png', dir: 'auto'};
             if (Notification.permission === 'granted') {
