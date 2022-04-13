@@ -1,6 +1,9 @@
 import asyncio
 import os
 
+from fastapi import FastAPI
+from fastapi_utils.tasks import repeat_every
+
 from src.modules import sql
 
 
@@ -9,14 +12,18 @@ __all__ = 'SoloWorker',
 
 class SoloWorker:
     """
-    Класс для распределения задач между процессами/воркерами. Web-приложение Irobot-web работает на нескольких воркерах,
-    и, например, чтобы функцию мониторинга платежей выполнял только один процесс, используйте декоратор "solo_worker":
+    Класс для распределения задач между процессами/воркерами приложения. Web-приложение Irobot-web работает на
+    нескольких воркерах, и, например, чтобы функцию мониторинга платежей выполнял только один процесс, используйте
+    декоратор "solo_worker":
+
+    >>> app = FastAPI()
     >>> sw = SoloWorker()
     >>> @app.on_event('start')
     >>> @repeat_every(seconds=5)
     >>> @sw.solo_worker(name='monitor')
-    >>> async def monitor():
+    >>> async def monitoring():
     >>>     print('monitoring every 5 seconds at only one process of uvicorn processes')
+
     Данные о процессах сохраняются в БД "irobot.pids"
     """
     def __init__(self, logger, workers):
@@ -27,11 +34,11 @@ class SoloWorker:
         self.task_list = []
         self.announcement = set()
         self.running = {}
-        self.block = False
+        self.__closing = False
 
     async def close_tasks(self):
         self.logger.info(f'Solo Worker: waiting for tasks [{self.pid}]')
-        self.block = True
+        self.__closing = True
         while True in self.running.values():
             await asyncio.sleep(.1)
         self.logger.info(f'Solo Worker: tasks finished at [{self.pid}]')
@@ -41,6 +48,7 @@ class SoloWorker:
         self.pid_list = [row[0] for row in res] if res else []
         if self.pid not in self.pid_list:
             await sql.add_pid(self.pid)
+            await asyncio.sleep(.1)
 
     async def clean_old_pid_list(self):
         await sql.del_pid_list()
@@ -55,18 +63,20 @@ class SoloWorker:
         except ValueError:
             return False
         else:
-            if self.task_list[j] == my_task and j % self.workers_num == i:
+            if self.task_list[j] == my_task and j % self.workers_num == i or len(self.pid_list) == 1:
                 return True
         return False
 
-    def solo_worker(self, *, task: str):  # factory
+    def solo_worker(self, *, task: str, parallel=False):  # factory
         self.task_list.append(task)
 
         def decorator(func):
             async def wrapper(*args, **kwargs):
-                if not self.block:
+                if not self.__closing:
                     await self.update()
                     if self._is_my_task(task):
+                        if not parallel and self.running.get(task, False):
+                            return
                         self.running[task] = True
                         if task not in self.announcement:
                             self.logger.info(f'Solo worker "{task}" starts in [{self.pid}]')

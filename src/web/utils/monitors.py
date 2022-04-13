@@ -5,10 +5,11 @@ from src.modules import lb, sql, Texts
 from parameters import CARDINALIS_URL, TELEGRAM_NOTIFY_BOT_URL, TELEGRAM_TEST_CHAT_ID
 from src.utils import post_request
 from src.web.utils.chat import get_support_list
+from src.web.utils.connection_manager import ConnectionManager
 from src.web.utils.telegram_api import send_message, get_profile_photo
 
 
-__all__ = ('auto_feedback_monitor', 'auto_payment_monitor', 'update_all_chat_photo')
+__all__ = ('auto_feedback_monitor', 'auto_payment_monitor', 'update_all_chat_photo', 'new_messages_monitor')
 
 
 async def auto_payment_monitor(logger, tries_num=5):
@@ -106,3 +107,17 @@ async def update_all_chat_photo():
         photo = await get_profile_photo(chat['chat_id'])
         if photo:
             await sql.update('irobot.subs', f'chat_id={chat["chat_id"]}', photo=photo)
+
+
+async def new_messages_monitor(logger, manager: ConnectionManager):
+    messages = await sql.execute(
+        'SELECT chat_id, message_id, datetime, from_oper AS oper_id, content_type, content '
+        'FROM irobot.support_messages WHERE sent=false AND from_oper IS NULL ORDER BY datetime',
+        as_dict=True
+    )
+    for message in messages:
+        sql.split_datetime(message)
+        await logger.info(f'Get new support message [{message["chat_id"]}] {message["message_id"]}')
+        await manager.broadcast('get_message', message)
+        await sql.execute('UPDATE irobot.support_messages SET sent=true WHERE chat_id=%s AND message_id=%s',
+                          message['chat_id'], message['message_id'])

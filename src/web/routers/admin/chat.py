@@ -68,13 +68,3 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
             manager.remove(websocket)
-
-
-@router.post('/api/new_message')
-@lan_require
-async def new_message_request(request: Request):
-    """ Получить новое сообщение от бота и разослать его всем операторам """
-    data = await get_request_data(request)
-    msg = await chat_utils.get_subscriber_message(data['chat_id'], data['message_id'])
-    if msg:
-        await manager.broadcast('get_message', msg)

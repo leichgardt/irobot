@@ -1,8 +1,9 @@
+from datetime import datetime
+
 from aiogram import types
 
 from src.modules import sql
-from parameters import HOST_URL
-from src.utils import logger, post_request
+from src.utils import logger
 
 
 async def create_support(chat_id: int) -> int:
@@ -40,7 +41,6 @@ async def add_support_message(message: types.Message):
         return
     data = {'caption': message.caption, **data} if 'caption' in message else data
     await add_support_message_to_db(message.chat.id, message.message_id, message.content_type, data)
-    await broadcast_support_message_to_operators(message.chat.id, message.message_id)
 
 
 async def add_support_message_to_db(
@@ -50,7 +50,7 @@ async def add_support_message_to_db(
         message_data: dict,
         oper_id: int = None,
         read=False
-):
+) -> datetime:
     return await sql.insert(
         'INSERT INTO irobot.support_messages (chat_id, message_id, content_type, content, from_oper, read) '
         'VALUES (%s, %s, %s, %s, %s, %s) RETURNING datetime',
@@ -60,11 +60,6 @@ async def add_support_message_to_db(
 
 async def add_system_support_message(chat_id: int, message_id: int, text: str):
     await add_support_message_to_db(chat_id, message_id, 'text', {'text': text}, oper_id=0)
-    await broadcast_support_message_to_operators(chat_id, message_id)
-
-
-async def broadcast_support_message_to_operators(chat_id: int, message_id: int):
-    await post_request(f'{HOST_URL}/admin/api/new_message', json={'chat_id': chat_id, 'message_id': message_id})
 
 
 async def rate_support(support_id: int, rating: int):
