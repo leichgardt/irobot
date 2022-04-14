@@ -68,20 +68,23 @@ class LBAPI(LBZeepCore):
     async def promise_payment(self, agrm_id, amount):
         return await self.direct_request('PromisePayment', agrm_id, amount, pass_faults=True)
 
-    async def get_payments(self, agrm: str, **kwargs):
-        res = await self.direct_request('getAgreements', dict(agrmnum=agrm))
-        if res:
-            dtto = datetime.now()
-            dtfrom = dtto - timedelta(**kwargs)
-            return await self.direct_request('getPayments', dict(agrmid=res[0].agrmid,
-                                                                 dtfrom=get_datetime(dtfrom),
-                                                                 dtto=get_datetime(dtto)))
+    async def get_payment(self, record_id: int):
+        res = await self.direct_request('getPayments', dict(recordid=record_id))
+        return res[0] if res else {}
 
-    async def new_payment(self, agrm: str, amount: float, receipt: str, paydate: [str, datetime] = None, test=False):
-        res = await self.direct_request('getAgreements', dict(agrmnum=agrm))
+    async def new_payment(
+            self,
+            agrm_num: str,
+            amount: float,
+            receipt: str,
+            payment_date: [str, datetime] = None,
+            test=False
+    ) -> int:
+        res = await self.direct_request('getAgreements', dict(agrmnum=agrm_num))
         if res:
-            paydate = paydate or datetime.now()
+            payment_date = payment_date or datetime.now()
             agrm_id = res[0].agrmid
+            receipt = receipt or datetime.now().strftime('%Y%m%d%H%M%S-%f')
             try:
                 payment_obj = self.factory.soapPayment(
                     agrmid=agrm_id,
@@ -93,12 +96,14 @@ class LBAPI(LBZeepCore):
                     receipt=f'{"test-" if test else ""}{receipt}',
                     comment='IroBot via Sberbank',
                     localdate=self.get_datetime(datetime.now()),
-                    paydate=paydate if isinstance(paydate, str) else self.get_datetime(paydate)
+                    paydate=payment_date if isinstance(payment_date, str) else self.get_datetime(payment_date)
                 )
-                await self.logger.info(f'Payment try [{agrm_id=} {agrm=} {amount=} {receipt=} {paydate=}]')
+                await self.logger.info(f'Payment try [{agrm_id=} {agrm_num=} {amount=} {receipt=} {payment_date=}]')
                 return await self.direct_request('Payment', payment_obj)
             except Exception as e:
-                await self.logger.error(f'LB Payment error: {e} [{agrm_id=} {agrm=} {amount=} {receipt=} {paydate=}]')
+                await self.logger.error(
+                    f'LB Payment error: {e} [{agrm_id=} {agrm_num=} {amount=} {receipt=} {payment_date=}]'
+                )
         return 0
 
 

@@ -102,15 +102,11 @@ class SQLMaster(SQLCore):
 
     async def find_processing_payments(self):
         return await self.execute(
-            'SELECT * FROM irobot.payments WHERE status=\'error\' OR'
-            '(status=\'success\' AND current_date - update_datetime > interval \'5 minute\') OR '
-            '(status=\'processing\' AND current_date - update_datetime > interval \'1 hour\')',
-            as_dict=True
+            'SELECT * FROM irobot.payments WHERE status=%s OR '
+            '(status=%s AND now() - update_datetime > interval \'5 minute\') OR '
+            '(status=%s AND now() - update_datetime > interval \'1 minute\')',
+            'error', 'success', 'processing', as_dict=True
         )
-
-    async def cancel_old_new_payments(self):
-        return await self.execute('UPDATE irobot.payments SET status= %s WHERE status=%s AND '
-                                  'current_date - datetime > interval \'1 day\'', 'canceled', 'new')
 
     async def find_payments_by_record_id(self, record_id):
         return await self.execute('SELECT id FROM irobot.payments WHERE record_id=%s', record_id)

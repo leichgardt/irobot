@@ -1,9 +1,11 @@
+from datetime import datetime
 from typing import Union, List
 
+import ujson
 from aiogram.types import LabeledPrice
 
 from src.bot.core import bot
-from src.modules import lb, Texts
+from src.modules import lb, sql, Texts
 from parameters import BOT_PAYMENT_TOKEN, RECEIPT_EMAIL
 from src.utils import get_hash
 
@@ -60,7 +62,7 @@ async def send_payment_invoice(chat_id: int, hash_code: str, agreement: str, amo
                 description=Texts.payment_description.format(agrm=agreement, amount=amount),
                 quantity='1.0',
                 amount=dict(
-                    value=amount,
+                    value=amount * 100,
                     currency='RUB'
                 ),
                 vat_code=1,
@@ -70,6 +72,26 @@ async def send_payment_invoice(chat_id: int, hash_code: str, agreement: str, amo
         description=Texts.payment_description_item.format(agrm=agreement, amount=amount),
         currency='RUB',
         prices=get_payment_price(agreement, amount),
-        payload=payload,
+        payload=ujson.dumps(payload),
         start_parameter=f'payment-{hash_code}',
     )
+
+
+async def make_payment(
+        agrm_num: str,
+        amount: int,
+        receipt: str,
+        hash_code: str,
+        payment_date: Union[str, datetime] = None,
+        test: bool = False
+) -> int:
+    params = {'receipt': receipt}
+    # пополнить баланс на оплаченную сумму
+    record_id = await lb.new_payment(agrm_num, amount, receipt, payment_date, test=test)
+    if record_id:
+        params['record_id'] = record_id
+        params['status'] = 'success'
+    else:
+        params['status'] = 'processing'
+    await sql.upd_payment(hash_code, **params)
+    return record_id

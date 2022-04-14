@@ -252,11 +252,11 @@ class Texts:
     payments_online_already_have = ButtonText(
         'Этот счёт уже был оплачен.'
     )
-    payments_online_already_canceled = ButtonText(
-        'Этот счёт был отменён.'
-    )
     payments_online_already_processing = ButtonText(
         'Подождите, этот счёт уже обрабатывается.'
+    )
+    payments_online_error = ButtonText(
+        'Ошибка платежа. Создайте новый платёж и попробуйте снова. Если ошибка повторяется - обратитесь в поддержку.'
     )
     payment_item_price = ButtonText(
         'Услуги доступа к сети Интернет по договору №{agrm}'

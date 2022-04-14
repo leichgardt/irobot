@@ -1,78 +1,58 @@
-import asyncio
-from datetime import datetime, timedelta
-
 from aiologger import Logger
 
-from parameters import CARDINALIS_URL, TELEGRAM_NOTIFY_BOT_URL, TELEGRAM_TEST_CHAT_ID
-from src.modules import lb, sql, Texts
-from src.utils import post_request
+from src.modules import lb, sql
+from src.web.utils.cardinalis import send_feedback_to_cardinalis
 from src.web.utils.chat import get_support_list
 from src.web.utils.connection_manager import ConnectionManager
-from src.web.utils.telegram_api import send_message, get_profile_photo
+from src.web.utils.notifier import telegram_admin_notify
+from src.web.utils.payment_tryer import try_make_payment
+from src.web.utils.telegram_api import get_profile_photo
 
 
-__all__ = ('auto_feedback_monitor', 'auto_payment_monitor', 'update_all_chat_photo', 'new_messages_monitor')
+__all__ = ('auto_feedback_monitor', 'auto_payment_monitor', 'chat_photo_update_monitor', 'new_messages_monitor')
 
 
-async def auto_payment_monitor(logger: Logger, tries_num=5):
+async def auto_payment_monitor(logger: Logger):
     """
-    Поиск некорректных платежей
-
-    Если после оплаты не удалось пополнить счёт через LB API договора сразу - платёж переходит в статус "error".
-    Монитор еще `tries_num` раз попытается провести пополнение счёта, и, при сохранении ошибки, переведёт платёж
-    в состояние "failure". В таком случае потребуется вмешательство оператора для решения проблемы.
-
-    Также монитор ещё ищет платежы со статусом "processing". Если они находятся в этом статусе более часа, то платёж
-    был просрочен - состояние изменится на "timed_out" (для статистики). Если после этого придет ответ от Телеграма
-    с `SUCCESSFUL_PAYMENT`, то стандартный процесс пополнения счёта (в модуле l4_payment) инициализиреутся в любом
-    случае.
+    Поиск незавершённых и некорректных платежей
+    Монитор пытается провести платёж ещё несколько раз, и при неудаче - уведомляет администратора
     """
     payments = await sql.find_processing_payments()
     if payments:
-        lb_payments = {}
         for payment in payments:
-            if payment['status'] == 'success':
-                if datetime.now() - payment['update_datetime'] > timedelta(hours=12):
-                    await sql.upd_payment(payment['hash'], status='finished')
+            await logger.info(f'Payment monitor catch the payment [{payment["chat_id"]}] {payment["id"]=} '
+                              f'{payment["status"]=}')
+            if payment['status'] == 'processing':
+                record_id = await lb.new_payment(payment['agrm'], payment['amount'], payment['receipt'])
+                if record_id:
+                    await sql.upd_payment(payment['hash'], status='success', record_id=record_id)
+                    await logger.info(f'Payment monitor: [{payment["chat_id"]}] {payment["id"]=} SUCCESS')
                 else:
-                    msg = await send_message(payment['chat_id'], *Texts.payments_online_success.pair())
-                    if msg:
-                        await sql.upd_payment(payment['hash'], status='finished')
+                    await sql.upd_payment(payment['hash'], status='error')
+                    await logger.warning(f'Payment monitor: [{payment["chat_id"]}] {payment["id"]=} ERROR')
+
+            elif payment['status'] == 'success':
+                lb_payment = await lb.get_payment(payment['record_id'])
+                if lb_payment and payment['receipt'] in lb_payment.pay.receipt:
+                    await sql.upd_payment(payment['hash'], status='completed')
+                    await logger.info(f'Payment monitor: [{payment["chat_id"]}] {payment["id"]=} COMPLETED')
+                else:
+                    await sql.upd_payment(payment['hash'], status='warning')
+                    await logger.warning(f'Payment monitor: [{payment["chat_id"]}] {payment["id"]=} WARNING')
+                    await telegram_admin_notify(f'[WARNING]\n\nМонитор не может проверить платёж', payment["id"],
+                                                logger)
+
             elif payment['status'] == 'error':
-                await logger.info(f'Payment monitor: processing Error Payment (ID={payment["id"]})')
                 # обработка платежа, у которого не прошёл платёж в биллинг
-                while tries_num > 0:
-                    rec_id = await lb.new_payment(payment['agrm'], payment['amount'], payment['receipt'])
-                    if rec_id:
-                        msg = await send_message(payment['chat_id'], *Texts.payments_online_success.pair())
-                        status = 'finished' if msg else 'success'
-                        await sql.upd_payment(payment['hash'], status=status, record_id=rec_id)
-                        text = 'Payment monitor: Error Payment successful done [{}] (ID={})'
-                        await logger.info(text.format(payment['chat_id'], payment['id']))
-                        break
-                    else:
-                        tries_num -= 1
-                        if tries_num > 0:
-                            await asyncio.sleep(60)
+                record_id = await try_make_payment(payment['agrm'], payment['amount'], payment['receipt'])
+                if record_id > 0:
+                    await sql.upd_payment(payment['hash'], status='success', record_id=record_id)
+                    await logger.info(f'Payment monitor: Error Payment made [{payment["chat_id"]}] '
+                                      f'ID={payment["payment_id"]}')
                 else:
                     await sql.upd_payment(payment['hash'], status='failure')
-                    await logger.warning(f'Payment monitor: FAILURE! Payment ID={payment["id"]}')
-                    text = f'Irobot Payment Monitor [FAILURE]\nTries ended\nPayment ID = {payment["id"]}'
-                    await post_request(TELEGRAM_NOTIFY_BOT_URL, json={'chat_id': TELEGRAM_TEST_CHAT_ID, 'text': text},
-                                       _logger=logger)
-            elif payment['status'] == 'processing':
-                # обработка платежа, который висит в состоянии 'processing' более часа
-                # загрузить платежи из биллинга за последние 1.5 часа и сверить с ними
-                if payment['agrm'] not in lb_payments:
-                    lb_payments[payment['agrm']] = await lb.get_payments(payment['agrm'], hours=1, minutes=30)
-                for lb_pmt in lb_payments[payment['agrm']]:
-                    if payment['receipt'] in lb_pmt.pay.receipt:
-                        msg = await send_message(payment['chat_id'], *Texts.payments_online_success.pair())
-                        status = 'finished' if msg else 'success'
-                        await sql.upd_payment(payment['hash'], status=status, record_id=lb_pmt.pay.recordid)
-                        break
-                else:
-                    await sql.upd_payment(payment['hash'], status='timed_out')
+                    await logger.warning(f'Payment monitor: FAILURE! [{payment["chat_id"]}] ID={payment["id"]}')
+                    await telegram_admin_notify(f'[FAILURE]\n\nНевозможно провести платёж', payment["id"], logger)
 
 
 async def auto_feedback_monitor(logger: Logger):
@@ -97,10 +77,6 @@ async def auto_feedback_monitor(logger: Logger):
                 await logger.warning(f'Failed to save feedback [{chat_id}]')
 
 
-async def send_feedback_to_cardinalis(logger: Logger, input_task_id: int, input_text: str):
-    res = await post_request(f'{CARDINALIS_URL}/api/save_feedback', _logger=logger,
-                             json={'task_id': input_task_id, 'text': input_text, 'service': 'telegram'})
-    return res.get('response', 0)
 
 
 async def update_all_chat_photo():
