@@ -20,7 +20,7 @@ class SQLCore:
         self.pool_min_size = 3
         self.pool_max_size = 20
         # логгер инициализируется в app.py и в src/bot/bot.py отдельно для irobot-web и irobot соответственно
-        self.logger = None
+        self.logger: aiologger.Logger = None
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
@@ -79,6 +79,9 @@ class SQLCore:
             if not retrying:
                 return await self.execute(cmd, *args, retrying=True, log_faults=log_faults, as_dict=as_dict,
                                           fetch_one=fetch_one)
+        except asyncio.exceptions.TimeoutError:
+            await self.logger.warning(f'SQL Timed out')
+            return res
         except Exception as e:
             if log_faults and retrying and 'duplicate key value violates unique constraint' not in str(e):
                 msg = f'SQL exception: {e} CMD: {cmd}' + (f'ARGS: {args}' if args else '')
