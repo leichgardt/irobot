@@ -33,7 +33,7 @@ class CustomAsyncClient(AsyncClient):
         return get_port_wrapper
 
 
-class LBZeepCore:
+class LanBillingCore:
     get_datetime = staticmethod(get_datetime)
     get_phone_number = staticmethod(get_phone_number)
 
@@ -52,7 +52,7 @@ class LBZeepCore:
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
-            cls.instance = super(LBZeepCore, cls).__new__(cls)
+            cls.instance = super(LanBillingCore, cls).__new__(cls)
         return cls.instance
 
     def __del__(self):

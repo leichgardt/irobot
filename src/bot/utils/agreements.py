@@ -10,7 +10,7 @@ async def get_agrm_balances(chat_id: int):
     if data:
         for agrms in data.values():
             for agrm in agrms:
-                bal = await lb.get_balance(agrmnum=agrm)
+                bal = await lb.get_balance(agrm_num=agrm)
                 if bal:
                     text.append(Texts.balance.format(agrm=agrm, summ=bal['balance']))
                     if 'credit' in bal:

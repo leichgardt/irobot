@@ -18,7 +18,7 @@ from src.web import (
     SoloWorker,
     telegram_api,
     GlobalDict,
-    update_all_chat_photo,
+    chat_photo_update_monitor,
     auto_payment_monitor,
     auto_feedback_monitor,
     new_messages_monitor
@@ -86,7 +86,7 @@ async def update_params():
 @repeat_every(seconds=60 * 60)
 @sw.solo_worker(task='photo')
 async def photo_updater():
-    await update_all_chat_photo()
+    await chat_photo_update_monitor()
 
 
 @app.on_event('startup')

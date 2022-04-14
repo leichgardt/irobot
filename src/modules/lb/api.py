@@ -1,17 +1,16 @@
 from datetime import datetime, timedelta
 
-from src.modules.lb.core import LBZeepCore
-from src.utils import get_datetime
+from src.modules.lb.core import LanBillingCore
 
 
-class LBAPI(LBZeepCore):
-    async def check_account_pass(self, agrmnum: str, input_pass: str):
+class LanBillingAPI(LanBillingCore):
+    async def check_account_pass(self, agrm_num: str, input_pass: str):
         """
         1  - access granted
         0  - access denied
         -1 - agreement not found
         """
-        agrms = await self.direct_request('getAgreements', {'login': agrmnum})
+        agrms = await self.direct_request('getAgreements', {'login': agrm_num})
         if agrms:
             for agrm in agrms:
                 if agrm.closedon is None:
@@ -19,7 +18,7 @@ class LBAPI(LBZeepCore):
                     if acc:
                         return 1 if acc[0].account['pass'] == input_pass else 0
                     else:
-                        await self.logger.warning(f'Getting account error: agrmnum={agrmnum}')
+                        await self.logger.warning(f'Getting account error: agrmnum={agrm_num}')
                         return 0
         return -1
 
@@ -36,9 +35,9 @@ class LBAPI(LBZeepCore):
                     for agrm in agrms if agrm.closedon is None]
         return []
 
-    async def get_balance(self, *, agrmnum: str = None, agrm_data: dict = None):
-        if agrmnum:
-            agrm = await self.direct_request('getAgreements', dict(agrmnum=agrmnum))
+    async def get_balance(self, *, agrm_num: str = None, agrm_data: dict = None):
+        if agrm_num:
+            agrm = await self.direct_request('getAgreements', dict(agrmnum=agrm_num))
             balance = round(agrm[0].balance, 2)
             agrm_id = agrm[0].agrmid
         else:
@@ -56,8 +55,9 @@ class LBAPI(LBZeepCore):
 
     async def promise_available(self, agrm_data: dict):
         if agrm_data['balance'] >= -300:
-            dtfrom = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
-            credit = await self.direct_request('getPromisePayments', {'agrmid': agrm_data['agrm_id'], 'dtfrom': dtfrom})
+            dt_from = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+            credit = await self.direct_request('getPromisePayments', {'agrmid': agrm_data['agrm_id'],
+                                                                      'dtfrom': dt_from})
             for cre in credit:
                 if cre.payid == 0:
                     return False
@@ -107,10 +107,8 @@ class LBAPI(LBZeepCore):
         return 0
 
 
-lb = LBAPI()
+lb = LanBillingAPI()
 
 if __name__ == '__main__':
     import asyncio
-
-    res = asyncio.run(lb.get_account_agrms('05275'))
-    print(res)
+    print(asyncio.run(lb.get_account_agrms('05275')))

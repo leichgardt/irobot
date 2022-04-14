@@ -77,9 +77,7 @@ async def auto_feedback_monitor(logger: Logger):
                 await logger.warning(f'Failed to save feedback [{chat_id}]')
 
 
-
-
-async def update_all_chat_photo():
+async def chat_photo_update_monitor():
     chats = await get_support_list()
     for i, chat in chats.items():
         photo = await get_profile_photo(chat['chat_id'])
