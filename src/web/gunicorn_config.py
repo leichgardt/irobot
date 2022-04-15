@@ -1,5 +1,7 @@
+from parameters import WEB_SERVICE_PORT
+
 # server
-bind = '0.0.0.0:8000'
+bind = f'0.0.0.0:{WEB_SERVICE_PORT}'
 worker_class = 'src.web.uviworker.CustomUviWorker'
 workers = 1
 threads = 4

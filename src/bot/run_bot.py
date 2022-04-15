@@ -6,7 +6,7 @@ import uvloop
 from aiogram.utils.executor import start_webhook
 
 from src.bot import bot, dp
-from parameters import TELEGRAM_TEST_CHAT_ID, BOT_WEBHOOK_URL
+from parameters import TELEGRAM_TEST_CHAT_ID, BOT_WEBHOOK_URL, BOT_PORT
 from src.modules import lb, sql, Texts
 from src.utils import logger, logfile, logdir
 
@@ -15,7 +15,7 @@ WEBHOOK_PATH = '/'
 WEBHOOK_URL = f'{BOT_WEBHOOK_URL}{WEBHOOK_PATH}'
 
 WEBAPP_HOST = '0.0.0.0'
-WEBAPP_PORT = 5421
+WEBAPP_PORT = BOT_PORT
 
 
 async def upd_texts():

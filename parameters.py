@@ -3,6 +3,9 @@ ABOUT = """Веб-приложение IroBot-web предназначено д�
 а так же для обработки запросов платежей от системы Yoomoney.\n
 """
 
+# Bot port
+BOT_PORT = 5421
+
 # Telegram Bot Token
 BOT_TOKEN = '<telegram token>'
 
@@ -13,6 +16,9 @@ RECEIPT_EMAIL = 'admin@bot.ru'
 
 # ID телеграм чата для тестирования, мониторинга статуса бота
 TELEGRAM_TEST_CHAT_ID = 1234567890
+
+# Port of web app
+WEB_SERVICE_PORT = 8000
 
 # URL главной веб-страницы
 HOST_URL = 'https://my.bot.ru/'
