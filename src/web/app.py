@@ -27,8 +27,7 @@ from src.web import (
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-app = FastAPI(debug=False, root_path='/irobot')
-app.add_middleware(HTTPSRedirectMiddleware)
+app = FastAPI(root_path='/irobot')
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 app.include_router(api.router)
 app.include_router(auth.router)
@@ -133,9 +132,3 @@ async def index_page(request: Request):
     message = {'title': 'Добро пожаловать!', 'textlines': text}
     context = dict(request=request, title='IroBot', message=message, **default_context)
     return templates.TemplateResponse('user/page.html', context, headers=default_params['headers'])
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run('app:app', host="0.0.0.0", port=8000, reload=app.debug, workers=4)

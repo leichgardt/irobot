@@ -1,5 +1,4 @@
 html {
-    background: #00141E url('/static/img/jpg/wallpaper.jpg') center center no-repeat fixed;
     -webkit-background-size: cover;
     -moz-background-size: cover;
     -o-background-size: cover;
@@ -37,7 +36,6 @@ footer {
     border-style: hidden;
     width: 155px;
     height: 33px;
-    background: url('/static/img/png/Ironnet_logo.png') 0 50%;
     background-size: 100%;
     opacity: 1;
 }

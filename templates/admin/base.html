@@ -15,6 +15,14 @@
     <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}">
     {% block imports %}{% endblock %}
 </head>
+<style>
+html {
+    background: #00141E url({{ url_for('static' , path='img/jpg/wallpaper.jpg') }}) center center no-repeat fixed;
+}
+#ironnet-img {
+    background: url({{ url_for('static', path='img/png/Ironnet_logo.png') }}) 0 50%;
+}
+</style>
 {% block style %}{% endblock %}
 <header>
 <nav class="navbar sticky-top navbar-expand-lg navbar-dark">
