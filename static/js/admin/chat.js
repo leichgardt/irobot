@@ -564,7 +564,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function connectWS() {
         if (!get_cookie('access_token'))
             return;
-        ws = new WebSocket(`ws://${document.location.host}/ws?access_token=${get_cookie('access_token')}`);
+        let server_host = document.getElementById('server-host').value;
+        ws = new WebSocket(`ws://${server_host}/ws?access_token=${get_cookie('access_token')}`);
         ws.onclose = function () {
             setTimeout(connectWS, 1500);
         }

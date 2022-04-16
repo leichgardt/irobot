@@ -1,4 +1,4 @@
-from parameters import PID_TABLE
+from parameters import DEBUG, PID_TABLE, PID_DEBUG_TABLE
 from src.modules.sql.core import SQLCore
 
 
@@ -152,13 +152,14 @@ class SQLMaster(SQLCore):
         return await self.execute('UPDATE irobot.mailing SET status= %s WHERE id=%s', status, mail_id)
 
     async def add_pid(self, pid: int):
-        await self.execute(f'INSERT INTO irobot.{PID_TABLE}(pid) VALUES (%s)', pid, log_faults=False)
+        await self.execute(f'INSERT INTO irobot.{PID_DEBUG_TABLE if DEBUG else PID_TABLE}(pid) VALUES (%s)', pid,
+                           log_faults=False)
 
     async def get_pid_list(self):
-        return await self.execute(f'SELECT pid, tasks FROM irobot.{PID_TABLE}')
+        return await self.execute(f'SELECT pid, tasks FROM irobot.{PID_DEBUG_TABLE if DEBUG else PID_TABLE}')
 
     async def del_pid_list(self):
-        await self.execute(f'DELETE FROM irobot.{PID_TABLE}')
+        await self.execute(f'DELETE FROM irobot.{PID_DEBUG_TABLE if DEBUG else PID_TABLE}')
 
     async def find_uncompleted_task(self, task_id):
         return await self.execute('SELECT id FROM cardinalis.tasks WHERE task_id=%s AND NOT status '

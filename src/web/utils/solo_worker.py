@@ -44,6 +44,8 @@ class SoloWorker:
         self.logger.info(f'Solo Worker: tasks finished at [{self.pid}]')
 
     async def update(self):
+        if self.workers_num <= 1:
+            return
         res = await sql.get_pid_list()
         self.pid_list = [row[0] for row in res] if res else []
         if self.pid not in self.pid_list:
@@ -57,6 +59,8 @@ class SoloWorker:
         self.running = {}
 
     def _is_my_task(self, my_task):
+        if self.workers_num <= 1:
+            return True
         try:
             i = self.pid_list.index(self.pid)
             j = self.task_list.index(my_task)
@@ -67,11 +71,13 @@ class SoloWorker:
                 return True
         return False
 
-    def solo_worker(self, *, task: str, parallel=False):  # factory
+    def solo_worker(self, *, task: str, parallel=False, debug=False):  # factory
         self.task_list.append(task)
 
         def decorator(func):
             async def wrapper(*args, **kwargs):
+                if debug:
+                    return None
                 if not self.__closing:
                     await self.update()
                     if self._is_my_task(task):

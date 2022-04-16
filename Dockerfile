@@ -1,5 +1,7 @@
-FROM i386/python:3.8.12-buster
+#FROM i386/python:3.8.12-buster
+FROM python:3.8.12-buster
 MAINTAINER leichgardt
+
 # copy project files and install environment
 COPY . /app
 RUN chown -R www-data:www-data /app &&  \
@@ -15,15 +17,18 @@ RUN pip install -U pip setuptools wheel &&  \
     cd /tmp/emoji &&  \
     python setup.py install &&  \
     rm -rf /tmp/emoji
+
 # service parameters
 ENV TZ Asia/Irkutsk
 ENV PYTHONPATH "/app:/app/src:${PYTHONPATH}"
 EXPOSE 5421 8000
 WORKDIR /app
-USER www-data
+USER www-data:www-data
+
 # execution
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["bot"]
+
 # to start the bot run in shell:
 #   $ docker run <image> bot
 # to start the web-app in shell:

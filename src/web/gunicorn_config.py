@@ -1,12 +1,12 @@
-from parameters import WEB_SERVICE_PORT
+from parameters import DEBUG, WEB_SERVICE_PORT
 
 # server
 bind = f'0.0.0.0:{WEB_SERVICE_PORT}'
 worker_class = 'src.web.uviworker.CustomUviWorker'
 workers = 1
 threads = 4
-user = 'www-data'  # remove on development
-group = 'www-data'  # remove on development
+user = 'www-data' if not DEBUG else None
+group = 'www-data' if not DEBUG else None
 max_requests = 200
 max_requests_jitter = 50
 timeout = 60

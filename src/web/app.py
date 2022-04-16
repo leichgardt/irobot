@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
 
 from src.web.gunicorn_config import workers
-from parameters import ABOUT, SUPPORT_BOT  # ABOUT не удалять
+from parameters import ABOUT, DEBUG, ROOT_PATH, SUPPORT_BOT  # ABOUT не удалять
 from src.web.routers.admin import api, auth, chat, mailing
 from src.web.routers.user import login
 from src.modules import lb, sql, Texts
@@ -27,7 +27,7 @@ from src.web import (
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-app = FastAPI(root_path='/irobot')
+app = FastAPI(root_path=ROOT_PATH if not DEBUG else None)
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 app.include_router(api.router)
 app.include_router(auth.router)
@@ -83,7 +83,7 @@ async def update_params():
 
 @app.on_event('startup')
 @repeat_every(seconds=60 * 60)
-@sw.solo_worker(task='photo')
+@sw.solo_worker(task='photo', debug=DEBUG)
 async def photo_updater():
     await chat_photo_update_monitor()
 
@@ -97,7 +97,7 @@ async def messages_monitor():
 
 @app.on_event('startup')
 @repeat_every(seconds=30)
-@sw.solo_worker(task='payments')
+@sw.solo_worker(task='payments', debug=DEBUG)
 async def payment_monitor():
     """ Поиск платежей с ошибками и попытка провести платёж еще раз """
     await auto_payment_monitor(logger)
@@ -105,7 +105,7 @@ async def payment_monitor():
 
 @app.on_event('startup')
 @repeat_every(seconds=60)
-@sw.solo_worker(task='feedback')
+@sw.solo_worker(task='feedback', debug=DEBUG)
 async def feedback_monitor():
     """
     Поиск новых feedback сообщений для рассылки.

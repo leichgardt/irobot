@@ -5,7 +5,7 @@ from urllib.parse import urlparse, parse_qs
 
 from fastapi import Request, Response
 
-from parameters import ABOUT, HOST_IP_LIST, VERSION
+from parameters import ABOUT, HOST_IP_LIST, VERSION, WEB_SERVICE_IP, WEB_SERVICE_PORT
 
 __all__ = (
     'get_query_params',
@@ -62,6 +62,7 @@ def get_context(request: Request, **kwargs):
         ],
         'about': ABOUT,
         'version': VERSION,
+        'server_host': f'{WEB_SERVICE_IP}:{WEB_SERVICE_PORT}',
         'oper': {},
         **kwargs
     }

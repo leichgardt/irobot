@@ -6,7 +6,7 @@ import uvloop
 from aiogram.utils.executor import start_webhook
 
 from src.bot import bot, dp
-from parameters import TELEGRAM_TEST_CHAT_ID, BOT_WEBHOOK_URL, BOT_PORT
+from parameters import DEBUG, TELEGRAM_TEST_CHAT_ID, BOT_WEBHOOK_URL, BOT_PORT
 from src.modules import lb, sql, Texts
 from src.utils import logger, logfile, logdir
 
@@ -59,7 +59,7 @@ def run_bot():
         webhook_path=WEBHOOK_PATH,
         on_startup=on_startup,
         on_shutdown=on_shutdown,
-        # skip_updates=True,
+        skip_updates=DEBUG,
         host=WEBAPP_HOST,
         port=WEBAPP_PORT,
         loop=loop
