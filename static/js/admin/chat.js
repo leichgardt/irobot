@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chat_data[data['chat_id']]['oper_id'] = data['oper_id'];
         chat_data[data['chat_id']]['oper_name'] = data['oper_name'];
         new_selected_chat_status(data['chat_id']);
-        if (data['oper_id'] === get_cookie('oper_id', true)) {
+        if (data['oper_id'] === get_cookie('irobot_oper_id', true)) {
             show_message_buttons(true);
         } else {
             show_message_buttons(false);
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function is_my_chat_check(chat_id) {
-        if (chat_data[chat_id]['oper_id'] === get_cookie('oper_id', true)) {
+        if (chat_data[chat_id]['oper_id'] === get_cookie('irobot_oper_id', true)) {
             show_message_buttons(true);
         } else {
             show_message_buttons(false);
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (msg['oper_id'] === null) {
             message.classList.add('other-message', 'float-right');
             message.appendChild(add_message_name(chat_data[selected_chat]['first_name']));
-        } else if (msg['oper_id'] !== get_cookie('oper_id', true)) {
+        } else if (msg['oper_id'] !== get_cookie('irobot_oper_id', true)) {
             message.classList.add('other-oper-message', 'float-right');
             message.appendChild(add_message_name(`Оператор: ${msg['oper_name']}`));
         } else {
@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function finish_support_end(data) {
         fill_chat_list(data['chats']);
         new_selected_chat_status(data['chat_id']);
-        if (data['oper_id'] === get_cookie('oper_id', true) && selected_chat === data['chat_id']) {
+        if (data['oper_id'] === get_cookie('irobot_oper_id', true) && selected_chat === data['chat_id']) {
             reset_finish_button();
             show_message_buttons(false);
         }
@@ -562,10 +562,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function connectWS() {
-        if (!get_cookie('access_token'))
+        if (!get_cookie('irobot_access_token'))
             return;
         let server_host = document.getElementById('server-host').value;
-        ws = new WebSocket(`ws://${server_host}/ws?access_token=${get_cookie('access_token')}`);
+        ws = new WebSocket(`ws://${server_host}/ws?access_token=${get_cookie('irobot_access_token')}`);
         ws.onclose = function () {
             setTimeout(connectWS, 1500);
         }

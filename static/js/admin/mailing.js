@@ -47,12 +47,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     function get_mailing_data() {
-        if (!get_cookie('access_token'))
+        if (!get_cookie('irobot_access_token'))
             return;
         let url = 'api/get_mailing_data';
         fetch(url, {
             method: 'GET',
-            headers: {'Authorization': `Bearer ${get_cookie('access_token')}`}
+            headers: {'Authorization': `Bearer ${get_cookie('irobot_access_token')}`}
         })
             .then(response => response.json())
             .then(data => {

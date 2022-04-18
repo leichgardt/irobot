@@ -19,8 +19,8 @@ templates = Jinja2Templates(directory='templates')
 @lan_require
 async def auth_page(request: Request):
     context = get_context(request)
-    if request.cookies.get('access_token'):
-        oper = await ops_utils.get_oper_by_token(request.cookies['access_token'])
+    if request.cookies.get('irobot_access_token'):
+        oper = await ops_utils.get_oper_by_token(request.cookies['irobot_access_token'])
         if oper:
             context['oper'] = oper.dict()
             return RedirectResponse('chat')

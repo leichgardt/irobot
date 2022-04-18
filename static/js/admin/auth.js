@@ -40,11 +40,11 @@ document.addEventListener('DOMContentLoaded', function (event) {
             .then(response => response.json())
             .then(data => {
                 if (data['token'] && data['token']['access_token']) {
-                    set_cookie('access_token', data['token']['access_token'])
-                    set_cookie('expires', data['token']['expires'])
-                    set_cookie('oper_id', data['oper_id']);
-                    set_cookie('oper_name', data['full_name']);
-                    set_cookie('oper_root', data['root']);
+                    set_cookie('irobot_access_token', data['token']['access_token'])
+                    set_cookie('irobot_expires', data['token']['expires'])
+                    set_cookie('irobot_oper_id', data['oper_id']);
+                    set_cookie('irobot_oper_name', data['full_name']);
+                    set_cookie('irobot_oper_root', data['root']);
                     console.log('success auth');
                 }
                 else {

@@ -18,10 +18,11 @@ function delete_cookie(name) {
 
 
 function logout() {
-    delete_cookie('access_token');
-    delete_cookie('expires');
-    delete_cookie('oper_id');
-    delete_cookie('oper_name');
+    delete_cookie('irobot_access_token');
+    delete_cookie('irobot_expires');
+    delete_cookie('irobot_oper_id');
+    delete_cookie('irobot_oper_name');
+    delete_cookie('irobot_oper_root');
     location.reload();
 }
 
@@ -77,7 +78,7 @@ function change_password_request(old_password, new_password) {
     fetch('api/change-password', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${get_cookie('access_token')}`,
+            'Authorization': `Bearer ${get_cookie('irobot_access_token')}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({password: old_password, new_password: new_password})
@@ -108,7 +109,7 @@ function change_password_request(old_password, new_password) {
 
 function check_root() {
     let link = document.getElementById('create-oper-link');
-    if (get_cookie('oper_root') === 'true')
+    if (get_cookie('irobot_oper_root') === 'true')
         link.classList.add('show');
 }
 
@@ -165,7 +166,7 @@ function create_new_operator(login, name, password, root) {
     fetch('api/sign-up', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${get_cookie('access_token')}`,
+            'Authorization': `Bearer ${get_cookie('irobot_access_token')}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({login: login, full_name: name, password: password, root: root})
@@ -213,12 +214,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
 
     let timestamp = document.getElementById('timestamp').value;
-    if (get_cookie('access_token') !== '' &&
-        get_cookie('expires', true) > parseInt(timestamp)) {
+    if (get_cookie('irobot_access_token') !== '' &&
+        get_cookie('irobot_expires', true) > parseInt(timestamp)) {
 
-        document.getElementById('oper-name').value = get_cookie('oper_name');
-        document.getElementById('oper-id').innerText = get_cookie('oper_name');
-        document.getElementById('oper-menu').value = get_cookie('oper_id');
+        document.getElementById('oper-name').value = get_cookie('irobot_oper_name');
+        document.getElementById('oper-id').innerText = get_cookie('irobot_oper_name');
+        document.getElementById('oper-menu').value = get_cookie('irobot_oper_id');
         document.getElementById('oper-menu').classList.add('show');
         document.getElementById('oper-btn').classList.add('show');
     }
