@@ -18,9 +18,21 @@
 <style>
 html {
     background: #00141E url({{ url_for('static' , path='img/jpg/wallpaper.jpg') }}) center center no-repeat fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+    width: 100%;
+    overflow: hidden;
+
 }
 #ironnet-img {
     background: url({{ url_for('static', path='img/png/Ironnet_logo.png') }}) 0 50%;
+    border-style: hidden;
+    width: 155px;
+    height: 33px;
+    background-size: 100%;
+    opacity: 1;
 }
 </style>
 {% block style %}{% endblock %}
