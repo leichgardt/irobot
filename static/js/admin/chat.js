@@ -352,14 +352,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function fill_block_of_chat_history(data, skip_saving=false) {
         let chat_id = data['chat_id'];
         let messages = data['messages'];
-        let first_message_id = data['first_message_id'];
+        let id_list = data['id_list'];
+        let first_message_id = Math.min.apply(Math, id_list);
         if (!skip_saving)
             save_data_of_chat_messages(chat_id, messages);
         chat_data[chat_id]['first_message_id'] = first_message_id;
-        let keys = Object.keys(messages).sort();
-        for (let i in keys) {
-            let message_id = keys[i];
-            if ((message_id - first_message_id === 0) ||
+        for (let i in id_list) {
+            let message_id = id_list[i];
+            if ((message_id === first_message_id) ||
                 (message_id - 1 in messages && messages[message_id - 1]['date'] !== messages[message_id]['date'])) {
                 add_message_date(messages[message_id]);
             }
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function add_new_messages_before(data) {
         let chat_id = data['chat_id'];
         let messages = data['messages'];
-        chat_data[chat_id]['first_message_id'] = data['first_message_id'];
+        chat_data[chat_id]['first_message_id'] = Math.min.apply(Math, data['id_list']);
         save_data_of_chat_messages(chat_id, messages);
         let chat = document.getElementById('chat-history');
         clean_load_links_into_chat(chat);

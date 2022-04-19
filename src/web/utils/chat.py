@@ -74,8 +74,9 @@ async def get_chat_messages(chat_id, end_message_id=0):
     )
     for msg in messages:
         sql.split_datetime(msg)
+    id_list = [msg['message_id'] for msg in messages]
     messages = {msg['message_id']: msg for msg in messages}
-    return {'messages': messages, 'chat_id': chat_id, 'first_message_id': min(messages.keys())}
+    return {'messages': messages, 'chat_id': chat_id, 'id_list': sorted(id_list)}
 
 
 async def send_oper_message(data, oper_id, oper_name, **kwargs):
