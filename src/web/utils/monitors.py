@@ -92,6 +92,7 @@ async def new_messages_monitor(logger: Logger, manager: ConnectionManager):
         'new', as_dict=True
     )
     for message in messages:
+        message['timestamp'] = message['datetime'].timestamp()
         sql.split_datetime(message)
         await logger.info(f'Get new support message [{message["chat_id"]}] {message["message_id"]}')
         await sql.execute('UPDATE irobot.support_messages SET status= %s WHERE chat_id=%s AND message_id=%s',

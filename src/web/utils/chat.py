@@ -51,7 +51,9 @@ async def get_support_list():
 async def get_accounts_and_chats():
     chats = await get_support_list()
     accounts = await get_chat_accounts_in_support_need()
-    return {'chats': chats, 'accounts': accounts}
+    for chat in chats.values():
+        chat['accounts'] = accounts[chat['chat_id']]
+    return chats
 
 
 async def get_subscriber_message(chat_id, message_id):
@@ -70,13 +72,15 @@ async def get_chat_messages(chat_id, end_message_id=0):
     messages = await sql.execute(
         f'SELECT m.message_id, m.datetime, m.from_oper AS oper_id, o.full_name AS oper_name, m.content_type, m.content '
         f'FROM irobot.support_messages m LEFT JOIN irobot.operators o ON m.from_oper=o.oper_id '
-        f'WHERE m.chat_id=%s {flt} ORDER BY message_id DESC LIMIT 10', chat_id, as_dict=True
+        f'WHERE m.chat_id=%s {flt} ORDER BY datetime DESC LIMIT 10', chat_id, as_dict=True
     )
     for msg in messages:
+        msg.update({'timestamp': msg['datetime'].timestamp()})
         sql.split_datetime(msg)
     id_list = [msg['message_id'] for msg in messages]
+    ts_list = {msg['timestamp']: msg['message_id'] for msg in messages}
     messages = {msg['message_id']: msg for msg in messages}
-    return {'messages': messages, 'chat_id': chat_id, 'id_list': sorted(id_list)}
+    return {'messages': messages, 'chat_id': chat_id, 'id_list': id_list, 'ts_list': ts_list}
 
 
 async def send_oper_message(data, oper_id, oper_name, **kwargs):
@@ -86,12 +90,14 @@ async def send_oper_message(data, oper_id, oper_name, **kwargs):
         msg_date = await support.add_support_message_to_db(
             data['chat_id'], msg.message_id, 'text', {'text': data['text']}, oper_id, read=True, status=None
         )
-        date, time = sql.split_datetime(msg_date if msg_date else datetime.now())
+        msg_date = msg_date or datetime.now()
+        date, time = sql.split_datetime(msg_date)
         return {
             'chat_id': data['chat_id'],
             'message_id': msg.message_id,
             'date': date,
             'time': time,
+            'timestamp': msg_date.timestamp(),
             'oper_id': oper_id,
             'oper_name': oper_name,
             'content_type': 'text',
@@ -111,20 +117,21 @@ async def drop_chat(chat_id, oper_id):
     await add_support_operation(sup['support_id'], oper_id, 'drop')
 
 
-async def finish_support(chat_id, oper_id, oper_name):
+async def finish_support(chat_id, oper_id):
     sup = await get_live_support(chat_id)
     await set_oper_to_support(sup['support_id'], None)
     await add_support_operation(sup['support_id'], oper_id, 'close')
     await close_support_line(chat_id)
-    return await send_oper_message({'chat_id': chat_id, 'text': 'Спасибо за обращение!'}, oper_id, oper_name,
-                                   reply_markup=keyboards.main_menu_kb)
+    await read_chat(chat_id)
     # todo add review
 
 
 async def get_live_support(chat_id):
-    return await sql.execute('SELECT support_id FROM irobot.support WHERE chat_id=%(chat_id)s AND (closed IS null OR '
-                             'closed=(SELECT MAX(closed) FROM irobot.support WHERE chat_id=%(chat_id)s))',
-                             {'chat_id': chat_id}, as_dict=True, fetch_one=True)
+    return await sql.execute(
+        'SELECT support_id FROM irobot.support WHERE chat_id=%(chat_id)s AND (closed IS null OR '
+        'closed=(SELECT MAX(closed) FROM irobot.support WHERE chat_id=%(chat_id)s)) ORDER BY support_id DESC',
+        {'chat_id': chat_id}, as_dict=True, fetch_one=True
+    )
 
 
 async def set_oper_to_support(support_id, oper_id):

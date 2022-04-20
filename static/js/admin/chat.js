@@ -353,12 +353,13 @@ document.addEventListener('DOMContentLoaded', function () {
         let chat_id = data['chat_id'];
         let messages = data['messages'];
         let id_list = data['id_list'];
+        let ts_list = data['ts_list'];
         let first_message_id = Math.min.apply(Math, id_list);
         if (!skip_saving)
             save_data_of_chat_messages(chat_id, messages);
         chat_data[chat_id]['first_message_id'] = first_message_id;
-        for (let i in id_list) {
-            let message_id = id_list[i];
+        for (let timestamp in ts_list) {
+            let message_id = ts_list[timestamp];
             if ((message_id === first_message_id) ||
                 (message_id - 1 in messages && messages[message_id - 1]['date'] !== messages[message_id]['date'])) {
                 add_message_date(messages[message_id]);
@@ -565,7 +566,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!get_cookie('irobot_access_token'))
             return;
         let server_host = document.getElementById('server-host').value;
-        ws = new WebSocket(`ws://${server_host}/ws?access_token=${get_cookie('irobot_access_token')}`);
+        let root_path = document.getElementById('root-path');
+        root_path = root_path ? root_path : '';
+        ws = new WebSocket(`ws://${server_host}${root_path}/ws?access_token=${get_cookie('irobot_access_token')}`);
         ws.onclose = function () {
             setTimeout(connectWS, 1500);
         }
