@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from src.bot.schemas import keyboards
-from src.bot.utils import support
+from src.bot.utils import support as support_utils
 from src.modules import sql
 from src.web.utils import telegram_api
 
@@ -87,7 +87,7 @@ async def send_oper_message(data, oper_id, oper_name, **kwargs):
     msg = await telegram_api.send_message(data['chat_id'], data['text'], **kwargs)
     if msg and msg.message_id > 0:
         await read_chat(data['chat_id'])
-        msg_date = await support.add_support_message_to_db(
+        msg_date = await support_utils.add_support_message_to_db(
             data['chat_id'], msg.message_id, 'text', {'text': data['text']}, oper_id, read=True, status=None
         )
         msg_date = msg_date or datetime.now()
@@ -106,23 +106,28 @@ async def send_oper_message(data, oper_id, oper_name, **kwargs):
 
 
 async def take_chat(chat_id, oper_id):
-    sup = await get_live_support(chat_id)
-    await set_oper_to_support(sup['support_id'], oper_id)
-    await add_support_operation(sup['support_id'], oper_id, 'take')
+    support = await get_live_support(chat_id)
+    await set_oper_to_support(support['support_id'], oper_id)
+    await add_support_operation(support['support_id'], oper_id, 'take')
 
 
 async def drop_chat(chat_id, oper_id):
-    sup = await get_live_support(chat_id)
-    await set_oper_to_support(sup['support_id'], None)
-    await add_support_operation(sup['support_id'], oper_id, 'drop')
+    support = await get_live_support(chat_id)
+    await set_oper_to_support(support['support_id'], None)
+    await add_support_operation(support['support_id'], oper_id, 'drop')
 
 
-async def finish_support(chat_id, oper_id):
-    sup = await get_live_support(chat_id)
-    await set_oper_to_support(sup['support_id'], None)
-    await add_support_operation(sup['support_id'], oper_id, 'close')
+async def finish_support(chat_id, oper_id, oper_name):
+    support = await get_live_support(chat_id)
+    await set_oper_to_support(support['support_id'], None)
+    await add_support_operation(support['support_id'], oper_id, 'close')
     await close_support_line(chat_id)
     await read_chat(chat_id)
+    await send_oper_message({'chat_id': chat_id, 'text': 'Спасибо за обращение!'}, oper_id, oper_name)
+    return await telegram_api.send_message(
+        chat_id, 'Чтобы обратиться в поддержку снова - зайди в меню Помощь > Тех.поддержка',
+        reply_markup=keyboards.main_menu_kb
+    )
     # todo add review
 
 
