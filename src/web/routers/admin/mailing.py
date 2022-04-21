@@ -1,9 +1,8 @@
-from aiologger import Logger
-from fastapi import APIRouter, Request, Response, Depends, BackgroundTasks
+from fastapi import Request, Response, Depends, BackgroundTasks
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 
 from src.modules import sql
+from src.web.routers.admin.admin_router import router, templates
 from src.web.schemas import ops, mailing
 from src.web.schemas.table import Table
 from src.web.utils import ops as ops_utils, mailing as mailing_utils
@@ -11,25 +10,20 @@ from src.web.utils.api import lan_require, get_context
 from src.web.utils.dependecies import get_current_oper
 
 
-router = APIRouter(prefix='/admin')
-router.logger = Logger.with_default_handlers()
-templates = Jinja2Templates(directory='templates')
-
-
 @router.get('/mailing')
 @lan_require
-async def admin_page(request: Request):
+async def mailing_page(request: Request):
     if request.cookies.get('irobot_access_token'):
         oper = await ops_utils.get_oper_by_token(request.cookies['irobot_access_token'])
         if oper:
             context = get_context(request, oper=oper.dict())
             return templates.TemplateResponse(f'admin/mailing.html', context)
-    return RedirectResponse('/admin/')
+    return RedirectResponse('auth')
 
 
 @router.get('/api/get_mailing_data')
 @lan_require
-async def get_mailing_data(_: Request, __: ops.Oper = Depends(get_current_oper)):
+async def get_mailing_data_request(_: Request, __: ops.Oper = Depends(get_current_oper)):
     return {
         'response': 1,
         'table': await mailing_utils.get_mailing_history(),
@@ -39,7 +33,7 @@ async def get_mailing_data(_: Request, __: ops.Oper = Depends(get_current_oper))
 
 @router.get('/api/get_history')
 @lan_require
-async def get_history_table(_: Request):
+async def get_history_table_request(_: Request):
     """Получить таблицу с последними 10 рассылками"""
     res = await sql.get_mailings()
     if res:
@@ -52,7 +46,7 @@ async def get_history_table(_: Request):
 
 @router.post('/api/send_mail')
 @lan_require
-async def send_mailing(
+async def send_mailing_request(
         _: Request,
         response: Response,
         background_tasks: BackgroundTasks,

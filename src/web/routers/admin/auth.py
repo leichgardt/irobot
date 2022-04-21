@@ -1,21 +1,16 @@
-from aiologger import Logger
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.templating import Jinja2Templates
 
+from src.web.routers.admin.admin_router import router, templates
 from src.web.schemas import ops
 from src.web.utils import ops as ops_utils
 from src.web.utils.api import lan_require, get_context
 from src.web.utils.dependecies import get_current_oper
 
 
-router = APIRouter(prefix='/admin')
-router.logger = Logger.with_default_handlers()
-templates = Jinja2Templates(directory='templates')
-
-
 @router.get('/')
+@router.get('/auth')
 @lan_require
 async def auth_page(request: Request):
     context = get_context(request)
@@ -32,12 +27,12 @@ async def auth_page(request: Request):
 @lan_require
 async def sign_up_request(_: Request, new_oper: ops.OperCreate, current_oper: ops.Oper = Depends(get_current_oper)):
     """ Создать нового оператора (только для администраторов) """
-    print('sign_up_request::', new_oper)
     if not current_oper.root:
         raise HTTPException(status_code=400, detail='Not permitted')
     db_oper = await ops_utils.get_oper_by_login(new_oper.login)
     if db_oper:
         raise HTTPException(status_code=400, detail=f'Operator "{new_oper.login}" already registered')
+    await router.logger.info(f'Registration of a new operator by {current_oper.login}: {new_oper.login}')
     return await ops_utils.create_oper(new_oper)
 
 
@@ -47,6 +42,7 @@ async def sign_up_request(_: Request, data: ops.NewPassword, current_oper: ops.O
     db_oper = await ops_utils.get_oper_by_login(current_oper.login)
     if not ops_utils.validate_password(data.password, db_oper['hashed_password']):
         raise HTTPException(status_code=400, detail='Incorrect password')
+    await router.logger.info(f'Password changed: {current_oper.login}')
     return await ops_utils.set_new_password(db_oper['oper_id'], data.new_password)
 
 

@@ -10,7 +10,8 @@ from fastapi_utils.tasks import repeat_every
 
 from src.web.gunicorn_config import workers
 from config import ABOUT, DEBUG, ROOT_PATH, SUPPORT_BOT  # ABOUT не удалять
-from src.web.routers.admin import api, auth, chat, mailing
+from src.web.routers import api
+from src.web.routers.admin import admin_router
 from src.web.routers.user import login
 from src.modules import lb, sql, Texts
 from src.utils import aio_logger
@@ -30,9 +31,7 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 app = FastAPI(root_path=ROOT_PATH if not DEBUG else None)
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 app.include_router(api.router)
-app.include_router(auth.router)
-app.include_router(chat.router)
-app.include_router(mailing.router)
+app.include_router(admin_router.router)
 app.include_router(login.router)
 
 templates = Jinja2Templates(directory='templates')
@@ -41,9 +40,7 @@ logger = aio_logger('irobot-web')
 sql.logger = logger
 lb.logger = logger
 api.router.logger = logger
-auth.router.logger = logger
-chat.router.logger = logger
-mailing.router.logger = logger
+admin_router.router.logger = logger
 login.router.logger = logger
 sw = SoloWorker(logger=logger, workers=workers)
 

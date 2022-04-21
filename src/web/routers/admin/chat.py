@@ -1,15 +1,11 @@
-from aiologger import Logger
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 
+from src.web.routers.admin.admin_router import router, templates
 from src.web.utils import connection_manager, chat as chat_utils, ops as ops_utils
 from src.web.utils.api import lan_require, get_context
 
 
-router = APIRouter(prefix='/admin')
-router.logger = Logger.with_default_handlers()
-templates = Jinja2Templates(directory='templates')
 manager = connection_manager.ConnectionManager()
 
 
@@ -21,7 +17,7 @@ async def admin_page(request: Request):
         if oper:
             context = get_context(request, oper=oper.dict())
             return templates.TemplateResponse(f'admin/chat.html', context)
-    return RedirectResponse('/admin/')
+    return RedirectResponse('auth')
 
 
 @router.websocket('/ws')
