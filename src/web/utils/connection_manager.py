@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 
-from fastapi import WebSocket
+from starlette.websockets import WebSocket, WebSocketState
 
 
 class ConnectionManager:
@@ -14,10 +14,14 @@ class ConnectionManager:
         else:
             self.connections[oper_id] = [websocket]
 
-    def remove(self, websocket: WebSocket):
-        for oper_id in self.connections:
+    def remove(self, websocket: WebSocket, oper_id: int = None):
+        if oper_id:
             if websocket in self.connections[oper_id]:
                 self.connections[oper_id].remove(websocket)
+        else:
+            for connections in self.connections.values():
+                if websocket in connections:
+                    connections.remove(websocket)
 
     async def broadcast(
             self,
@@ -27,17 +31,22 @@ class ConnectionManager:
             ignore_list: List[Union[WebSocket, int]] = None
     ):
         if firstly:
-            await firstly.send_json({'action': action, 'data': data})
+            await self._send(firstly, {'action': action, 'data': data})
         for oper_id, connections in self.connections.items():
             for connection in connections:
+                if connection.application_state == WebSocketState.DISCONNECTED:
+                    self.remove(connection, oper_id)
+                    continue
+                if connection.application_state != WebSocketState.CONNECTED:
+                    continue
                 if connection is firstly:
                     continue
                 if ignore_list and (oper_id in ignore_list or connection in ignore_list):
                     continue
                 await connection.send_json({'action': action, 'data': data})
 
-    async def send_to_oper(self, oper_id: int, data: dict):
-        for connection_oper_id, connections in self.connections.items():
-            if connection_oper_id == oper_id:
-                for connection in connections:
-                    await connection.send_json(data)
+    async def _send(self, connection: WebSocket, data: dict):
+        if connection.application_state == WebSocketState.DISCONNECTED:
+            self.remove(connection)
+        elif connection.application_state == WebSocketState.CONNECTED:
+            await connection.send_json(data)
