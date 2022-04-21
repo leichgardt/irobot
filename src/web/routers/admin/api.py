@@ -2,7 +2,7 @@ from aiologger import Logger
 from fastapi import APIRouter, Request, Response, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 
-from parameters import TELEGRAM_TEST_CHAT_ID
+from config import TELEGRAM_TEST_CHAT_ID
 from src.modules import lb, sql
 from src.web.utils import mailing as mailing_utils
 from src.web.utils.api import lan_require, get_request_data

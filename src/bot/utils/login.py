@@ -1,4 +1,4 @@
-from parameters import HOST_URL
+from config import HOST_URL
 
 
 def get_login_url(hash_code: str):

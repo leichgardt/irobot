@@ -1,4 +1,4 @@
-from parameters import DEBUG, PID_TABLE, PID_DEBUG_TABLE
+from config import DEBUG, PID_TABLE, PID_DEBUG_TABLE
 from src.modules.sql.core import SQLCore
 
 
@@ -174,7 +174,7 @@ sql = SQLMaster()
 
 if __name__ == '__main__':
     import asyncio
-    from parameters import TELEGRAM_TEST_CHAT_ID
+    from config import TELEGRAM_TEST_CHAT_ID
 
     async def main():
         res = await sql.get_accounts(TELEGRAM_TEST_CHAT_ID)

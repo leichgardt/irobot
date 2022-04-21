@@ -6,7 +6,7 @@ from aiogram.utils import exceptions
 
 from src.bot.schemas import keyboards, Keyboard
 from src.modules import sql, Texts
-from parameters import BOT_TOKEN
+from config import BOT_TOKEN
 
 __all__ = (
     'telegram_api',
@@ -118,7 +118,7 @@ telegram_api = TelegramAPI()
 
 
 if __name__ == '__main__':
-    from parameters import TELEGRAM_TEST_CHAT_ID
+    from config import TELEGRAM_TEST_CHAT_ID
 
     async def main():
         res = await telegram_api.send_message(TELEGRAM_TEST_CHAT_ID, 'test message')

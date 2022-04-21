@@ -7,7 +7,7 @@ from zeep.client import Factory
 from zeep.exceptions import Fault
 from zeep.transports import AsyncTransport
 
-from parameters import LAN_BILLING_USER, LAN_BILLING_PASSWORD, LAN_BILLING_URL, LAN_BILLING_LOCATION
+from config import LAN_BILLING_USER, LAN_BILLING_PASSWORD, LAN_BILLING_URL, LAN_BILLING_LOCATION
 from src.utils import logger, get_datetime, get_phone_number
 
 

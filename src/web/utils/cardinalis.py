@@ -1,6 +1,6 @@
 from aiologger import Logger
 
-from parameters import CARDINALIS_URL
+from config import CARDINALIS_URL
 from src.utils import post_request
 
 

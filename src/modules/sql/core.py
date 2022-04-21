@@ -9,7 +9,7 @@ import psycopg2.errors
 import psycopg2.extensions
 import ujson
 
-from parameters import DB_NAME, DB_USER, DB_HOST
+from config import DB_NAME, DB_USER, DB_HOST
 
 
 class SQLCore:

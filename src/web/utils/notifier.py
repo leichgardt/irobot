@@ -1,4 +1,4 @@
-from parameters import TELEGRAM_NOTIFY_BOT_URL, TELEGRAM_TEST_CHAT_ID
+from config import TELEGRAM_NOTIFY_BOT_URL, TELEGRAM_TEST_CHAT_ID
 from src.utils import post_request
 from src.web.utils.telegram_api import send_message
 

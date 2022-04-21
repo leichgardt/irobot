@@ -3,7 +3,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.fsm_storage.mongo import MongoStorage
 from aiogram.dispatcher import Dispatcher
 
-from parameters import BOT_TOKEN, DEBUG, MONGO_DB_HOST, MONGO_DB_PORT, MONGO_DB_NAME
+from config import BOT_TOKEN, DEBUG, MONGO_DB_HOST, MONGO_DB_PORT, MONGO_DB_NAME
 
 
 if DEBUG:

@@ -26,8 +26,8 @@ RECEIPT_EMAIL = 'admin@bot.ru'
 # ID телеграм чата для тестирования, мониторинга статуса бота
 TELEGRAM_TEST_CHAT_ID = 1234567890
 
-# IP for connecting to websocket
-WEB_SERVICE_IP = '127.0.0.1'
+# Адрес хоста (для подключения к вебсокету)
+WEB_SERVICE_HOST = '127.0.0.1'
 # Port of web app
 WEB_SERVICE_PORT = 8000
 

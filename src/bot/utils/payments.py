@@ -6,7 +6,7 @@ from aiogram.types import LabeledPrice
 
 from src.bot.core import bot
 from src.modules import lb, sql, Texts
-from parameters import BOT_PAYMENT_TOKEN, RECEIPT_EMAIL
+from config import BOT_PAYMENT_TOKEN, RECEIPT_EMAIL
 from src.utils import get_hash
 
 

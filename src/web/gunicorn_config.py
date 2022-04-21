@@ -1,4 +1,4 @@
-from parameters import DEBUG, WEB_SERVICE_PORT
+from config import DEBUG, WEB_SERVICE_PORT
 
 # server
 bind = f'0.0.0.0:{WEB_SERVICE_PORT}'
