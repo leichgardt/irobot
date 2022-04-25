@@ -59,6 +59,7 @@ def get_context(request: Request, **kwargs):
         'pages': [
             {'title': 'Чат', 'url': 'chat'},
             {'title': 'Рассылка', 'url': 'mailing'},
+            {'title': 'Настройки', 'url': 'control_panel'},
         ],
         'about': ABOUT,
         'version': VERSION,

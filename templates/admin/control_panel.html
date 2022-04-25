@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block imports %}
+    <script type="text/javascript" src="{{ url_for('static', path='js/admin/control_panel.js') }}?t={{ timestamp }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/admin/mailing.css') }}">
+{% endblock %}
+{% block content %}
+<div class="container" style="width: 500px">
+    <div class="justify-content-center p-2 pb-4">
+        <div class="my-2">
+            <div class="text-center">
+                <span>Мониторы</span>
+            </div>
+        </div>
+        {% for monitor, enabled in monitors.items() %}
+        <div class="row pl-3">
+            <div class="col-12">
+                <div class="custom-control custom-switch">
+                    <input id="{{ monitor }}" type="checkbox" class="custom-control-input" {% if enabled %}checked{% endif %} onclick="switch_monitor_request('{{ monitor }}')">
+                    <label for="{{ monitor }}" class="custom-control-label">{{ monitor }}</label>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

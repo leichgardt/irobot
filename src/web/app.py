@@ -80,7 +80,7 @@ async def update_params():
 
 @app.on_event('startup')
 @repeat_every(seconds=60 * 60)
-@sw.solo_worker(task='photo', debug=DEBUG)
+@sw.solo_worker(task='photo-updater', disabled=DEBUG)
 async def photo_updater():
     await chat_photo_update_monitor()
 
@@ -94,7 +94,7 @@ async def messages_monitor():
 
 @app.on_event('startup')
 @repeat_every(seconds=30)
-@sw.solo_worker(task='payments', debug=DEBUG)
+@sw.solo_worker(task='payment-checker', disabled=DEBUG)
 async def payment_monitor():
     """ Поиск платежей с ошибками и попытка провести платёж еще раз """
     await auto_payment_monitor(logger)
@@ -102,7 +102,7 @@ async def payment_monitor():
 
 @app.on_event('startup')
 @repeat_every(seconds=60)
-@sw.solo_worker(task='feedback', debug=DEBUG)
+@sw.solo_worker(task='feedback-userside', disabled=DEBUG)
 async def feedback_monitor():
     """
     Поиск новых feedback сообщений для рассылки.

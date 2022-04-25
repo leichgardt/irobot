@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi_utils.tasks import repeat_every
 
 from src.modules import sql
+from src.web.utils.global_dict import GlobalDict
 
 
 __all__ = 'SoloWorker',
@@ -35,6 +36,7 @@ class SoloWorker:
         self.announcement = set()
         self.running = {}
         self.__closing = False
+        self.monitor_flags = GlobalDict('solo-worker-flags')
 
     async def close_tasks(self):
         self.logger.info(f'Solo Worker: waiting for tasks [{self.pid}] {self.running}')
@@ -71,13 +73,14 @@ class SoloWorker:
                 return True
         return False
 
-    def solo_worker(self, *, task: str, parallel=False, debug=False):  # factory
+    def solo_worker(self, *, task: str, parallel=False, disabled=False):  # factory
         self.task_list.append(task)
+        self.monitor_flags[task] = not disabled
 
         def decorator(func):
             async def wrapper(*args, **kwargs):
-                if debug:
-                    return None
+                if not self.monitor_flags[task]:
+                    return
                 if not self.__closing:
                     await self.update()
                     if self._is_my_task(task):
