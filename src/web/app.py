@@ -14,6 +14,7 @@ from src.web.routers import api
 from src.web.routers.admin import admin_router
 from src.web.routers.user import login
 from src.modules import lb, sql, Texts
+from src.modules.sql.checker import CheckerSQL
 from src.utils import aio_logger
 from src.web import (
     SoloWorker,
@@ -59,9 +60,14 @@ BACK_LINK = '<a href="https://t.me/{bot_name}">Вернуться к боту @{
 async def update_params():
     """ Загрузить и обновить параметры """
     global BOT_NAME, BACK_TO_BOT_URL, BACK_LINK, ABOUT
+
     # задать размер пула sql соединений
     sql.pool_min_size = 2
     sql.pool_max_size = 5
+
+    # проверить и создать БД, если её нет
+    sql_checker = CheckerSQL(sql)
+    await sql_checker.check_db_ready()
 
     # загрузить данные бота и вставить их в переменные имён
     BOT_NAME = await telegram_api.get_me()

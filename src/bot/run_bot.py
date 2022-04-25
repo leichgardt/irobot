@@ -8,6 +8,7 @@ from aiogram.utils.executor import start_webhook
 from src.bot import bot, dp
 from config import DEBUG, TELEGRAM_TEST_CHAT_ID, BOT_WEBHOOK_URL, BOT_PORT
 from src.modules import lb, sql, Texts
+from src.modules.sql.checker import CheckerSQL
 from src.utils import logger, logfile, logdir
 
 CERTIFICATE = ''
@@ -25,13 +26,23 @@ async def upd_texts():
     Texts.about_us = Texts.about_us(Texts.about_us.format(f'@{me["username"]}'))
 
 
-async def on_startup(dp):
+async def check_mongo(dp):
     try:
         # проверим БД конечного автомата
         await dp.storage.get_data(chat=TELEGRAM_TEST_CHAT_ID)
     except Exception:
         raise ConnectionError(f'Can\'t connect to MongoDB: {dp.storage.__dict__["_host"]}')
+
+
+async def check_postgres():
+    sql_checker = CheckerSQL(sql)
+    await sql_checker.check_db_ready()
+
+
+async def on_startup(dp):
     sql.logger = logger
+    await check_postgres()
+    await check_mongo(dp)
     await upd_texts()
     await lb.login()
     await bot.set_webhook(url=WEBHOOK_URL,
