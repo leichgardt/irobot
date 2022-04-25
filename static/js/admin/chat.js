@@ -1,479 +1,243 @@
-document.addEventListener('DOMContentLoaded', function () {
-    let chat_data = {};
-    let chat_history = {};
-    let ws = null;
-    let selected_chat = 0;
-    let chat_inputs = {};
-    let input = document.getElementById('message-input-text');
-    let btn_take = document.getElementById('btn-take');
-    let btn_drop = document.getElementById('btn-drop');
-    let btn_finish = document.getElementById('btn-finish');
-    let btn_read = document.getElementById('btn-read');
-    let input_group = document.getElementById('input-group');
+function concat_and_sort_arrays(arr1, arr2) {
+    return arr1.concat(arr2).filter((value, index, a) => {
+        return a.indexOf(value) === index;
+    }).sort((a, b) => a - b);
+}
 
-    let page_title = document.title;
-    let title_notification = 0;
-    let title_updater;
 
-    function update_title() {
-        document.title = title_notification ? 'Новое сообщение' : page_title;
-        title_notification = title_notification ? 0 : 1;
+function concat_and_sort_objects(obj1, obj2) {
+    for (let i in obj2)
+        if (!(i in obj1))
+            obj1[i] = obj2[i];
+    return Object.keys(obj1).sort().reduce((r, k) => (r[k] = obj1[k], r), {});
+}
+
+
+function reverse_object(obj) {
+    return Object.keys(obj).reverse().reduce((r, k) => (r[k] = obj[k], r), {});
+}
+
+
+class Chat {
+    selector;
+    control;
+    history;
+
+    constructor(url, root_path) {
+        this.url = url;
+        this.chat_data = new Object({});
+        this.selected_chat = 0;
+        this.connection = new WSConnection();
+        this.notification = new MyNotification(root_path);
+        this.selector = new ChatSelector(this);
+        this.control = new ChatControlPanel(this);
+        this.history = new ChatHistory(this);
+        this.chat_input = new ChatTextInput(this);
     }
 
-    document.onmousemove = function () {
-        if (typeof title_updater === 'number') {
-            clearInterval(title_updater);
-            title_updater = undefined;
-            document.title = page_title;
-        }
+    start() {
+        // connect to server and enable chat
+        this.connection.run(this);
+        setTimeout(this.notification.request_permission, 3000);
     }
 
-    function get_photo(chat_id) {
-        let photo = document.createElement('img');
-        photo.alt = '';
-        photo.src = chat_data[chat_id]['photo'] ? chat_data[chat_id]['photo'] : '';
-        return photo;
-    }
-
-    function get_chat_operator(chat_id) {
-        if (chat_data[chat_id]['oper_name']) {
-            return `Оператор: ${chat_data[chat_id]['oper_name']}`
-        } else if (chat_data[chat_id]['support_mode'] === true) {
-            return 'Нет оператора!'
-        } else {
-            return 'Проблем нет'
-        }
-    }
-
-    function get_chat_support_mode_icon(chat_id) {
-        return chat_data[chat_id]['support_mode'] === false ? '<i class="fa fa-circle online"></i>' : '<i class="fa fa-circle offline"></i>'
-    }
-
-    function get_chat_support_mode_oper_icon(chat_id) {
-        let icon = document.createElement('i');
-        if (chat_data[chat_id]['support_mode'] === true) {
-            icon.classList.add('fa', 'fa-circle', 'offline');
-            icon.style.marginLeft = '3px';
-        }
-        return icon
-    }
-
-    function get_chat_about(chat_id) {
-        let name_block = document.createElement('div');
-        name_block.classList.add('name', 'text-left');
-        name_block.innerHTML = chat_data[chat_id]['first_name'];
-        name_block.appendChild(get_chat_support_mode_oper_icon(chat_id));
-        let date = document.createElement('div');
-        date.classList.add('status', 'text-left', 'last-update-datetime');
-        date.innerText = `${chat_data[chat_id]['time']} ${chat_data[chat_id]['date']}`;
-        let about = document.createElement('div');
-        about.classList.add('about', 'col');
-        about.appendChild(name_block);
-        about.appendChild(date);
-        return about;
-    }
-
-    function get_chat_read_eye(chat_id) {
-        let block = document.createElement('div');
-        block.classList.add('col-1', 'text-right');
-        block.innerHTML = chat_data[chat_id]['read'] ? '' : '<i class="fa fa-eye-slash" ></i>';
-        return block
-    }
-
-    btn_take.onclick = function () {
-        take_chat_start();
-    }
-
-    function take_chat_start() {
-        ws.send(JSON.stringify({'action': 'take_chat', 'data': selected_chat}));
-    }
-
-    function oper_take_chat_end(data) {
-        chat_data[data['chat_id']]['oper_id'] = data['oper_id'];
-        chat_data[data['chat_id']]['oper_name'] = data['oper_name'];
-        new_selected_chat_status(data['chat_id']);
-        if (data['oper_id'] === get_cookie('irobot_oper_id', true)) {
-            show_message_buttons(true);
-        } else {
-            show_message_buttons(false);
-        }
-    }
-
-    btn_drop.onclick = function () {
-        drop_chat_start();
-    }
-
-    btn_finish.onclick = function () {
-        finish_support_start();
-    }
-
-    btn_finish.onmouseout = function () {
-        reset_finish_button();
-    }
-
-    btn_read.onclick = function () {
-        read_chat();
-    }
-
-    function drop_chat_start() {
-        ws.send(JSON.stringify({'action': 'drop_chat', 'data': selected_chat}));
-    }
-
-    function finish_support_start() {
-        if (btn_finish.classList.contains('btn-outline-success')) {
-            btn_finish.classList.replace('btn-outline-success', 'btn-outline-warning');
-            btn_finish.getElementsByTagName('span')[0].innerText = 'Точно завершить?';
-        } else {
-            ws.send(JSON.stringify({'action': 'finish_support', 'data': selected_chat}));
-        }
-    }
-
-    function reset_finish_button() {
-        btn_finish.classList.replace('btn-outline-warning', 'btn-outline-success');
-        btn_finish.getElementsByTagName('span')[0].innerText = 'Завершить поддержку';
-    }
-
-    function read_chat() {
-        chat_data[selected_chat]['read'] = true;
-        check_read_icon(selected_chat);
-        check_read_btn(selected_chat);
-        ws.send(JSON.stringify({'action': 'read_chat', 'data': selected_chat}));
-    }
-
-    function oper_drop_chat_end(data) {
-        chat_data[data['chat_id']]['oper_id'] = null;
-        chat_data[data['chat_id']]['oper_name'] = null;
-        new_selected_chat_status(data['chat_id']);
-        if (selected_chat === data['chat_id']) {
-            show_message_buttons(false);
-        }
-    }
-
-    function show_message_buttons(flag) {
-        if (flag) {
-            btn_take.classList.remove('show');
-            btn_drop.classList.add('show');
-            btn_finish.classList.add('show');
-            btn_read.classList.add('show');
-            input_group.classList.add('show');
-        } else {
-            btn_take.classList.add('show');
-            btn_drop.classList.remove('show');
-            btn_finish.classList.remove('show');
-            btn_read.classList.remove('show');
-            input_group.classList.remove('show');
-        }
-    }
-
-    function load_saved_input_value(chat_id) {
-        input.disabled = false;
-        if (chat_inputs[chat_id]) {
-            input.value = chat_inputs[chat_id];
-        } else {
-            input.value = '';
-        }
-    }
-
-    function new_selected_chat_status(chat_id) {
-        if (selected_chat === chat_id) {
-            let selected_chat_name = document.getElementById('selected-chat');
-            let small = selected_chat_name.getElementsByTagName('small');
-            small[0].innerText = get_chat_operator(chat_id);
-            small[1].innerHTML = get_chat_support_mode_icon(chat_id);
-            small[1].innerHTML += chat_data[chat_id]['support_mode'] === true ? ' Требуется поддержка!' : 'Поддержка не требуется';
-        }
-    }
-
-    function new_selected_chat_name(chat_id) {
-        let selected_chat_name = document.getElementById('selected-chat');
-        let name_block = selected_chat_name.getElementsByTagName('h6')[0];
-        name_block.innerHTML = chat_data[chat_id]['first_name'];
-        for (let i in chat_data[chat_id]['accounts']) {
-            let span = document.createElement('span');
-            span.classList.add('chat-account');
-            span.innerText = `[${chat_data[chat_id]['accounts'][i]}]`;
-            name_block.appendChild(span);
-        }
-    }
-
-    function new_selected_chat_photo(chat_id) {
-        let photo = chat_data[chat_id]['photo'];
-        document.getElementById('selected-photo').src = photo ? photo : '';
-    }
-
-    function select_chat(chat_id) {
-        if (selected_chat !== chat_id) {
-            selected_chat = chat_id;
-            document.getElementById('chat-history').innerHTML = '';
-            load_saved_input_value(chat_id);
-            new_selected_chat_photo(chat_id);
-            new_selected_chat_name(chat_id);
-            new_selected_chat_status(chat_id);
-        }
-    }
-
-    function load_chat(chat_id) {
-        let message_id = ('first_message_id' in chat_data[chat_id]) ? chat_data[chat_id]['first_message_id'] : 0;
-        if (chat_history[chat_id] === undefined) {
-            let data = {'action': 'get_chat', 'data': {'chat_id': chat_id, 'message_id': message_id}};
-            ws.send(JSON.stringify(data));
-        } else {
-            let old_messages = {'messages': chat_history[chat_id], 'chat_id': chat_id, 'first_message_id': message_id};
-            fill_block_of_chat_history(old_messages, true);
-        }
-    }
-
-    function is_my_chat_check(chat_id) {
-        if (chat_data[chat_id]['oper_id'] === get_cookie('irobot_oper_id', true)) {
-            show_message_buttons(true);
-        } else {
-            show_message_buttons(false);
-        }
-    }
-
-    function get_chat_block(chat_id) {
-        let li = document.createElement('li');
-        li.classList.add('clearfix', 'chat-item', 'row', 'align-items-center');
-        li.id = `chat-${chat_id}`;
-        li.appendChild(get_photo(chat_id));
-        li.appendChild(get_chat_about(chat_id));
-        li.appendChild(get_chat_read_eye(chat_id));
-        li.onclick = function () {
-            if (!(li.classList.contains('active'))) {
-                select_chat(chat_id);
-                load_chat(chat_id);
-                check_read_btn(chat_id);
-                is_my_chat_check(chat_id);
-                let chats = document.getElementsByClassName('chat-item');
-                for (let i = 0; i < chats.length; i++) {
-                    chats[i].classList.remove('active');
-                }
-                li.classList.add('active');
-            }
-        }
-        return li;
-    }
-
-    function save_data_of_chats(chats, accounts) {
-        for (let i in chats) {
-            chat_data[chats[i]['chat_id']] = chats[i];
-        }
-        for (let chat_id in accounts) {
-            chat_data[chat_id]['accounts'] = accounts[chat_id];
-        }
-    }
-
-    function fill_chat_list(data) {
-        let chat_list_block = document.getElementById('chat-list');
-        save_data_of_chats(data['chats'], data['accounts']);
-        chat_list_block.innerHTML = '';
-        for (let i in data['chats']) {
-            let chat = get_chat_block(data['chats'][i]['chat_id'])
-            chat_list_block.appendChild(chat);
-        }
-        if (selected_chat !== 0) {
-            document.getElementById(`chat-${selected_chat}`).classList.add('active');
-            load_chat(selected_chat);
-        }
-    }
-
-    function create_message_date(msg) {
-        let message_data = document.createElement('div');
-        message_data.classList.add('text-center');
-        let span = document.createElement('span');
-        span.innerText = msg['date'];
-        message_data.appendChild(span)
-        return message_data;
-    }
-
-    function get_message_content(msg) {
-        if (msg['content_type'] === 'text') {
-            return msg['content']['text']
-        } else {
-            return JSON.stringify(msg['content'])
-        }
-    }
-
-    function add_message_name(name) {
-        let header = document.createElement('div');
-        header.classList.add('message-name');
-        header.innerHTML = name
-        return header
-    }
-
-    function add_message_time(time) {
-        let time_small = document.createElement('small');
-        time_small.classList.add('message-time', 'pl-2');
-        time_small.innerText = time;
-        return time_small
-    }
-
-    function create_message(msg) {
-        let message = document.createElement('div');
-        message.classList.add('message');
-        if (msg['oper_id'] === null) {
-            message.classList.add('other-message', 'float-right');
-            message.appendChild(add_message_name(chat_data[selected_chat]['first_name']));
-        } else if (msg['oper_id'] !== get_cookie('irobot_oper_id', true)) {
-            message.classList.add('other-oper-message', 'float-right');
-            message.appendChild(add_message_name(`Оператор: ${msg['oper_name']}`));
-        } else {
-            message.classList.add('my-message', 'float-left');
-        }
-        message.innerHTML += get_message_content(msg);
-        message.appendChild(add_message_time(msg['time']));
-        return message;
-    }
-
-    function add_chat_message(msg, to_start=false) {
-        let li = document.createElement('li');
-        li.classList.add('clearfix');
-        li.appendChild(create_message(msg));
-        let chat = document.getElementById('chat-history');
-        if (to_start) {
-            insert_into_chat_end(li);
-        } else {
-            chat.appendChild(li);
-        }
-        li.scrollIntoView(false);
-    }
-
-    function add_message_date(msg, to_start=false) {
-        let li = document.createElement('li');
-        li.classList.add('clearfix', 'message-date');
-        li.appendChild(create_message_date(msg));
-        let chat = document.getElementById('chat-history');
-        if (to_start)
-            insert_into_chat_end(li);
+    run_procedure(command, data) {
+        console.log(`WebSocket: ${command} >>>`, data);
+        if (command === 'get_chats')
+            this.get_chats(data);
+        else if (command === 'get_chat')
+            this.history.get_chat_history(data);
+        else if (command === 'load_messages')
+            this.history.get_chat_history(data, true);
+        else if (command === 'get_message')
+            this.get_new_message(data);
+        else if (command === 'take_chat')
+            this.oper_take_chat_end(data);
+        else if (command === 'drop_chat')
+            this.oper_drop_chat_end(data);
+        else if (command === 'finish_support')
+            this.finish_support_end(data);
         else
-            chat.appendChild(li);
+            console.log('WebSocket unknown command:', command, data);
     }
 
-    function fill_block_of_chat_history(data, skip_saving=false) {
-        let chat_id = data['chat_id'];
-        let messages = data['messages'];
-        let id_list = data['id_list'];
-        let ts_list = data['ts_list'];
-        let first_message_id = Math.min.apply(Math, id_list);
-        if (!skip_saving)
-            save_data_of_chat_messages(chat_id, messages);
-        chat_data[chat_id]['first_message_id'] = first_message_id;
-        for (let timestamp in ts_list) {
-            let message_id = ts_list[timestamp];
-            if ((message_id === first_message_id) ||
-                (message_id - 1 in messages && messages[message_id - 1]['date'] !== messages[message_id]['date'])) {
-                add_message_date(messages[message_id]);
-            }
-            add_chat_message(messages[message_id]);
-        }
-        add_message_download_link(chat_id);
-    }
-
-    function insert_into_chat_end(element) {
-        let chat = document.getElementById('chat-history');
-        chat.insertBefore(element, chat.getElementsByTagName('li')[0])
-    }
-
-    function save_data_of_chat_messages(chat_id, messages) {
-        for (let message_id in messages) {
-            let mid = parseInt(message_id);
-            if (chat_id in chat_history) {
-                chat_history[chat_id][mid] = messages[message_id];
-            } else {
-                chat_history[chat_id] = {};
-                chat_history[chat_id][mid] = messages[message_id];
-            }
+    get_chats(data) {
+        this.save_chat_data(data);
+        this.selector.add_chats_to_selector(data);
+        this.add_chat_onclick_handler();
+        if (this.selected_chat !== 0) {
+            this.selector.get_chat(this.selected_chat).classList.add('active');
+            this.history.load_chat(this.selected_chat);
         }
     }
 
-    function add_new_messages_before(data) {
-        let chat_id = data['chat_id'];
-        let messages = data['messages'];
-        chat_data[chat_id]['first_message_id'] = Math.min.apply(Math, data['id_list']);
-        save_data_of_chat_messages(chat_id, messages);
-        let chat = document.getElementById('chat-history');
-        clean_load_links_into_chat(chat);
-        let keys = Object.keys(messages).reverse();
-        delete_chat_date_if_one_date(messages[keys[0]]);
-        for (let i = 0; i < keys.length; i++) {
-            if (i > 0 && messages[keys[i]]['date'] !== messages[keys[i - 1]]['date'])
-                add_message_date(messages[keys[i - 1]], true);
-            add_chat_message(messages[keys[i]], true);
-        }
-        add_message_date(messages[keys[keys.length - 1]], true);
-        add_message_download_link(chat_id);
+    save_chat_data(chats) {
+        for (let i in chats)
+            this.chat_data[chats[i]['chat_id']] = chats[i];
     }
 
-    function delete_chat_date_if_one_date(message) {
-        let first_msg = document.getElementById('chat-history').getElementsByTagName('li')[0];
-        if (first_msg.classList.contains('message-date') && message['date'] === first_msg.innerText)
-            first_msg.remove()
-    }
-
-    function clean_load_links_into_chat(chat) {
-        let messages = chat.getElementsByTagName('li');
-        if (messages.length > 0) {
-            for (let i in messages) {
-                if (typeof messages[i] === 'object' && messages[i].classList.contains('load-link')) {
-                    messages[i].remove();
+    add_chat_onclick_handler() {
+        for (let i = 0; i < this.selector.chat_list.length; i ++) {
+            let li = this.selector.chat_list[i];
+            li.onclick = () => {
+                let chat_id = parseInt(li.id);
+                if (this.selected_chat !== chat_id) {
+                    this.selector.deactivate_chats();
+                    li.classList.add('active');
+                    this.control.select_chat(chat_id);
+                    this.history.load_chat(chat_id);
+                    this.chat_input.load_saved_input_value(chat_id);
+                    this.selected_chat = chat_id;
                 }
             }
         }
     }
 
-    function add_message_download_link(chat_id) {
-        if (chat_data[chat_id]['first_message_id'] > chat_data[chat_id]['min_message_id']) {
-            let link = document.createElement('a');
-            link.onclick = function () {
-                load_messages(chat_id, chat_data[chat_id]['first_message_id']);
-            }
-            link.href = '#';
-            link.innerText = `Загрузить ещё ${chat_data[chat_id]['first_message_id']}`;
-            let block = document.createElement('li');
-            block.classList.add('text-center', 'load-link');
-            block.appendChild(link);
-            insert_into_chat_end(block);
+    get_new_message(message) {
+        if (!(message.chat_id in this.chat_data))
+            this.force_get_chats();
+        const data = this.get_message_data_to_save(message);
+        this.history.save_data_of_chat_messages(message.chat_id, data.messages, data.id_list, data.ts_list);
+        const res = this.history.add_new_message(message, this.selected_chat);
+        this.selector.update_chat_in_list(message);
+        if (this.selected_chat === message.chat_id) {
+            this.control.new_selected_chat_status(message.chat_id);
+            this.control.check_read_btn(message.chat_id);
         }
+        if (res[0] === 'new_message') {
+            this.notification.play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
+        } else if (res[0] === 'new chat') {
+            this.notification.play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
+        }
+        this.notification.send_notification('IroBot Admin - новое сообщение', res[1]);
     }
 
-    function load_messages(chat_id, first_message_id) {
-        let data = {'chat_id': chat_id, 'message_id': first_message_id};
-        ws.send(JSON.stringify({'action': 'load_messages', 'data': data}));
-    }
-
-    function get_message(msg) {
+    get_message_data_to_save(message) {
         let messages = {};
-        messages[msg['message_id']] = msg;
-        if (msg['chat_id'] in chat_data) {
-            if (msg['oper_id'] === null)
-                chat_data[msg['chat_id']]['support_mode'] = true;
-            new_selected_chat_status(msg['chat_id']);
-            if (msg['chat_id'] in chat_history)
-                save_data_of_chat_messages(msg['chat_id'], messages);
-            update_chat_in_list(msg);
-            if (selected_chat === msg['chat_id'])
-                add_chat_message(msg);
-            play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
-        } else {
-            force_get_chats();
-            play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
-        }
-        send_notification('IroBot Admin - новое сообщение', get_message_content(msg));
+        messages[message.message_id] = message;
+        let ts_list = {};
+        ts_list[message.timestamp] = message.message_id;
+        return {messages: messages, id_list: [message.message_id], ts_list: ts_list};
     }
 
-    function send_notification(title, text) {
-        if (typeof title_updater !== 'number')
-            title_updater = setInterval(update_title, 1000);
-        window.focus();
+    force_get_chats() {
+        this.connection.send({'action': 'get_chats'});
+    }
+
+    oper_take_chat_end(data) {
+        this.chat_data[data['chat_id']]['oper_id'] = data['oper_id'];
+        this.chat_data[data['chat_id']]['oper_name'] = data['oper_name'];
+        this.control.new_selected_chat_status(data['chat_id']);
+        if (data['oper_id'] === get_cookie('irobot_oper_id', true)) {
+            this.control.show_message_buttons(true);
+        } else {
+            this.control.show_message_buttons(false);
+        }
+    }
+
+    oper_drop_chat_end(data) {
+        this.chat_data[data['chat_id']]['oper_id'] = null;
+        this.chat_data[data['chat_id']]['oper_name'] = null;
+        this.control.new_selected_chat_status(data['chat_id']);
+        if (this.selected_chat === data['chat_id']) {
+            this.control.show_message_buttons(false);
+        }
+    }
+
+    finish_support_end(data) {
+        this.get_chats(data['chats']);
+        this.control.new_selected_chat_status(data['chat_id']);
+        if (data['oper_id'] === get_cookie('irobot_oper_id', true) && this.selected_chat === data['chat_id']) {
+            this.control.show_message_buttons(false);
+        }
+    }
+}
+
+
+class WSConnection {
+
+    constructor() {
+        this.socket = null;
+    }
+
+    run(chat) {
+        this.connect_to_server(this, chat);
+        setInterval(this.connect_to_server, 2000, this, chat);
+    }
+
+    connect_to_server(self, chat) {
+        if ((self.socket !== null && self.socket.readyState === WebSocket.OPEN)) {
+            return;
+        }
+
+        self.socket = new WebSocket(chat.url);
+
+        self.socket.onopen = () => {
+            console.log('WebSocket: connected');
+        }
+        self.socket.onerror = () => {
+            this.socket.close();
+        }
+        self.socket.onclose = () => {
+            self.socket = null;
+        }
+        self.socket.onmessage = (event) => {
+            let command = JSON.parse(event.data)['action'];
+            let data = JSON.parse(event.data)['data'];
+            chat.run_procedure(command, data);
+        }
+    }
+
+    send(data) {
+        if (this.socket !== null && this.socket.readyState === WebSocket.OPEN)
+            this.socket.send(JSON.stringify(data));
+    }
+}
+
+
+class MyNotification {
+    title_updater;
+
+    constructor(root_path) {
+        this.root_path = root_path;
+        this.page_title = document.title;
+        this.title_notification = 0;
+        this.stop_title_updater_handler();
+    }
+
+    stop_title_updater_handler() {
+        document.onmousemove =  () => {
+            if (typeof this.title_updater === 'number') {
+                clearInterval(this.title_updater);
+                this.title_updater = undefined;
+                document.title = this.page_title;
+            }
+        }
+    }
+
+    update_title(title) {
+        document.title = this.title_notification ? 'Новое сообщение' : title;
+        this.title_notification = this.title_notification ? 0 : 1;
+    }
+
+    play_audio(url) {
+        let audio = new Audio(this.root_path + url);
+        audio.play().then().catch();
+    }
+
+    send_notification(title, text) {
+        if (typeof this.title_updater !== 'number')
+            this.title_updater = setInterval(this.update_title, 1000, this.page_title);
         if (('Notification' in window && document.hidden)) {
-            let options = {body: text, icon: '/static/img/png/logo.png', dir: 'auto'};
+            let options = {body: text, icon: 'static/img/png/logo.png', dir: 'auto'};
             if (Notification.permission === 'granted') {
                 new Notification(title, options);
             } else if (Notification.permission !== 'denied') {
                 Notification.requestPermission()
                     .then(permission => {
                         if (permission === 'granted') {
-                            new Notification(title, options);
+                            let notif = new Notification(title, options);
+                            notif.onclick = () => { window.focus(); }
                         }
                     })
                     .catch(e => {console.error(e)});
@@ -481,117 +245,590 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function play_audio(url) {
-        let audio = new Audio(url);
-        audio.play().then().catch();
-    }
-
-    function update_chat_in_list(msg) {
-        new_chat_datetime(msg['chat_id'], msg['date'], msg['time']);
-        chat_data[msg['chat_id']]['read'] = !!msg['oper_id'];
-        check_read_icon(msg['chat_id']);
-        check_read_btn(msg['chat_id']);
-    }
-
-    function new_chat_datetime(chat_id, date, time) {
-        let about = document.getElementById(`chat-${chat_id}`);
-        about = about.getElementsByClassName('about')[0].getElementsByTagName('div');
-        about[1].innerText = `${time} ${date}`;
-    }
-
-    function check_read_icon(chat_id) {
-        let chat_block = document.getElementById(`chat-${chat_id}`);
-        chat_block.getElementsByClassName('col-1')[0].remove();
-        chat_block.appendChild(get_chat_read_eye(chat_id));
-    }
-
-    function check_read_btn(chat_id) {
-        btn_read.disabled = chat_data[chat_id]['read'];
-    }
-
-    function request_permission() {
+    request_permission() {
         if (('Notification' in window)) {
             if (Notification.permission === 'default') {
                 Notification.requestPermission().then().catch();
             }
         }
     }
+}
 
-    setTimeout(request_permission, 1000);
 
-    function force_get_chats() {
-        ws.send(JSON.stringify({'action': 'get_chats'}));
+class ChatSelector {
+
+    constructor(chat) {
+        this.block = document.getElementById('chat-list');
+        this.connection = chat.connection;
+        this.chat_data = chat.chat_data;
+        // todo search field
+        // todo all chats not only support
     }
 
-    function finish_support_end(data) {
-        fill_chat_list(data['chats']);
-        new_selected_chat_status(data['chat_id']);
-        if (data['oper_id'] === get_cookie('irobot_oper_id', true) && selected_chat === data['chat_id']) {
-            reset_finish_button();
-            show_message_buttons(false);
+    add_chats_to_selector(chats) {
+        this.block.innerHTML = '';
+        for (let i in chats) {
+            this.block.appendChild(this.get_chat_block(chats[i]['chat_id']));
         }
     }
 
-    for (let i in document.getElementsByClassName('show-under-mouse')) {
-        let btn = document.getElementsByClassName('show-under-mouse')[i];
-        btn.onmouseenter = function () {
-            btn.getElementsByTagName('span')[0].classList.add('show');
-        }
+    get_chat_block(chat_id) {
+        let li = document.createElement('li');
+        li.classList.add('clearfix', 'chat-item', 'row', 'align-items-center');
+        li.id = `${chat_id}`;
+        li.appendChild(this.get_photo(chat_id));
+        li.appendChild(this.get_chat_about(chat_id));
+        li.appendChild(this.get_chat_read_eye(chat_id));
+        return li;
+    }
 
-        btn.onmouseleave = function () {
-            btn.getElementsByTagName('span')[0].classList.remove('show');
+    get_photo(chat_id) {
+        let photo = document.createElement('img');
+        photo.alt = '';
+        photo.src = this.chat_data[chat_id]['photo'] ? this.chat_data[chat_id]['photo'] : '';
+        return photo;
+    }
+
+    get_chat_about(chat_id) {
+        let name_block = document.createElement('div');
+        name_block.classList.add('name', 'text-left');
+        name_block.innerHTML = this.chat_data[chat_id]['first_name'];
+        name_block.appendChild(this.get_chat_support_mode_oper_icon(chat_id));
+        let date = document.createElement('div');
+        date.classList.add('status', 'text-left', 'last-update-datetime');
+        date.innerText = `${this.chat_data[chat_id]['time']} ${this.chat_data[chat_id]['date']}`;
+        let about = document.createElement('div');
+        about.classList.add('about', 'col');
+        about.appendChild(name_block);
+        about.appendChild(date);
+        return about
+    }
+
+    get_chat_support_mode_oper_icon(chat_id) {
+        let icon = document.createElement('i');
+        if (this.chat_data[chat_id]['support_mode'] === true) {
+            icon.classList.add('fa', 'fa-circle', 'offline');
+            icon.style.marginLeft = '3px';
+        }
+        return icon
+    }
+
+    get_chat_read_eye(chat_id) {
+        let block = document.createElement('div');
+        block.classList.add('col-1', 'text-right');
+        block.innerHTML = this.chat_data[chat_id]['read'] ? '' : '<i class="fa fa-eye-slash" ></i>';
+        return block
+    }
+
+    get_chat(chat_id) {
+        return document.getElementById(`${chat_id}`);
+    }
+
+    get chat_list() {
+        return this.block.getElementsByClassName('chat-item');
+    }
+
+    deactivate_chats() {
+        for (let i = 0; i < this.chat_list.length; i++) {
+            this.chat_list[i].classList.remove('active');
         }
     }
 
-    input.onkeyup = function (event) {
-        if (event.key === 'Enter') {
-            send_message();
+    update_chat_in_list(message) {
+        this.new_chat_datetime(message['chat_id'], message['date'], message['time']);
+        this.chat_data[message['chat_id']]['support_mode'] = !!!message['oper_id'];
+        this.chat_data[message['chat_id']]['read'] = !!message['oper_id'];
+        this.check_read_icon(message['chat_id']);
+        this.check_support_icon(message['chat_id']);
+    }
+
+    new_chat_datetime(chat_id, date, time) {
+        let about = this.get_chat(chat_id);
+        about = about.getElementsByClassName('about')[0].getElementsByTagName('div');
+        about[1].innerText = `${time} ${date}`;
+    }
+
+    check_read_icon(chat_id) {
+        let chat_block = document.getElementById(`${chat_id}`);
+        chat_block.getElementsByClassName('col-1')[0].remove();
+        chat_block.appendChild(this.get_chat_read_eye(chat_id));
+    }
+
+    check_support_icon(chat_id) {
+        if (this.chat_data[chat_id].support_mode === true) {
+            let name = this.get_chat(chat_id).getElementsByClassName('name')[0];
+            let block = name.getElementsByClassName('fa');
+            if (block.length === 0)
+                name.appendChild(this.get_chat_support_mode_oper_icon(chat_id));
+        }
+    }
+}
+
+
+class ChatTextInput {
+
+    constructor(chat) {
+        this.input = document.getElementById('message-input-text');
+        this.saved_input = new Object({});
+        this.connection = chat.connection;
+        this.chat = chat;
+        this.chat_input_handler()
+    }
+
+    chat_input_handler() {
+        this.input.onkeyup = (event) => {
+            if (event.key === 'Enter') {
+                this.send_message();
+            }
+        }
+        this.saved_input.oninput = () => {
+            this.saved_input[this.chat.selected_chat] = this.input.value;
         }
     }
 
-    input.oninput = function () {
-        chat_inputs[selected_chat] = input.value;
-    }
-
-    function send_message() {
-        if (input.value.length > 0) {
-            let data = {'chat_id': selected_chat, 'text': input.value};
-            ws.send(JSON.stringify({'action': 'send_message', 'data': data}));
-            input.value = '';
-            chat_inputs[selected_chat] = '';
+    send_message() {
+        if (this.input.value.length > 0) {
+            let data = {'chat_id': this.chat.selected_chat, 'text': this.input.value};
+            this.connection.send({'action': 'send_message', 'data': data});
+            this.input.value = '';
+            this.saved_input[this.chat.selected_chat] = '';
         }
     }
 
-    function connectWS() {
-        if (!get_cookie('irobot_access_token'))
-            return;
-        let server_host = document.getElementById('server-host').value;
-        let root_path = document.getElementById('root-path');
-        root_path = root_path ? root_path : '';
-        ws = new WebSocket(`ws://${server_host}${root_path}/ws?access_token=${get_cookie('irobot_access_token')}`);
-        ws.onclose = function () {
-            setTimeout(connectWS, 1500);
+    load_saved_input_value(chat_id) {
+        this.input.disabled = false;
+        if (this.saved_input[chat_id]) {
+            this.input.value = this.saved_input[chat_id];
+        } else {
+            this.input.value = '';
         }
-        ws.onmessage = function (event) {
-            let command = JSON.parse(event.data)['action'];
-            let data = JSON.parse(event.data)['data'];
-            console.log(`${command}:`, data);
-            if (command === 'get_chats')
-                fill_chat_list(data);
-            else if (command === 'get_chat')
-                fill_block_of_chat_history(data);
-            else if (command === 'load_messages')
-                add_new_messages_before(data);
-            else if (command === 'get_message')
-                get_message(data);
-            else if (command === 'take_chat')
-                oper_take_chat_end(data);
-            else if (command === 'drop_chat')
-                oper_drop_chat_end(data);
-            else if (command === 'finish_support')
-                finish_support_end(data);
+    }
+}
+
+
+class ChatControlPanel {
+
+    constructor(chat) {
+        this.header = document.getElementById('selected-chat');
+        this.photo = document.getElementById('selected-photo');
+        this.input_group = document.getElementById('input-group');
+        this.btn = {
+            take: new ChatControlButton('btn-take'),
+            drop: new ChatControlButton('btn-drop', true),
+            read: new ChatControlButton('btn-read', true),
+            finish: new ChatControlButton('btn-finish', true),
+        }
+        this.connection = chat.connection;
+        this.chat_data = chat.chat_data;
+        this.chat = chat;
+        this.btn.take.add_handler(() => { this.take_chat_start() });
+        this.btn.drop.add_handler(() => { this.drop_chat_start() });
+        this.btn.read.add_handler(() => { this.read_chat_start() });
+        this.btn.finish.add_handler(() => { this.finish_support_start() });
+    }
+
+    take_chat_start() {
+        this.connection.send({'action': 'take_chat', 'data': this.chat.selected_chat});
+    }
+
+    drop_chat_start() {
+        this.connection.send({'action': 'drop_chat', 'data': this.chat.selected_chat});
+    }
+
+    read_chat_start() {
+        this.chat_data[this.chat.selected_chat]['read'] = true;
+        this.check_read_btn(this.chat.selected_chat);
+        this.connection.send({'action': 'read_chat', 'data': this.chat.selected_chat});
+    }
+
+    finish_support_start() {
+        if (this.btn.finish.block.classList.contains('btn-outline-success')) {
+            this.btn.finish.block.classList.replace('btn-outline-success', 'btn-outline-warning');
+            this.btn.finish.block.getElementsByTagName('span')[0].innerText = 'Точно завершить?';
+        } else {
+            this.connection.send({'action': 'finish_support', 'data': this.chat.selected_chat});
+            this.btn.finish.block.classList.replace('btn-outline-warning', 'btn-outline-success');
+            this.btn.finish.block.getElementsByTagName('span')[0].innerText = 'Завершить поддержку';
         }
     }
 
-    connectWS();
+    select_chat(chat_id) {
+        this.new_selected_chat_photo(chat_id);
+        this.new_selected_chat_name(chat_id);
+        this.new_selected_chat_status(chat_id);
+        this.check_is_my_chat(chat_id);
+        this.check_read_btn(chat_id);
+    }
+
+    new_selected_chat_photo(chat_id) {
+        let photo = this.chat_data[chat_id]['photo'];
+        this.photo.src = photo ? photo : '';
+    }
+
+    new_selected_chat_name(chat_id) {
+        let name_block = this.header.getElementsByTagName('h6')[0];
+        name_block.innerHTML = this.chat_data[chat_id]['first_name'];
+        for (let i in this.chat_data[chat_id]['accounts']) {
+            let span = document.createElement('span');
+            span.classList.add('chat-account');
+            span.innerText = `[${this.chat_data[chat_id]['accounts'][i]}]`;
+            name_block.appendChild(span);
+        }
+    }
+
+    new_selected_chat_status(chat_id) {
+        let small = this.header.getElementsByTagName('small');
+        small[0].innerText = this.get_chat_operator(chat_id);
+        small[1].innerHTML = this.get_chat_support_mode_icon(chat_id) + this.get_chat_support_mode(chat_id);
+    }
+
+    get_chat_operator(chat_id) {
+        if (this.chat_data[chat_id]['oper_name']) {
+            return `Оператор: ${this.chat_data[chat_id]['oper_name']}`
+        } else if (this.chat_data[chat_id]['support_mode'] === true) {
+            return 'Нет оператора!'
+        } else {
+            return 'Проблем нет'
+        }
+    }
+
+    get_chat_support_mode_icon(chat_id) {
+        return this.chat_data[chat_id]['support_mode'] === false ? '<i class="fa fa-circle online"></i>' : '<i class="fa fa-circle offline"></i>'
+    }
+
+    get_chat_support_mode(chat_id) {
+        return this.chat_data[chat_id]['support_mode'] === true ? ' Требуется поддержка!' : 'Поддержка не требуется';
+    }
+
+    check_read_btn(chat_id) {
+        this.btn.read.disabled = this.chat_data[chat_id]['read'];
+    }
+
+    check_is_my_chat(chat_id) {
+        if (this.chat_data[chat_id]['oper_id'] === get_cookie('irobot_oper_id', true)) {
+            this.show_message_buttons(true);
+        } else {
+            this.show_message_buttons(false);
+        }
+    }
+
+    show_message_buttons(flag) {
+        if (flag) {
+            this.btn.take.hide();
+            this.btn.drop.show();
+            this.btn.finish.show();
+            this.btn.read.show();
+            this.input_group.classList.add('show');
+        } else {
+            this.btn.take.show();
+            this.btn.drop.hide();
+            this.btn.finish.hide();
+            this.btn.read.hide();
+            this.input_group.classList.remove('show');
+        }
+    }
+
+}
+
+
+class ChatControlButton {
+
+    constructor(elem_id, show_under_cursor=false) {
+        this.block = document.getElementById(elem_id);
+        if (show_under_cursor)
+            this.add_under_cursor_showing();
+    }
+
+    show() {
+        this.block.classList.add('show');
+    }
+
+    hide() {
+        this.block.classList.remove('show');
+    }
+
+    add_handler(func) {
+        this.block.onclick = () => { func(); }
+    }
+
+    add_under_cursor_showing() {
+        this.block.onmouseenter = () => {
+            this.block.getElementsByTagName('span')[0].classList.add('show');
+        }
+        this.block.onmouseleave = () => {
+            this.block.getElementsByTagName('span')[0].classList.remove('show');
+        }
+    }
+}
+
+
+class ChatHistory {
+
+    constructor(chat) {
+        this.chat_history = {};
+        this.message_id_lists = {}
+        this.message_ts_lists = {}
+        this.block = document.getElementById('chat-history');
+        this.connection = chat.connection;
+        this.chat_data = chat.chat_data;
+    }
+
+    load_chat(chat_id) {
+        this.clear();
+        if (this.chat_history[chat_id] === undefined) {
+            let message_id = ('first_message_id' in this.chat_data[chat_id]) ? this.chat_data[chat_id]['first_message_id'] : 0;
+            let data = {'action': 'get_chat', 'data': {'chat_id': chat_id, 'message_id': message_id}};
+            this.connection.send(data);
+        } else {
+            this.show_chat_history(chat_id);
+        }
+    }
+
+    clear() {
+        for (let i in this.chat_history)
+            for (let j in this.chat_history[i])
+                this.chat_history[i][j]['showed'] = false;
+        this.block.innerHTML = '';
+    }
+
+    get_chat_history(data, reverse=false) {
+        this.save_data_of_chat_messages(data['chat_id'], data['messages'], data['id_list'], data['ts_list']);
+        this.clean_load_links_into_chat();
+        this.remove_first_date()
+        this.show_chat_history(data['chat_id'], reverse);
+    }
+
+    save_data_of_chat_messages(chat_id, messages, id_list, ts_list) {
+        for (let message_id in messages) {
+            let mid = parseInt(message_id);
+            if (!(chat_id in this.chat_history))
+                this.chat_history[chat_id] = {};
+            if (!(mid in this.chat_history[chat_id]))
+                this.chat_history[chat_id][mid] = new ChatMessage(chat_id, messages[message_id], this.chat_data[chat_id]['first_name']);
+        }
+        if (!(chat_id in this.message_id_lists))
+            this.message_id_lists[chat_id] = [];
+        if (!(chat_id in this.message_ts_lists))
+            this.message_ts_lists[chat_id] = {};
+        if (this.message_id_lists[chat_id] === undefined) {
+            this.message_id_lists[chat_id] = id_list;
+            this.message_ts_lists[chat_id] = ts_list;
+        } else {
+            this.message_id_lists[chat_id] = concat_and_sort_arrays(this.message_id_lists[chat_id], id_list);
+            this.message_ts_lists[chat_id] = concat_and_sort_objects(this.message_ts_lists[chat_id], ts_list);
+        }
+        this.chat_data[chat_id]['first_message_id'] = Math.min.apply(Math, this.message_id_lists[chat_id]);
+        this.message_ts_lists[chat_id] = concat_and_sort_objects(this.message_ts_lists[chat_id], ts_list);
+    }
+
+    clean_load_links_into_chat() {
+        let messages = this.block.getElementsByTagName('li');
+        if (messages.length > 0)
+            for (let i in messages)
+                if (typeof messages[i] === 'object' && messages[i].classList.contains('load-link'))
+                    messages[i].remove();
+    }
+
+    remove_first_date() {
+        let first_msg = this.block.getElementsByTagName('li');
+        if (first_msg !== undefined && first_msg.length > 0)
+            for (let i in first_msg)
+                if (first_msg[i].classList.contains('message-date')) {
+                    first_msg[i].remove()
+                    break;
+                }
+    }
+
+    show_chat_history(chat_id, reverse=false) {
+        let messages = this.chat_history[chat_id];
+        let ts_list = this.message_ts_lists[chat_id];
+        if (reverse)
+            ts_list = reverse_object(ts_list);
+        for (let i in ts_list) {
+            let message_id = ts_list[i];
+            if (messages[message_id].showed) {
+                continue;
+            }
+            this.add_chat_message(chat_id, message_id, reverse ? 'top' : 'bottom');
+            if (message_id === this.chat_data[chat_id].first_message_id)
+                this.add_message_date(messages[message_id], true);
+        }
+        this.add_message_dates(chat_id);
+        this.add_message_download_link(chat_id);
+    }
+
+    add_chat_message(chat_id, message_id, direction='') {
+        let li = document.createElement('li');
+        li.id = `m-${message_id}`;
+        li.classList.add('clearfix', 'message-li');
+        li.appendChild(this.chat_history[chat_id][message_id].create_element());
+        let max = Math.max.apply(Math, this.message_ts_lists[chat_id]);
+        if (direction === 'top') {
+            this.insert_into_chat_top(li);
+        } else if (direction === 'bottom') {
+            this.insert_into_chat_bottom(li);
+        } else {
+            let min = Math.min.apply(Math, this.message_ts_lists[chat_id]);
+            this.insert_into_chat(li, chat_id, message_id, this.message_ts_lists[chat_id][min],
+                this.message_ts_lists[chat_id][max]);
+        }
+        this.chat_history[chat_id][message_id].showed = true;
+        li.scrollIntoView(false);
+    }
+
+    add_message_dates(chat_id) {
+        let lines = this.block.getElementsByTagName('li');
+        for (let i = 0; i < lines.length - 1; i++) {
+            if (lines[i].classList.contains('message-li') && lines[i + 1].classList.contains('message-li')) {
+                let msg1 = this.chat_history[chat_id][lines[i].id.slice(2)];
+                let msg2 = this.chat_history[chat_id][lines[i + 1].id.slice(2)];
+                if (msg1.date !== msg2.date) {
+                    let li = document.createElement('li');
+                    li.classList.add('clearfix', 'message-date');
+                    li.appendChild(this.create_message_date(msg2.date));
+                    this.block.insertBefore(li, lines[i + 1]);
+                }
+            }
+        }
+    }
+
+    add_message_date(message, to_start=false) {
+        let li = document.createElement('li');
+        li.classList.add('clearfix', 'message-date');
+        li.appendChild(this.create_message_date(message['date']));
+        if (to_start)
+            this.insert_into_chat_top(li);
+        else
+            this.insert_into_chat_bottom(li);
+    }
+
+    create_message_date(date) {
+        let message_data = document.createElement('div');
+        message_data.classList.add('text-center');
+        let span = document.createElement('span');
+        span.innerText = date;
+        message_data.appendChild(span)
+        return message_data;
+    }
+
+    insert_into_chat_top(element) {
+        this.block.insertBefore(element, this.block.getElementsByTagName('li')[0])
+    }
+
+    insert_into_chat_bottom(element) {
+        this.block.append(element)
+    }
+
+    insert_into_chat(element, chat_id, message_id, min_message_id, max_message_id) {
+        if (message_id === min_message_id) {
+            this.insert_into_chat_top(element);
+        } else if (message_id === max_message_id) {
+            this.insert_into_chat_bottom(element);
+        } else {
+            let ind = this.message_id_lists[chat_id].indexOf(message_id);
+            if (ind + 1 in this.message_id_lists[chat_id]) {
+                let line = document.getElementById(`m-${this.message_id_lists[chat_id][ind + 1]}`);
+                this.block.insertBefore(element, line);
+            } else {
+                this.insert_into_chat_bottom(element);
+            }
+        }
+    }
+
+    add_message_download_link(chat_id) {
+        if (this.chat_data[chat_id]['first_message_id'] > this.chat_data[chat_id]['min_message_id']) {
+            let link = document.createElement('a');
+            link.onclick = () => {
+                this.load_more_messages(chat_id, this.chat_data[chat_id]['first_message_id']);
+            }
+            link.href = '#';
+            link.innerText = 'Загрузить ещё';
+            let block = document.createElement('li');
+            block.classList.add('text-center', 'load-link');
+            block.appendChild(link);
+            this.insert_into_chat_top(block);
+        }
+    }
+
+    load_more_messages(chat_id, first_message_id) {
+        let data = {'chat_id': chat_id, 'message_id': first_message_id};
+        this.connection.send({'action': 'load_messages', 'data': data});
+    }
+
+    add_new_message(message, selected_chat) {
+        if (message.chat_id in this.chat_data) {
+            if (message['oper_id'] === null)
+                this.chat_data[message.chat_id]['support_mode'] = true;
+            if (selected_chat === message.chat_id)
+                this.add_chat_message(message.chat_id, message['message_id']);
+            return ['new_message', this.chat_history[message.chat_id][message['message_id']].get_message_content()]
+        } else {
+            return ['new_chat', this.chat_history[message.chat_id][message['message_id']].get_message_content()]
+        }
+    }
+}
+
+
+class ChatMessage {
+
+    constructor(chat_id, message, name) {
+        this.chat_id = chat_id;
+        this.message_id = message['message_id'];
+        this.date = message['date'];
+        this.time = message['time'];
+        this.oper_id = message['oper_id'];
+        this.oper_name = message['oper_name'];
+        this.content_type = message['content_type'];
+        this.content = message['content'];
+        this.name = name;
+        this.showed = false;
+    }
+
+    create_element() {
+        let element = document.createElement('div');
+        element.classList.add('message');
+        if (this.oper_id === null) {
+            element.classList.add('other-message', 'float-right');
+            element.appendChild(this.add_message_name(this.name));
+        } else if (this.oper_id !== get_cookie('irobot_oper_id', true)) {
+            element.classList.add('other-oper-message', 'float-right');
+            element.appendChild(this.add_message_name(`Оператор: ${this.oper_name}`));
+        } else {
+            element.classList.add('my-message', 'float-left');
+        }
+        element.innerHTML += this.get_message_content();
+        element.appendChild(this.add_message_time());
+        return element;
+    }
+
+    add_message_name(name) {
+        let header = document.createElement('div');
+        header.classList.add('message-name');
+        header.innerHTML = name
+        return header;
+    }
+
+    get_message_content() {
+        if (this.content_type === 'text')
+            return this.content['text']
+        else
+            return JSON.stringify(this.content)
+    }
+
+    add_message_time() {
+        let time_small = document.createElement('small');
+        time_small.classList.add('message-time', 'pl-2');
+        time_small.innerText = this.time;
+        return time_small;
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    let server_host = document.getElementById('server-host').value;
+    let root_path = document.getElementById('root-path').value;
+    document.getElementById('server-host').remove();
+    let url = `ws://${server_host}/ws?access_token=${get_cookie('irobot_access_token')}`;
+    let chat = new Chat(url, root_path);
+    chat.start();
 });
