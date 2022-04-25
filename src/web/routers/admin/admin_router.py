@@ -2,8 +2,11 @@ from aiologger import Logger
 from fastapi import APIRouter
 from fastapi.templating import Jinja2Templates
 
+from src.web.utils.connection_manager import ConnectionManager
+
 
 class AdminAPIRouter(APIRouter):
+    manager: ConnectionManager
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

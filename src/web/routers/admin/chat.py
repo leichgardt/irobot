@@ -2,11 +2,11 @@ from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import RedirectResponse
 
 from src.web.routers.admin.admin_router import router, templates
-from src.web.utils import connection_manager, chat as chat_utils, ops as ops_utils
+from src.web.utils import connection_manager, chat as chat_utils, ops as ops_utils, chat_actions
 from src.web.utils.api import lan_require, get_context
 
 
-manager = connection_manager.ConnectionManager()
+router.manager = connection_manager.ConnectionManager()
 
 
 @router.get('/chat')
@@ -24,7 +24,7 @@ async def admin_page(request: Request):
 async def websocket_endpoint(websocket: WebSocket, access_token: str):
     oper = await ops_utils.get_oper_by_token(access_token)
     if oper:
-        await manager.connect(websocket, oper.oper_id)
+        await router.manager.connect(websocket, oper.oper_id)
         chats = await chat_utils.get_accounts_and_chats()
         await websocket.send_json({'action': 'get_chats', 'data': chats})
         try:
@@ -32,34 +32,14 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                 input_data = await websocket.receive_json()
                 action = input_data.get('action')
                 data = input_data.get('data')
-                if action == 'get_chats':
-                    chats = await chat_utils.get_accounts_and_chats()
-                    await websocket.send_json({'action': 'get_chats', 'data': chats})
-                elif action in ('get_chat', 'load_messages'):
-                    output = await chat_utils.get_chat_messages(data['chat_id'], data['message_id'])
-                    await websocket.send_json({'action': action, 'data': output})
-                elif action == 'send_message':
-                    msg = await chat_utils.send_oper_message(data, oper.oper_id, oper.full_name)
-                    await manager.broadcast('get_message', msg, firstly=websocket)
-                elif action == 'take_chat':
-                    await chat_utils.take_chat(data, oper.oper_id)
-                    output = {'chat_id': data, 'oper_id': oper.oper_id, 'oper_name': oper.full_name}
-                    await manager.broadcast('take_chat', output, firstly=websocket)
-                elif action == 'drop_chat':
-                    await chat_utils.drop_chat(data, oper.oper_id)
-                    await manager.broadcast('drop_chat', {'chat_id': data}, firstly=websocket)
-                elif action == 'finish_support':
-                    await chat_utils.finish_support(data, oper.oper_id, oper.full_name)
-                    chats = await chat_utils.get_accounts_and_chats()
-                    output = {'chat_id': data, 'oper_id': oper.oper_id, 'chats': chats}
-                    await manager.broadcast('finish_support', output, firstly=websocket)
-                    # todo show results: messages count, time left, operators in the support
-                elif action == 'read_chat':
-                    await chat_utils.read_chat(data)
-                    chats = await chat_utils.get_accounts_and_chats()
-                    await manager.broadcast('get_chats', chats, firstly=websocket)
+                if action and data:
+                    func = chat_actions.actions.get_func(action)
+                    if func:
+                        await func(websocket, router.manager, oper, data)
+                    else:
+                        await router.logger.warning(f'Received unknown action "{action}" from {oper.login}')
                 else:
                     print('ws received data:', input_data)
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
-            manager.remove(websocket)
+            router.manager.remove(websocket, oper.oper_id)
