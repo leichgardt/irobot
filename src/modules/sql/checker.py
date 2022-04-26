@@ -70,3 +70,12 @@ class CheckerSQL:
 
     async def add_extension(self):
         await self.api.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+
+
+if __name__ == '__main__':
+    import asyncio
+
+    sql = SQLCore()
+    ch = CheckerSQL(sql)
+
+    asyncio.run(ch.check_db_ready())
