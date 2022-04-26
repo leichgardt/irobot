@@ -67,13 +67,28 @@ async def get_subscriber_message(chat_id, message_id):
     return msg if msg else {}
 
 
-async def get_chat_messages(chat_id, end_message_id=0):
+async def get_messages_from_range(chat_id: int, end_message_id: int = 0):
     flt = '' if not end_message_id else f'AND message_id < {end_message_id}'
-    messages = await sql.execute(
+    return await sql.execute(
         f'SELECT m.message_id, m.datetime, m.from_oper AS oper_id, o.full_name AS oper_name, m.content_type, m.content '
         f'FROM irobot.support_messages m LEFT JOIN irobot.operators o ON m.from_oper=o.oper_id '
         f'WHERE m.chat_id=%s {flt} ORDER BY datetime DESC LIMIT 10', chat_id, as_dict=True
     )
+
+
+async def get_messages_from_id_list(chat_id: int, id_list: list):
+    return await sql.execute(
+        f'SELECT m.message_id, m.datetime, m.from_oper AS oper_id, o.full_name AS oper_name, m.content_type, m.content '
+        f'FROM irobot.support_messages m LEFT JOIN irobot.operators o ON m.from_oper=o.oper_id '
+        f'WHERE m.chat_id=%s AND message_id=any (%s) ORDER BY datetime DESC LIMIT 10', chat_id, id_list, as_dict=True
+    )
+
+
+async def get_chat_messages(chat_id: int, end_message_id: int = 0, id_list: list = None):
+    if not id_list:
+        messages = await get_messages_from_range(chat_id, end_message_id)
+    else:
+        messages = await get_messages_from_id_list(chat_id, id_list)
     for msg in messages:
         msg.update({'timestamp': msg['datetime'].timestamp()})
         sql.split_datetime(msg)

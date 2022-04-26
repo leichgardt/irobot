@@ -24,10 +24,10 @@ async def admin_page(request: Request):
 async def websocket_endpoint(websocket: WebSocket, access_token: str):
     oper = await ops_utils.get_oper_by_token(access_token)
     if oper:
-        await router.manager.connect(websocket, oper.oper_id)
-        chats = await chat_utils.get_accounts_and_chats()
-        await websocket.send_json({'action': 'get_chats', 'data': chats})
         try:
+            await router.manager.connect(websocket, oper.oper_id)
+            chats = await chat_utils.get_accounts_and_chats()
+            await websocket.send_json({'action': 'get_chats', 'data': chats})
             while True:
                 input_data = await websocket.receive_json()
                 action = input_data.get('action')
@@ -43,3 +43,8 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
             router.manager.remove(websocket, oper.oper_id)
+        except Exception as e:
+            if 'ConnectionClosedError' in str(e) or "after sending 'websocket.close'" in str(e):
+                router.manager.remove(websocket, oper.oper_id)
+            else:
+                await router.logger.exception(f'WebSocket error for oper={oper.oper_id}: {e}')

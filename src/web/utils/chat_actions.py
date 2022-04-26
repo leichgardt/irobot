@@ -78,6 +78,17 @@ class ReadChat(Action):
         await manager.broadcast('get_chats', chats, firstly=websocket)
 
 
+class CheckMessages(Action):
+    async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
+        messages = [int(i) for i in data['list']]
+        missed_message_ids = [i for i in range(min(messages), max(messages) + 1) if i not in messages]
+        if missed_message_ids:
+            chats = await chat_utils.get_chat_messages(data['chat_id'], id_list=missed_message_ids)
+            for message in chats['messages'].values():
+                message['chat_id'] = data['chat_id']
+                await websocket.send_json({'action': 'get_message', 'data': message})
+
+
 actions = Actions()
 actions.add_action(GetChats, 'get_chats')
 actions.add_action(GetChat, 'get_chat', 'load_messages')
@@ -86,3 +97,4 @@ actions.add_action(TakeChat, 'take_chat')
 actions.add_action(DropChat, 'drop_chat')
 actions.add_action(FinishSupport, 'finish_support')
 actions.add_action(ReadChat, 'read_chat')
+actions.add_action(CheckMessages, 'check_messages')

@@ -92,7 +92,7 @@ async def photo_updater():
 
 
 @app.on_event('startup')
-@repeat_every(seconds=2)
+@repeat_every(seconds=1, wait_first=True)
 @sw.solo_worker(task='support-messages')
 async def messages_monitor():
     await new_messages_monitor(logger, admin_router.router.manager)

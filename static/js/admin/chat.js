@@ -18,6 +18,13 @@ function reverse_object(obj) {
 }
 
 
+function array_remove(arr, value) {
+    return arr.filter(function(ele){
+        return ele !== value;
+    });
+}
+
+
 class Chat {
     selector;
     control;
@@ -96,6 +103,8 @@ class Chat {
     get_new_message(message) {
         if (!(message.chat_id in this.chat_data))
             this.force_get_chats();
+        if (message.chat_id in this.history.chat_history && message.message_id in this.history.chat_history[message.chat_id])
+            return;
         const data = this.get_message_data_to_save(message);
         this.history.save_data_of_chat_messages(message.chat_id, data.messages, data.id_list, data.ts_list);
         const res = this.history.add_new_message(message, this.selected_chat);
@@ -110,6 +119,11 @@ class Chat {
             this.notification.play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
         }
         this.notification.send_notification('IroBot Admin - новое сообщение', res[1]);
+        this.check_message_list(message.chat_id);
+    }
+
+    force_get_chats() {
+        this.connection.send({'action': 'get_chats'});
     }
 
     get_message_data_to_save(message) {
@@ -120,8 +134,9 @@ class Chat {
         return {messages: messages, id_list: [message.message_id], ts_list: ts_list};
     }
 
-    force_get_chats() {
-        this.connection.send({'action': 'get_chats'});
+    check_message_list(chat_id) {
+        let messages = Object.keys(this.history.chat_history[chat_id]);
+        this.connection.send({'action': 'check_messages', 'data': {'list': messages, 'chat_id': chat_id}});
     }
 
     oper_take_chat_end(data) {
@@ -154,6 +169,9 @@ class Chat {
 }
 
 
+let connection_list = [];
+
+
 class WSConnection {
 
     constructor() {
@@ -174,11 +192,15 @@ class WSConnection {
 
         self.socket.onopen = () => {
             console.log('WebSocket: connected');
+            connection_list.push(self.socket);
+            if (connection_list.length > 1)
+                window.location.reload();
         }
         self.socket.onerror = () => {
-            this.socket.close();
+            self.socket.close();
         }
         self.socket.onclose = () => {
+            connection_list = array_remove(connection_list, self.socket);
             self.socket = null;
         }
         self.socket.onmessage = (event) => {
@@ -585,9 +607,9 @@ class ChatHistory {
     }
 
     clear() {
-        for (let i in this.chat_history)
-            for (let j in this.chat_history[i])
-                this.chat_history[i][j]['showed'] = false;
+        for (let chat_id in this.chat_history)
+            for (let message_id in this.chat_history[chat_id])
+                this.chat_history[chat_id][message_id]['showed'] = false;
         this.block.innerHTML = '';
     }
 
