@@ -78,7 +78,7 @@ async def add_system_support_message(chat_id: int, message_id: int, text: str):
             chat_id, fetch_one=True
         )
         message_id = -1 * res[0]
-    await add_support_message_to_db(chat_id, message_id, 'text', {'text': text}, oper_id=0, read=True, status=None)
+    await add_support_message_to_db(chat_id, message_id, 'text', {'text': text}, oper_id=0, read=True, status='new')
 
 
 async def rate_support(support_id: int, rating: int):

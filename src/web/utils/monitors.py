@@ -2,7 +2,7 @@ from aiologger import Logger
 
 from src.modules import lb, sql
 from src.web.utils.cardinalis import send_feedback_to_cardinalis
-from src.web.utils.chat import get_support_list
+from src.web.utils.chat import get_support_list, get_new_support_messages
 from src.web.utils.connection_manager import ConnectionManager
 from src.web.utils.notifier import telegram_admin_notify
 from src.web.utils.payment_tryer import try_make_payment
@@ -86,11 +86,7 @@ async def chat_photo_update_monitor():
 
 
 async def new_messages_monitor(logger: Logger, manager: ConnectionManager):
-    messages = await sql.execute(
-        'SELECT chat_id, message_id, datetime, from_oper AS oper_id, content_type, content '
-        'FROM irobot.support_messages WHERE status=%s AND from_oper IS NULL ORDER BY datetime',
-        'new', as_dict=True
-    )
+    messages = await get_new_support_messages()
     for message in messages:
         sql.split_datetime(message)
         await logger.info(f'Get new support message [{message["chat_id"]}] {message["message_id"]}')

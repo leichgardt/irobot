@@ -55,15 +55,16 @@ async def get_accounts_and_chats():
     return chats
 
 
-async def get_subscriber_message(chat_id, message_id):
-    msg = await sql.execute(
-        'SELECT chat_id, message_id, datetime, from_oper AS oper_id, content_type, content '
-        'FROM irobot.support_messages WHERE chat_id=%s AND message_id=%s', chat_id, message_id,
-        as_dict=True, fetch_one=True
+async def get_new_support_messages():
+    res = await sql.execute(
+        'SELECT m.chat_id, m.message_id, m.datetime, o.oper_id, o.full_name as oper_name, m.content_type, m.content '
+        'FROM irobot.support_messages m LEFT JOIN irobot.operators o ON m.from_oper = o.oper_id '
+        'WHERE status=%s ORDER BY datetime',
+        'new', as_dict=True
     )
-    if msg:
+    for msg in res:
         sql.split_datetime(msg)
-    return msg if msg else {}
+    return res
 
 
 async def get_messages_from_range(chat_id: int, end_message_id: int = 0):
