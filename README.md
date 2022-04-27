@@ -62,8 +62,8 @@ docker exec -it -u 0 irobot-web /bin/bash
 ### Продакшн
 Снова создаем те же два контейнера, но добавляем флаги `restart=always` `volume`
 ```shell
-$ docker run -p 5421:5421 --restart=always --name irobot irobot bot
-$ docker run -p 8000:8000 --restart=always --name irobot-web irobot web
+docker run -it -p 5421:5421 --restart=always --name irobot irobot bot
+docker run -it -p 8000:8000 --restart=always --name irobot-web irobot web
 ```
 
 Также, если вы хотите развернуть контейнеры по-другому, вместо флага `--restart=always`,

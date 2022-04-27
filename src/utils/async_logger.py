@@ -16,12 +16,12 @@ logdir = '/var/log/'
 logfile = '{}.log'
 
 
-def aio_logger(name, loop=None):
+def aio_logger(name):
     s_handler = AsyncStreamHandler(level=logging.INFO, formatter=Formatter(s_format1))
     f_handler = AsyncFileHandler(logdir + logfile.format(name))
     f_handler.level = logging.INFO
     f_handler.formatter = Formatter(f_format)
-    logger = Logger(name=name, loop=loop)
+    logger = Logger(name=name)
     logger.add_handler(s_handler)
     logger.add_handler(f_handler)
     logger.level = logging.INFO
