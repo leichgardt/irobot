@@ -155,6 +155,8 @@ class SQLCore:
             timestamp_title='timestamp'
     ):
         if isinstance(data, dict):
+            if col_name not in data:
+                return None, None, None
             date_ = data[col_name].strftime('%d.%m.%Y')
             time_ = data[col_name].strftime('%H:%M')
             timestamp_ = data[col_name].timestamp()

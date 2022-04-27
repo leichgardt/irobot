@@ -88,7 +88,6 @@ async def chat_photo_update_monitor():
 async def new_messages_monitor(logger: Logger, manager: ConnectionManager):
     messages = await get_new_support_messages()
     for message in messages:
-        sql.split_datetime(message)
         await logger.info(f'Get new support message [{message["chat_id"]}] {message["message_id"]}')
         await sql.execute('UPDATE irobot.support_messages SET status= %s WHERE chat_id=%s AND message_id=%s',
                           'sending', message['chat_id'], message['message_id'])
