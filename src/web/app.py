@@ -85,7 +85,7 @@ async def update_params():
 
 
 @app.on_event('startup')
-@repeat_every(seconds=60 * 60)
+@repeat_every(seconds=60 * 60, wait_first=True)
 @sw.solo_worker(task='photo-updater', disabled=DEBUG)
 async def photo_updater():
     await chat_photo_update_monitor()

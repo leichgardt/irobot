@@ -197,14 +197,17 @@ async def get_missed_messages_between_min_max_id_list(chat_id, message_id_list):
         m.content, m.read
             FROM irobot.support_messages m 
             LEFT JOIN irobot.operators o ON m.from_oper = o.oper_id
-            WHERE m.datetime > (
-                    SELECT MIN(datetime) FROM irobot.support_messages
-                        WHERE chat_id=%(id)s AND message_id=any(%(list)s))
-                AND m.datetime < (
+            WHERE m.message_id != all(%(list)s)
+                AND m.chat_id = %(id)s
+                AND m.datetime > (
                     SELECT MAX(datetime) FROM irobot.support_messages
                         WHERE chat_id=%(id)s AND message_id=any(%(list)s))
-                AND m.message_id != all(%(list)s)
-                AND m.chat_id = %(id)s
+                OR (m.datetime > (
+                        SELECT MIN(datetime) FROM irobot.support_messages
+                            WHERE chat_id=%(id)s AND message_id=any(%(list)s))
+                    AND m.datetime < (
+                        SELECT MAX(datetime) FROM irobot.support_messages
+                            WHERE chat_id=%(id)s AND message_id=any(%(list)s)))
             ORDER BY m.datetime DESC''',
         {'id': chat_id, 'list': message_id_list}, as_dict=True
     )

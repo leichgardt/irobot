@@ -122,7 +122,7 @@ class Chat {
         }
         this.notification.send_notification('IroBot Admin - новое сообщение', res[1]);
         if (!skip_checking)
-            this.check_message_list(message.chat_id);
+            this.history.check_message_list(message.chat_id);
     }
 
     get_missing_messages(messages) {
@@ -141,11 +141,6 @@ class Chat {
         let ts_list = {};
         ts_list[message.timestamp] = message.message_id;
         return {messages: messages, id_list: [message.message_id], ts_list: ts_list};
-    }
-
-    check_message_list(chat_id) {
-        let messages = Object.keys(this.history.chat_history[chat_id]);
-        this.connection.send({'action': 'check_messages', 'data': {'list': messages, 'chat_id': chat_id}});
     }
 
     oper_take_chat_end(data) {
@@ -185,6 +180,7 @@ class WSConnection {
 
     constructor() {
         this.socket = null;
+        this.last_update = new Date();
     }
 
     run(chat) {
@@ -213,6 +209,7 @@ class WSConnection {
             self.socket = null;
         }
         self.socket.onmessage = (event) => {
+            self.last_update = new Date();
             let command = JSON.parse(event.data)['action'];
             let data = JSON.parse(event.data)['data'];
             chat.run_procedure(command, data);
@@ -220,8 +217,10 @@ class WSConnection {
     }
 
     send(data) {
-        if (this.socket !== null && this.socket.readyState === WebSocket.OPEN)
+        if (this.socket !== null && this.socket.readyState === WebSocket.OPEN) {
+            this.last_update = new Date();
             this.socket.send(JSON.stringify(data));
+        }
     }
 }
 
@@ -610,6 +609,9 @@ class ChatHistory {
         this.block = document.getElementById('chat-history');
         this.connection = chat.connection;
         this.chat_data = chat.chat_data;
+        this.check_countdown = {};
+        this.check_interval = 60;
+        this.checker = setInterval(this.check_message_lists_for_all_chats, this.check_interval * 1000);
     }
 
     load_chat(chat_id) {
@@ -805,6 +807,31 @@ class ChatHistory {
             return ['new_chat', this.chat_history[message.chat_id][message['message_id']].get_message_content()]
         }
     }
+
+    check_message_list(chat_id) {
+        this.check_countdown[chat_id] = new Date();
+        let messages = Object.keys(this.chat_history[chat_id]);
+        this.connection.send({'action': 'check_messages', 'data': {'list': messages, 'chat_id': chat_id}});
+    }
+
+    check_message_lists_for_all_chats() {
+        for (let chat_id in this.chat_data) {
+            if (this.is_enough_time_has_passed_for_next_check(chat_id))
+                this.check_message_list(chat_id);
+        }
+    }
+
+    is_enough_time_has_passed_for_next_check(chat_id) {
+        if (chat_id in this.check_countdown) {
+            let now = new Date();
+            let dif = (now - this.check_countdown[chat_id]) / 1000;
+            if (dif > this.check_interval)
+                return true;
+        } else {
+            return true
+        }
+        return false;
+    }
 }
 
 
@@ -865,6 +892,14 @@ class ChatMessage {
 }
 
 
+function reload_page_after_long_inactivity(connection, seconds) {
+    let now = new Date();
+    let dif = (now - connection.last_update) / 1000;
+    if (dif > seconds)
+        window.location.reload();
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
     let server_host = document.getElementById('server-host').value;
     let root_path = document.getElementById('root-path').value;
@@ -872,4 +907,5 @@ document.addEventListener('DOMContentLoaded', function () {
     let url = `ws://${server_host}/ws?access_token=${get_cookie('irobot_access_token')}`;
     let chat = new Chat(url, root_path);
     chat.start();
+    setInterval(reload_page_after_long_inactivity, 30000, chat.connection, 600);
 });
