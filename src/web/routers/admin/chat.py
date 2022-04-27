@@ -44,7 +44,5 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
         except WebSocketDisconnect:
             router.manager.remove(websocket, oper.oper_id)
         except Exception as e:
-            if 'ConnectionClosedError' in str(e) or "after sending 'websocket.close'" in str(e):
-                router.manager.remove(websocket, oper.oper_id)
-            else:
-                await router.logger.exception(f'WebSocket error for oper={oper.oper_id}: {e}')
+            router.manager.remove(websocket, oper.oper_id)
+            await router.logger.exception(f'WebSocket error for oper={oper.oper_id}: {e}')

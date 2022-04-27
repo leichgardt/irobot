@@ -33,9 +33,9 @@ async def get_support_list():
                     GROUP BY chat_id
             ) m2
                 ON c.chat_id = m2.chat_id
-            WHERE cc.chat_id IS NULL
-            GROUP BY c.chat_id, c.closed, o.oper_id, oper_name, s.first_name, s.photo, m.read, m2.min_message_id
-            ORDER BY dt DESC''',
+        WHERE cc.chat_id IS NULL
+        GROUP BY c.chat_id, c.closed, o.oper_id, oper_name, s.first_name, s.photo, m.read, m2.min_message_id
+        ORDER BY dt DESC''',
         as_dict=True
     )
     for chat in chats:
@@ -196,18 +196,23 @@ async def get_missed_messages_between_min_max_id_list(chat_id, message_id_list):
         SELECT m.chat_id, m.message_id, m.datetime, m.from_oper as oper_id, o.full_name as oper_name, m.content_type,
         m.content, m.read
             FROM irobot.support_messages m 
-            LEFT JOIN irobot.operators o ON m.from_oper = o.oper_id
-            WHERE m.message_id != all(%(list)s)
-                AND m.chat_id = %(id)s
-                AND m.datetime > (
+            LEFT JOIN irobot.operators o 
+                ON m.from_oper = o.oper_id
+        WHERE m.message_id != all(%(list)s)
+            AND m.chat_id = %(id)s
+            AND (
+                m.datetime > (
                     SELECT MAX(datetime) FROM irobot.support_messages
                         WHERE chat_id=%(id)s AND message_id=any(%(list)s))
-                OR (m.datetime > (
+                OR (
+                    m.datetime > (
                         SELECT MIN(datetime) FROM irobot.support_messages
                             WHERE chat_id=%(id)s AND message_id=any(%(list)s))
                     AND m.datetime < (
                         SELECT MAX(datetime) FROM irobot.support_messages
-                            WHERE chat_id=%(id)s AND message_id=any(%(list)s)))
-            ORDER BY m.datetime DESC''',
+                            WHERE chat_id=%(id)s AND message_id=any(%(list)s))
+                )
+            )
+        ORDER BY m.datetime DESC''',
         {'id': chat_id, 'list': message_id_list}, as_dict=True
     )
