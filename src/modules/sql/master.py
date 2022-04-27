@@ -80,10 +80,6 @@ class SQLMaster(SQLCore):
         await self.execute('UPDATE irobot.subs SET inline_msg_id= %s, inline_text= %s, inline_parse_mode= %s '
                            'WHERE chat_id=%s', inline, text, parse_mode, chat_id)
 
-    async def add_review(self, chat_id, rating, comment):
-        await self.execute('INSERT INTO irobot.reviews(chat_id, rating, comment) VALUES (%s, %s, %s)',
-                           chat_id, rating, comment)
-
     async def add_payment(self, hash_code: str, chat_id: int, agrm: str, amount: float, inline: int = None,
                           balance: int = None, status: str = None):
         res = await self.execute('INSERT INTO irobot.payments(hash, chat_id, agrm, amount, inline, balance, status) '

@@ -3,69 +3,82 @@
 1) Телеграм-бот;
 2) Веб-приложение.
 
-С помощью бота можно проверять баланс, пополнять счет через YooMoney и получать уведомления.
+С помощью бота можно проверять баланс, пополнять счет, получать уведомления и общаться с поддержкой.
 
-Веб-приложение представлено для веб-авторизации пользователей в боте, а так же для новостной и уведомительной рассылки 
-и многое другое.
+С помощью веб-приложения происходит авторизация в боте (через HTTPS). Также присутствует веб-интерфейс для операторов,
+предназначенный для выполнения рассылки уведомлений и новостей и для оказания технической поддержки через чат.
+
+## Взаимодействие
+* `LanBilling` - система биллинга интернет провайдеров
+* `Userside` - ERP система для организации и упрощения работ с системами биллинга, логистикой, учётом и т.д.
 
 ## Требования
-* docker (https://docs.docker.com/get-docker/)
-* nginx или apache или подобное (для развёртывания)
-* mongodb (опционально - проект уже подключается к существующей БД)
+* python 3.8
+* docker
+* postgresql
+* mongodb
+* nginx или apache
 
-## Установка проекта
-В директории проекта необходимо собрать образ с помощью файла `Dockerfile` командой
+## Установка
+### 1. Файл конфигурации config.py
+Перед сборкой отредактируйте конфигурационный файл `config.py`. Следует указать все параметры для корректной работы 
+системы (параметры бизнес-процессов можно пропустить).
+
+### 2. Dockerfile
+После собираем образ из директории проекта вместе с `Dockerfile` с помощью команды
 ```shell
-$ docker build -t irobot -f Dockerfile .
+docker build -t irobot -f Dockerfile .
 ```
-
-Для установки среды разработки потребуется:
-* python3.8 python3-pip python3.8-venv
-* git
-
-Создайте виртуальную среду и установите зависимости
-```shell
-python3.8 -m venv venv
-sourve venv/bin/activate
-pip install -U pip setuptools wheel
-pip install -r requirements.txt
-mkdir -p installations/emoji
-git clone https://github.com/carpedm20/emoji.git installations/emoji 
-cd installations/emoji
-python setup.py install
-cd ../..
-rm -rf installations
-```
+где t - название для образа.
 
 ## Запуск
-### Development
-Для теста приложений без контейнера запустите `app.py` или `run_bot.py`
+### Первый запуск и Тест
+В первый запуск создадим необходимые таблицы в БД и протестируем с помощью команды:
 ```shell
-$ source venv/bin/activate
-(venv) $ python src/app.py
-(venv) $ python src/run_bot.py
+docker run -it --rm irobot test
 ```
 
-В файле конфигурации gunicorn-сервера `src/guni.py` указан пользователь `www-data`. Можете закомментировать строки для
-тестирования из-под своего пользователя 
-
-### Production
-Для запуска приложений на основе образа `irobot` необходимо создать два контейнера: с ботом и с веб-приложением
+### Разработка
+Чтобы создать <u>контейнер с ботом</u> выполните:
 ```shell
-$ docker run -it -p 5421:5421 --restart=always --name irobot irobot bot
-$ docker run -it -p 8000:8000 --restart=always --name irobot-web irobot web
+docker run -it -p 5421:5421 --name irobot irobot bot
 ```
-Во время создания контейнеров будет запрошена информация для доступа к файлу конфигурации: url, login, password.
-Получить их можно на Локальной Wiki: 
-> Ironnet Wiki >> Сервера >> CUP (ЦУП) >> "Главный файл конфигурации".
 
-### Настройка
-Добавьте параметр в `/etc/sysctl.conf`, чтобы избежать проблем при запуске большого количества сервисов:
-> net.core.somaxconn=65535
+Для отсоединения от контейнера нажмите последовательно `Ctrl+p Ctrl+q` (или `Ctrl+p+q`).
+
+Чтобы создать <u>контейнер с веб-приложением</u> выполните
+```shell
+docker run -it -p 8000:8000 --name irobot-web irobot web
+```
+
+Вы можете зайти внутрь запущенного контейнера, чтобы отредактировать файлы, запустить сервисы локально, прочитать логи и т.д.: 
+```shell
+docker exec -it -u 0 irobot-web /bin/bash
+```
+
+> Будьте осторожны! После удаления контейнера, все созданные файлы внутри контейнера будут потеряны! 
+> Но это не относится к остановке контейнера.
+
+### Продакшн
+Снова создаем те же два контейнера, но добавляем флаги `restart=always` `volume`
+```shell
+$ docker run -p 5421:5421 --restart=always --name irobot irobot bot
+$ docker run -p 8000:8000 --restart=always --name irobot-web irobot web
+```
+
+Также, если вы хотите развернуть контейнеры по-другому, вместо флага `--restart=always`,
+контейнеры можно настроить как [systemd сервисы](https://docs.docker.com/config/daemon/systemd/).
 
 ## Развёртка
-### nginx
-В вашем файле конфигурации сервера `/etc/nginx/sites-enabled/myserver` добавьте upstream:
+### 1. Настройка перед выпуском
+Добавьте параметр в `/etc/sysctl.conf`, чтобы избежать проблем при запуске большого количества веб-сервисов:
+> net.core.somaxconn=65535
+
+### 2. Брандмауэр
+Если вы используете `iptables` или `ufw` - не забудьте открыть порты.
+
+### 3. Nginx
+В файле конфигурации сервера `/etc/nginx/sites-enabled/myserver` добавьте upstream:
 ```nginx
 upstream irobot {
     server 127.0.0.1:8000;
@@ -75,28 +88,36 @@ upstream irobot_webhook {
     server 127.0.0.1:5421;
 }
 ```
-И следующее в блок `server`:
+А в блок `server` следующее:
 ```nginx
-location /irobot {
+location /irobot/ {
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Script-name /fast;
+    proxy_set_header X-Script-name /irobot/;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_pass http://irobot/;
     proxy_buffering off;
-    proxy_redirect off;    
+    proxy_redirect off;
 }
 
-location /irobot_webhook {
-    proxy_set_header X-Script-Name /irobot_webhook;
+location /irobot_webhook/ {
+    proxy_set_header X-Script-Name /irobot_webhook/;
     proxy_set_header Host $host;
     proxy_pass http://irobot_webhook/;
     proxy_redirect off;
 }
 ```
-Далее, протестировав настройки, обновите их:
+Далее тестируем и обновляем настройки:
 ```shell
 $ nginx -t
 $ nginx -s reload
 ```
+
+## Администрирование
+Для администрирования зайдите на страницу `https://{your-domain}/irobot/admin/` 
+(или `http://127.0.0.1:8000/irobot/admin/` при откладке), используя логин/пароль `admin`/`123456`.
+Вы можете поменять пароль.
+
+> Учтите! Панель администрирования доступна только из под локальной сети! Для добавления исключения добавьте 
+> необходимый IP в параметр `HOST_IP_LIST` в файле `config.py`

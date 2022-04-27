@@ -1,4 +1,10 @@
 /.idea/
 /venv/
 __pycache__/
-!/parameters.py
+.pytest_cache/
+/config.py
+/static/css/bootstrap*
+/static/js/bootstrap*
+/static/js/fontawesome*
+/static/js/jquery*
+/static/js/popper*

@@ -24,4 +24,11 @@ ALTER TABLE IF EXISTS irobot.operators
 
 COMMENT ON TABLE irobot.operators
     IS 'Таблица операторов';
+
+INSERT INTO irobot.operators (oper_id, login, full_name, hashed_password, root) 
+    VALUES (0, 'bot', 'Irobot', '$', true);
+
+INSERT INTO irobot.operators (oper_id, login, full_name, hashed_password, root) 
+    VALUES (1, 'admin', 'Администратор',
+        'jjruIrkgbPxH$c5f81d5fa56d9962c119c36bb83003b30919abcc7264919c953374979b2233ca', true);
 """

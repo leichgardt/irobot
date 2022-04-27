@@ -8,7 +8,7 @@ from starlette.websockets import WebSocket, WebSocketState
 
 class ConnectionManager:
     def __init__(self):
-        self.loop = asyncio.get_running_loop()
+        self.loop = asyncio.get_event_loop()
         self.connections: Dict[int, List[WebSocket]] = {}
         self.threads: Dict[float, Thread] = {}
 
@@ -66,5 +66,5 @@ class ConnectionManager:
     async def _try_send(connection: WebSocket, data):
         try:
             await connection.send_json(data)
-        finally:
+        except:
             pass

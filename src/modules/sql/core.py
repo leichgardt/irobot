@@ -147,16 +147,24 @@ class SQLCore:
         return val
 
     @staticmethod
-    def split_datetime(data: Union[dict, datetime], col_name='datetime', date_title='date', time_title='time'):
+    def split_datetime(
+            data: Union[dict, datetime],
+            col_name='datetime',
+            date_title='date',
+            time_title='time',
+            timestamp_title='timestamp'
+    ):
         if isinstance(data, dict):
             date_ = data[col_name].strftime('%d.%m.%Y')
             time_ = data[col_name].strftime('%H:%M')
-            data.update({date_title: date_, time_title: time_})
+            timestamp_ = data[col_name].timestamp()
+            data.update({date_title: date_, time_title: time_, timestamp_title: timestamp_})
             data.pop(col_name)
         else:
             date_ = data.strftime('%d.%m.%Y')
             time_ = data.strftime('%H:%M')
-        return date_, time_
+            timestamp_ = data.timestamp()
+        return date_, time_, timestamp_
 
 
 if __name__ == '__main__':

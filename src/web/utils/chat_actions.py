@@ -2,8 +2,9 @@ from typing import Dict, Type
 
 from fastapi import WebSocket
 
+from src.bot.schemas import keyboards
 from src.web.schemas.ops import Oper
-from src.web.utils import chat as chat_utils
+from src.web.utils import chat as chat_utils, telegram_api
 from src.web.utils.connection_manager import ConnectionManager
 
 __all__ = 'actions',
@@ -64,7 +65,7 @@ class DropChat(Action):
 
 class FinishSupport(Action):
     async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
-        await chat_utils.finish_support(data, oper.oper_id, oper.full_name)
+        await chat_utils.finish_support(data, oper.oper_id)
         chats = await chat_utils.get_accounts_and_chats()
         output = {'chat_id': data, 'oper_id': oper.oper_id, 'chats': chats}
         await manager.broadcast('finish_support', output, firstly=websocket)
@@ -73,20 +74,27 @@ class FinishSupport(Action):
 
 class ReadChat(Action):
     async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
-        await chat_utils.read_chat(data)
+        await chat_utils.set_chat_status_read(data)
         chats = await chat_utils.get_accounts_and_chats()
         await manager.broadcast('get_chats', chats, firstly=websocket)
 
 
 class CheckMessages(Action):
     async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
-        messages = [int(i) for i in data['list']]
-        missed_message_ids = [i for i in range(min(messages), max(messages) + 1) if i not in messages]
-        if missed_message_ids:
-            chats = await chat_utils.get_chat_messages(data['chat_id'], id_list=missed_message_ids)
-            for message in chats['messages'].values():
-                message['chat_id'] = data['chat_id']
-                await websocket.send_json({'action': 'get_message', 'data': message})
+        messages = await chat_utils.find_missing_messages(data['chat_id'], data['list'])
+        if messages:
+            await websocket.send_json({'action': 'missing_messages', 'data': messages})
+
+
+class FinishMessage(Action):
+    async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
+        message = await chat_utils.send_oper_message({'chat_id': data, 'text': 'Спасибо за обращение!'},
+                                                     oper.oper_id, oper.full_name)
+        await telegram_api.send_message(
+            data, 'Чтобы обратиться в поддержку снова - зайди в меню Помощь > Тех.поддержка',
+            reply_markup=keyboards.main_menu_kb
+        )
+        await websocket.send_json({'action': 'get_message', 'data': message})
 
 
 actions = Actions()
@@ -98,3 +106,4 @@ actions.add_action(DropChat, 'drop_chat')
 actions.add_action(FinishSupport, 'finish_support')
 actions.add_action(ReadChat, 'read_chat')
 actions.add_action(CheckMessages, 'check_messages')
+actions.add_action(FinishMessage, 'send_finish_message')

@@ -209,6 +209,15 @@
     background: #dcf9ff;
 }
 
+.chat .chat-history .bot-message {
+    background: #070d21;
+    color: #efefef;
+}
+
+.chat .chat-history .bot-message small {
+    color: #efefef;
+}
+
 .chat .chat-message {
     padding: 20px;
 }

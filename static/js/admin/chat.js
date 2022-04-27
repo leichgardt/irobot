@@ -58,6 +58,8 @@ class Chat {
             this.history.get_chat_history(data, true);
         else if (command === 'get_message')
             this.get_new_message(data);
+        else if (command === 'missing_messages')
+            this.get_missing_messages(data);
         else if (command === 'take_chat')
             this.oper_take_chat_end(data);
         else if (command === 'drop_chat')
@@ -100,7 +102,7 @@ class Chat {
         }
     }
 
-    get_new_message(message) {
+    get_new_message(message, skip_checking=false) {
         if (!(message.chat_id in this.chat_data))
             this.force_get_chats();
         if (message.chat_id in this.history.chat_history && message.message_id in this.history.chat_history[message.chat_id])
@@ -119,7 +121,14 @@ class Chat {
             this.notification.play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
         }
         this.notification.send_notification('IroBot Admin - новое сообщение', res[1]);
-        this.check_message_list(message.chat_id);
+        if (!skip_checking)
+            this.check_message_list(message.chat_id);
+    }
+
+    get_missing_messages(messages) {
+        for (let i in messages) {
+            this.get_new_message(messages[i], true);
+        }
     }
 
     force_get_chats() {
@@ -439,6 +448,7 @@ class ChatControlPanel {
             drop: new ChatControlButton('btn-drop', true),
             read: new ChatControlButton('btn-read', true),
             finish: new ChatControlButton('btn-finish', true),
+            after: new ChatControlButton('btn-after', true),
         }
         this.connection = chat.connection;
         this.chat_data = chat.chat_data;
@@ -447,6 +457,7 @@ class ChatControlPanel {
         this.btn.drop.add_handler(() => { this.drop_chat_start() });
         this.btn.read.add_handler(() => { this.read_chat_start() });
         this.btn.finish.add_handler(() => { this.finish_support_start() });
+        this.btn.after.add_handler(() => { this.send_finish_message() });
     }
 
     take_chat_start() {
@@ -472,6 +483,10 @@ class ChatControlPanel {
             this.btn.finish.block.classList.replace('btn-outline-warning', 'btn-outline-success');
             this.btn.finish.block.getElementsByTagName('span')[0].innerText = 'Завершить поддержку';
         }
+    }
+
+    send_finish_message() {
+        this.connection.send({'action': 'send_finish_message', 'data': this.chat.selected_chat});
     }
 
     select_chat(chat_id) {
@@ -540,12 +555,14 @@ class ChatControlPanel {
             this.btn.drop.show();
             this.btn.finish.show();
             this.btn.read.show();
+            this.btn.after.show();
             this.input_group.classList.add('show');
         } else {
             this.btn.take.show();
             this.btn.drop.hide();
             this.btn.finish.hide();
             this.btn.read.hide();
+            this.btn.after.hide();
             this.input_group.classList.remove('show');
         }
     }
@@ -812,6 +829,8 @@ class ChatMessage {
         if (this.oper_id === null) {
             element.classList.add('other-message', 'float-right');
             element.appendChild(this.add_message_name(this.name));
+        } else if (this.oper_id === 0) {
+            element.classList.add('bot-message', 'float-right');
         } else if (this.oper_id !== get_cookie('irobot_oper_id', true)) {
             element.classList.add('other-oper-message', 'float-right');
             element.appendChild(this.add_message_name(`Оператор: ${this.oper_name}`));
