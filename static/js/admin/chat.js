@@ -611,7 +611,7 @@ class ChatHistory {
         this.chat_data = chat.chat_data;
         this.check_countdown = {};
         this.check_interval = 60;
-        this.checker = setInterval(this.check_message_lists_for_all_chats, this.check_interval * 1000);
+        this.checker = setInterval(this.check_message_lists_for_all_chats, this.check_interval * 1000, this);
     }
 
     load_chat(chat_id) {
@@ -809,15 +809,18 @@ class ChatHistory {
     }
 
     check_message_list(chat_id) {
+        if (!(chat_id in this.chat_history))
+            return;
         this.check_countdown[chat_id] = new Date();
         let messages = Object.keys(this.chat_history[chat_id]);
-        this.connection.send({'action': 'check_messages', 'data': {'list': messages, 'chat_id': chat_id}});
+        if (messages.length > 0)
+            this.connection.send({'action': 'check_messages', 'data': {'list': messages, 'chat_id': chat_id}});
     }
 
-    check_message_lists_for_all_chats() {
-        for (let chat_id in this.chat_data) {
-            if (this.is_enough_time_has_passed_for_next_check(chat_id))
-                this.check_message_list(chat_id);
+    check_message_lists_for_all_chats(self) {
+        for (let chat_id in self.chat_data) {
+            if (self.is_enough_time_has_passed_for_next_check(chat_id))
+                self.check_message_list(chat_id);
         }
     }
 
