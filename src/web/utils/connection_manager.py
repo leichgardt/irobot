@@ -32,16 +32,16 @@ class ConnectionManager:
             ignore_list: List[Union[WebSocket, int]] = None
     ):
         if firstly:
-            await self.send_into_thread(firstly, {'action': action, 'data': data})
-        for oper_id, connections in self.connections.items():
-            for connection in connections:
+            await self._send(firstly, {'action': action, 'data': data})
+        async for oper_id, connections in self.get_all_connections():
+            async for connection in self.get_next_connection(connections):
                 if connection is firstly:
                     continue
                 if ignore_list and (oper_id in ignore_list or connection in ignore_list):
                     continue
-                await self.send_into_thread(connection, {'action': action, 'data': data})
+                await self._send(connection, {'action': action, 'data': data})
 
-    async def send_into_thread(self, connection: WebSocket, data):
+    async def _send(self, connection: WebSocket, data):
         if connection.application_state == WebSocketState.DISCONNECTED:
             self.remove(connection)
             return
@@ -51,3 +51,12 @@ class ConnectionManager:
             await asyncio.wait_for(connection.send_json(data), timeout=5, loop=asyncio.get_running_loop())
         except:
             self.remove(connection)
+
+    async def get_all_connections(self):
+        for oper_id, connections in self.connections.items():
+            yield oper_id, connections
+
+    @staticmethod
+    async def get_next_connection(connections):
+        for connection in connections:
+            yield connection
