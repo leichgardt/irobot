@@ -25,6 +25,13 @@ function array_remove(arr, value) {
 }
 
 
+function get_array_min_of_positive(arr) {
+    return Math.min.apply(Math, arr.filter((val) => {
+        return val > 0;
+    }))
+}
+
+
 class Chat {
     selector;
     control;
@@ -103,38 +110,50 @@ class Chat {
     }
 
     get_new_message(message, skip_checking=false) {
-        if (!(message.chat_id in this.chat_data)){
+        if (this.there_is_no_chat(message.chat_id)){
             this.force_get_chats();
+            this.notification.audio_notify_new_chat();
             return;
         }
-        if (message.chat_id in this.history.chat_history && message.message_id in this.history.chat_history[message.chat_id])
+        if (this.there_is_same_message(message.chat_id, message.message_id))
             return;
+        // save message
         const data = this.get_message_data_to_save(message);
         this.history.save_data_of_chat_messages(message.chat_id, data.messages, data.id_list, data.ts_list);
-        const res = this.history.add_new_message(message, this.selected_chat);
+        // show message
+        this.history.add_new_message(message, this.selected_chat);
+        // update chat list
         this.selector.update_chat_in_list(message);
+        // update chat buttons
         if (this.selected_chat === message.chat_id) {
             this.control.new_selected_chat_status(message.chat_id);
             this.control.check_read_btn(message.chat_id);
         }
-        if (res[0] === 'new_message') {
-            this.notification.play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
-        } else if (res[0] === 'new chat') {
-            this.notification.play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
-        }
-        this.notification.send_notification('IroBot Admin - новое сообщение', res[1]);
+        this.notification.audio_notify_new_message();
+        this.notification.send_notification(
+            'IroBot Admin - новое сообщение',
+            this.history.chat_history[message.chat_id][message.message_id].get_message_content(),
+        );
         if (!skip_checking)
             this.history.check_message_list(message.chat_id);
+    }
+
+    there_is_no_chat(chat_id) {
+        return !(chat_id in this.chat_data)
+    }
+
+    force_get_chats() {
+        this.connection.send({'action': 'get_chats'});
+    }
+
+    there_is_same_message(chat_id, message_id) {
+        return chat_id in this.history.chat_history && message_id in this.history.chat_history[chat_id]
     }
 
     get_missing_messages(messages) {
         for (let i in messages) {
             this.get_new_message(messages[i], true);
         }
-    }
-
-    force_get_chats() {
-        this.connection.send({'action': 'get_chats'});
     }
 
     get_message_data_to_save(message) {
@@ -255,6 +274,14 @@ class MyNotification {
     play_audio(url) {
         let audio = new Audio(this.root_path + url);
         audio.play().then().catch();
+    }
+
+    audio_notify_new_message() {
+        this.play_audio('/static/audio/mp3/minecraft-drop-block-sound-effect.mp3');
+    }
+
+    audio_notify_new_chat() {
+        this.play_audio('/static/audio/mp3/minecraft-level-up-sound-effect.mp3');
     }
 
     send_notification(title, text) {
@@ -672,9 +699,7 @@ class ChatHistory {
             this.message_ts_lists[chat_id] = concat_and_sort_objects(this.message_ts_lists[chat_id], ts_list);
         }
         if (first_message_id === null)
-            this.chat_data[chat_id]['first_message_id'] = Math.min.apply(Math, this.message_id_lists[chat_id].filter((val) => {
-                return val > 0;
-            }));
+            this.chat_data[chat_id]['first_message_id'] = get_array_min_of_positive(this.message_id_lists[chat_id]);
         else
             this.chat_data[chat_id]['first_message_id'] = first_message_id;
         this.message_ts_lists[chat_id] = concat_and_sort_objects(this.message_ts_lists[chat_id], ts_list);
@@ -727,7 +752,7 @@ class ChatHistory {
         } else if (direction === 'bottom') {
             this.insert_into_chat_bottom(li);
         } else {
-            let min = Math.min.apply(Math, this.message_ts_lists[chat_id]);
+            let min = get_array_min_of_positive(Object.keys(this.message_ts_lists[chat_id]));
             this.insert_into_chat(li, chat_id, message_id, this.message_ts_lists[chat_id][min],
                 this.message_ts_lists[chat_id][max]);
         }
@@ -771,7 +796,7 @@ class ChatHistory {
     }
 
     insert_into_chat_top(element) {
-        this.block.insertBefore(element, this.block.getElementsByTagName('li')[0])
+        this.block.prepend(element);
     }
 
     insert_into_chat_bottom(element) {
@@ -784,9 +809,17 @@ class ChatHistory {
         } else if (message_id === max_message_id) {
             this.insert_into_chat_bottom(element);
         } else {
-            let ind = this.message_id_lists[chat_id].indexOf(message_id);
-            if (ind + 1 in this.message_id_lists[chat_id]) {
-                let line = document.getElementById(`m-${this.message_id_lists[chat_id][ind + 1]}`);
+            let ind = 0, next = 0;
+            for (let ts in this.message_ts_lists[chat_id]) {
+                if (this.message_ts_lists[chat_id][ts] === message_id) {
+                    ind = ts;
+                } else if (ind !== 0) {
+                    next = ts;
+                    break;
+                }
+            }
+            if (next > 0) {
+                let line = document.getElementById(`m-${this.message_ts_lists[chat_id][next]}`);
                 this.block.insertBefore(element, line);
             } else {
                 this.insert_into_chat_bottom(element);
@@ -815,15 +848,10 @@ class ChatHistory {
     }
 
     add_new_message(message, selected_chat) {
-        if (message.chat_id in this.chat_data) {
-            if (message['oper_id'] === null)
-                this.chat_data[message.chat_id]['support_mode'] = true;
-            if (selected_chat === message.chat_id)
-                this.add_chat_message(message.chat_id, message['message_id']);
-            return ['new_message', this.chat_history[message.chat_id][message['message_id']].get_message_content()]
-        } else {
-            return ['new_chat', this.chat_history[message.chat_id][message['message_id']].get_message_content()]
-        }
+        if (message.oper_id === null && this.chat_data[message.chat_id].support_mode === false)
+            this.chat_data[message.chat_id]['support_mode'] = true;
+        if (selected_chat === message.chat_id)
+            this.add_chat_message(message.chat_id, message.message_id);
     }
 
     check_message_list(chat_id) {
