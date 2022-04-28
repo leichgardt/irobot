@@ -81,8 +81,8 @@ class Chat {
     }
 
     save_chat_data(chats) {
-        for (let i in chats)
-            this.chat_data[chats[i]['chat_id']] = chats[i];
+        for (let chat_id in chats)
+            this.chat_data[chats[chat_id]['chat_id']] = chats[chat_id];
     }
 
     add_chat_onclick_handler() {
@@ -103,8 +103,10 @@ class Chat {
     }
 
     get_new_message(message, skip_checking=false) {
-        if (!(message.chat_id in this.chat_data))
+        if (!(message.chat_id in this.chat_data)){
             this.force_get_chats();
+            return;
+        }
         if (message.chat_id in this.history.chat_history && message.message_id in this.history.chat_history[message.chat_id])
             return;
         const data = this.get_message_data_to_save(message);
@@ -365,11 +367,22 @@ class ChatSelector {
     }
 
     update_chat_in_list(message) {
+        this.new_chat_position(message['chat_id']);
         this.new_chat_datetime(message['chat_id'], message['date'], message['time']);
         this.chat_data[message['chat_id']]['support_mode'] = !!!message['oper_id'];
         this.chat_data[message['chat_id']]['read'] = !!message['oper_id'];
         this.check_read_icon(message['chat_id']);
         this.check_support_icon(message['chat_id']);
+    }
+
+    new_chat_position(chat_id) {
+        let first_block = this.block.getElementsByClassName('chat-item')[0];
+        let chat_block = this.get_chat(chat_id);
+        if (first_block.id !== chat_block.id) {
+            let copy_block = chat_block.cloneNode(true);
+            chat_block.remove();
+            this.block.prepend(copy_block);
+        }
     }
 
     new_chat_datetime(chat_id, date, time) {
@@ -633,13 +646,13 @@ class ChatHistory {
     }
 
     get_chat_history(data, reverse=false) {
-        this.save_data_of_chat_messages(data['chat_id'], data['messages'], data['id_list'], data['ts_list']);
+        this.save_data_of_chat_messages(data['chat_id'], data['messages'], data['id_list'], data['ts_list'], data['first_message_id']);
         this.clean_load_links_into_chat();
         this.remove_first_date()
         this.show_chat_history(data['chat_id'], reverse);
     }
 
-    save_data_of_chat_messages(chat_id, messages, id_list, ts_list) {
+    save_data_of_chat_messages(chat_id, messages, id_list, ts_list, first_message_id=null) {
         for (let message_id in messages) {
             let mid = parseInt(message_id);
             if (!(chat_id in this.chat_history))
@@ -658,7 +671,12 @@ class ChatHistory {
             this.message_id_lists[chat_id] = concat_and_sort_arrays(this.message_id_lists[chat_id], id_list);
             this.message_ts_lists[chat_id] = concat_and_sort_objects(this.message_ts_lists[chat_id], ts_list);
         }
-        this.chat_data[chat_id]['first_message_id'] = Math.min.apply(Math, this.message_id_lists[chat_id]);
+        if (first_message_id === null)
+            this.chat_data[chat_id]['first_message_id'] = Math.min.apply(Math, this.message_id_lists[chat_id].filter((val) => {
+                return val > 0;
+            }));
+        else
+            this.chat_data[chat_id]['first_message_id'] = first_message_id;
         this.message_ts_lists[chat_id] = concat_and_sort_objects(this.message_ts_lists[chat_id], ts_list);
     }
 

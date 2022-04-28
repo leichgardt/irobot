@@ -72,7 +72,7 @@ async def get_messages_from_range(chat_id: int, end_message_id: int = 0):
     return await sql.execute(
         f'SELECT m.message_id, m.datetime, m.from_oper AS oper_id, o.full_name AS oper_name, m.content_type, m.content '
         f'FROM irobot.support_messages m LEFT JOIN irobot.operators o ON m.from_oper=o.oper_id '
-        f'WHERE m.chat_id=%s {flt} ORDER BY datetime DESC LIMIT 10', chat_id, as_dict=True
+        f'WHERE m.chat_id=%s {flt} ORDER BY m.datetime DESC LIMIT 10', chat_id, as_dict=True
     )
 
 
@@ -80,7 +80,8 @@ async def get_messages_from_id_list(chat_id: int, id_list: list):
     return await sql.execute(
         f'SELECT m.message_id, m.datetime, m.from_oper AS oper_id, o.full_name AS oper_name, m.content_type, m.content '
         f'FROM irobot.support_messages m LEFT JOIN irobot.operators o ON m.from_oper=o.oper_id '
-        f'WHERE m.chat_id=%s AND message_id=any (%s) ORDER BY datetime DESC LIMIT 10', chat_id, id_list, as_dict=True
+        f'WHERE m.chat_id=%s AND m.message_id=any (%s) ORDER BY m.datetime DESC LIMIT 10', chat_id, id_list,
+        as_dict=True
     )
 
 
@@ -94,7 +95,13 @@ async def get_chat_messages(chat_id: int, end_message_id: int = 0, id_list: list
     id_list = [msg['message_id'] for msg in messages]
     ts_list = {msg['timestamp']: msg['message_id'] for msg in messages}
     messages = {msg['message_id']: msg for msg in messages}
-    return {'messages': messages, 'chat_id': chat_id, 'id_list': id_list, 'ts_list': ts_list}
+    return {
+        'messages': messages,
+        'chat_id': chat_id,
+        'id_list': id_list,
+        'ts_list': ts_list,
+        'first_message_id': id_list[-1]
+    }
 
 
 async def send_oper_message(data, oper_id, oper_name, **kwargs):

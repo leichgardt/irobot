@@ -32,14 +32,11 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                 input_data = await websocket.receive_json()
                 action = input_data.get('action')
                 data = input_data.get('data')
-                if action and data:
-                    func = chat_actions.actions.get_func(action)
-                    if func:
-                        await func(websocket, router.manager, oper, data)
-                    else:
-                        await router.logger.warning(f'Received unknown action "{action}" from {oper.login}')
+                func = chat_actions.actions.get_func(action)
+                if func:
+                    await func(websocket, router.manager, oper, data)
                 else:
-                    print('ws received data:', input_data)
+                    await router.logger.warning(f'Received unknown action "{action}" from {oper.login}')
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
             router.manager.remove(websocket, oper.oper_id)
