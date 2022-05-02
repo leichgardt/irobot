@@ -1,12 +1,16 @@
 from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 
-from src.web.routers.admin.admin_router import router, templates
-from src.web.utils import connection_manager, chat as chat_utils, ops as ops_utils, chat_actions
+from src.web.utils.router import MyAPIRouter
+from src.web.utils import chat as chat_utils, ops as ops_utils, chat_actions
 from src.web.utils.api import lan_require, get_context
+from src.web.utils.connection_manager import ConnectionManager
 
 
-router.manager = connection_manager.ConnectionManager()
+router = MyAPIRouter(prefix='/admin')
+templates = Jinja2Templates(directory='templates')
+manager = ConnectionManager()
 
 
 @router.get('/chat')
@@ -25,7 +29,7 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
     oper = await ops_utils.get_oper_by_token(access_token)
     if oper:
         try:
-            await router.manager.connect(websocket, oper.oper_id)
+            await manager.connect(websocket, oper.oper_id)
             chats = await chat_utils.get_accounts_and_chats()
             await websocket.send_json({'action': 'get_chats', 'data': chats})
             while True:
@@ -34,7 +38,7 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                 data = input_data.get('data')
                 func = chat_actions.actions.get_func(action)
                 if func:
-                    await func(websocket, router.manager, oper, data)
+                    await func(websocket, manager, oper, data)
                 else:
                     await router.logger.warning(f'Received unknown action "{action}" from {oper.login}')
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})

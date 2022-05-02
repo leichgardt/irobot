@@ -1,12 +1,17 @@
 from fastapi import Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.templating import Jinja2Templates
 
-from src.web.routers.admin.admin_router import router, templates
+from src.web.utils.router import MyAPIRouter
 from src.web.schemas import ops
 from src.web.utils import ops as ops_utils
 from src.web.utils.api import lan_require, get_context
 from src.web.utils.dependecies import get_current_oper
+
+
+router = MyAPIRouter(prefix='/admin')
+templates = Jinja2Templates(directory='templates')
 
 
 @router.get('/')

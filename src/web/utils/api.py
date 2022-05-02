@@ -3,7 +3,8 @@ from functools import wraps
 from ipaddress import ip_address, ip_network
 from urllib.parse import urlparse, parse_qs
 
-from fastapi import Request, Response
+from aiologger import Logger
+from fastapi import FastAPI, Request, Response
 
 from config import ABOUT, DEBUG, HOST_IP_LIST, VERSION, ROOT_PATH, WEB_SERVICE_HOST, WEB_SERVICE_PORT
 
@@ -11,7 +12,8 @@ __all__ = (
     'get_query_params',
     'get_request_data',
     'lan_require',
-    'get_context'
+    'get_context',
+    'add_routers_to_app'
 )
 
 
@@ -68,3 +70,9 @@ def get_context(request: Request, **kwargs):
         'oper': {},
         **kwargs
     }
+
+
+def add_routers_to_app(*modules, app: FastAPI, logger: Logger):
+    for m in modules:
+        m.logger = logger
+        app.include_router(m.router)

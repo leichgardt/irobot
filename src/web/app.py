@@ -8,14 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
 
-from src.web.gunicorn_config import workers
 from config import ABOUT, DEBUG, ROOT_PATH, SUPPORT_BOT  # ABOUT не удалять
-from src.web.routers import api
-from src.web.routers.admin import admin_router
-from src.web.routers.user import login
 from src.modules import lb, sql, Texts
 from src.modules.sql.checker import CheckerSQL
-from src.utils import aio_logger
 from src.web import (
     SoloWorker,
     telegram_api,
@@ -23,26 +18,29 @@ from src.web import (
     chat_photo_update_monitor,
     auto_payment_monitor,
     auto_feedback_monitor,
-    new_messages_monitor
+    new_messages_monitor,
+    add_routers_to_app
 )
+from src.web.gunicorn_config import workers
+from src.web.routers import api
+from src.web.routers.admin import auth, chat, control_panel, mailing
+from src.web.routers.user import login
+from src.utils import aio_logger
 
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 app = FastAPI(root_path=ROOT_PATH if not DEBUG else None)
 app.mount('/static', StaticFiles(directory='static', html=False), name='static')
-app.include_router(api.router)
-app.include_router(admin_router.router)
-app.include_router(login.router)
 
 templates = Jinja2Templates(directory='templates')
 
 logger = aio_logger('irobot-web')
 sql.logger = logger
 lb.logger = logger
-api.router.logger = logger
-admin_router.router.logger = logger
-login.router.logger = logger
+
+add_routers_to_app(api, auth, chat, control_panel, mailing, login, app=app, logger=logger)
+
 sw = SoloWorker(logger=logger, workers=workers)
 
 default_context = GlobalDict('web-default-context')
@@ -95,7 +93,7 @@ async def photo_updater():
 @repeat_every(seconds=1, wait_first=True)
 @sw.solo_worker(task='support-messages')
 async def messages_monitor():
-    await new_messages_monitor(logger, admin_router.router.manager)
+    await new_messages_monitor(logger, chat.manager)
 
 
 @app.on_event('startup')

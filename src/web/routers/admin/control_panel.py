@@ -1,13 +1,16 @@
 from fastapi import Request, Depends
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 
 from src.web import lan_require, get_context, GlobalDict, get_request_data
-from src.web.routers.admin.admin_router import router, templates
+from src.web.utils.router import MyAPIRouter
 from src.web.schemas import ops
 from src.web.utils import ops as ops_utils
 from src.web.utils.dependecies import get_current_oper
 
 
+router = MyAPIRouter(prefix='/admin')
+templates = Jinja2Templates(directory='templates')
 monitor_flags = GlobalDict('solo-worker-flags')
 
 
