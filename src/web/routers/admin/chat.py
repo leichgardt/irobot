@@ -39,7 +39,7 @@ async def websocket_endpoint(websocket: WebSocket, access_token: str):
                     await router.logger.warning(f'Received unknown action "{action}" from {oper.login}')
                     await websocket.send_json({'action': 'answer', 'data': 'data received'})
         except WebSocketDisconnect:
-            router.manager.remove(websocket, oper.oper_id)
+            await manager.remove(websocket, oper.oper_id)
         except Exception as e:
-            router.manager.remove(websocket, oper.oper_id)
+            await manager.remove(websocket, oper.oper_id)
             await router.logger.exception(f'WebSocket error for oper={oper.oper_id}: {e}')
