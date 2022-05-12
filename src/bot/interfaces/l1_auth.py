@@ -6,7 +6,7 @@ from src.bot.api import private_and_login_require, exc_handler
 from src.bot.schemas import keyboards, Keyboard
 from src.bot.utils.login import get_login_url
 from src.modules import sql, Texts
-from src.utils import logger, get_hash
+from src.utils import get_hash
 
 try:
     from .l0_test import bot, dp
@@ -42,7 +42,7 @@ async def start_cmd_h(message: types.Message, state: FSMContext):
         await bot.send_message(message.chat.id, text=Texts.main_menu, parse_mode=Texts.main_menu.parse_mode,
                                reply_markup=keyboards.main_menu_kb)
     else:
-        await logger.info(f'Start [{message.chat.id}]')
+        await bot.logger.info(f'Start [{message.chat.id}]')
         text = Texts.start.format(name=(message.from_user.first_name or message.from_user.last_name
                                         or message.from_user.username))
         hash_code = get_hash(message.chat.id)

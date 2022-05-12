@@ -8,7 +8,6 @@ from aiogram.dispatcher import FSMContext
 from src.bot.core import bot
 from src.bot.schemas import Keyboard
 from src.modules import sql, Texts
-from src.utils import logger
 
 __all__ = ('exc_handler', 'private_and_login_require', 'delete_message', 'edit_inline_message', 'update_inline_query')
 
@@ -20,15 +19,15 @@ def exc_handler(func: typing.Callable):
         try:
             return await func(*args, **kwargs)
         except exceptions.BotBlocked:
-            await logger.error(f'{bot_func}: Blocked by user {args}')
+            await bot.logger.error(f'{bot_func}: Blocked by user {args}')
         except exceptions.ChatNotFound:
-            await logger.error(f'{bot_func}: Chat ID not found {args}')
+            await bot.logger.error(f'{bot_func}: Chat ID not found {args}')
         except exceptions.RetryAfter as e:
-            await logger.error(f'{bot_func}: Flood limit is exceeded, sleep {e.timeout} seconds {args}')
+            await bot.logger.error(f'{bot_func}: Flood limit is exceeded, sleep {e.timeout} seconds {args}')
             await asyncio.sleep(e.timeout)
             return await func(*args, **kwargs)  # Recursive call
         except exceptions.UserDeactivated:
-            await logger.error(f'{bot_func}: User is deactivated {args}')
+            await bot.logger.error(f'{bot_func}: User is deactivated {args}')
         except Exception as e:
             chat_id, state_data = '', ''
             if args:
@@ -47,9 +46,9 @@ def exc_handler(func: typing.Callable):
                 if state:
                     with await state[0].proxy() as data:
                         state_data = str(data)
-            await logger.exception(f'{bot_func}: {e}'
-                                   + (f' [{chat_id}]' if chat_id else '')
-                                   + (f' ({state_data})' if state_data else ''))
+            await bot.logger.exception(f'{bot_func}: {e}'
+                                       + (f' [{chat_id}]' if chat_id else '')
+                                       + (f' ({state_data})' if state_data else ''))
     return wrapper
 
 
@@ -131,7 +130,7 @@ async def try_to_edit_inline_message(chat_id, message_id, text, parse_mode, repl
         await resend_inline_message(chat_id, message_id, text, parse_mode, reply_markup=reply_markup,
                                     disable_web_page_preview=disable_web_page_preview)
     except Exception as e:
-        await logger.warning(e)
+        await bot.logger.warning(e)
         await sql.upd_inline_message(chat_id, 0, '')
     else:
         await sql.upd_inline_message(chat_id, message_id, text, parse_mode)

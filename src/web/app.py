@@ -25,7 +25,7 @@ from src.web.gunicorn_config import workers
 from src.web.routers import api
 from src.web.routers.admin import auth, chat, control_panel, mailing
 from src.web.routers.user import login
-from src.utils import aio_logger
+from src.utils import AIOLogger
 
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -35,7 +35,7 @@ app.mount('/static', StaticFiles(directory='static', html=False), name='static')
 
 templates = Jinja2Templates(directory='templates')
 
-logger = aio_logger('irobot-web')
+logger = AIOLogger(name='irobot-web')
 sql.logger = logger
 lb.logger = logger
 

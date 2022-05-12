@@ -9,8 +9,6 @@ from src.bot.schemas import keyboards, Keyboard, KeyboardButton
 from src.bot.schemas.fsm_states import PaymentFSM
 from src.bot.utils import agreements as agrm_utils, payments as payment_utils
 from src.modules import lb, sql, Texts
-from src.utils import logger
-
 from .l3_main import bot, dp
 
 
@@ -128,7 +126,7 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         agrm_id = [agrm['agrm_id'] for agrm in data['agrm_data'] if agrm['agrm'] == data['agrm']]
         if not agrm_id:
-            await logger.error(f'Promise payment error! Cannot get agrm_id from agrm "{data["agrm"]}": '
+            await bot.logger.error(f'Promise payment error! Cannot get agrm_id from agrm "{data["agrm"]}": '
                                f'{data["agrm_data"]}')
             await bot.send_message(query.message.chat.id, *Texts.backend_error.pair(),
                                    reply_markup=keyboards.main_menu_kb)
@@ -136,10 +134,10 @@ async def inline_h_payment_yes(query: types.CallbackQuery, state: FSMContext):
             res = await lb.promise_payment(agrm_id[0], data['amount'])
             if res:
                 answer, text, parse_mode = Texts.payments_promise_success.full()
-                await logger.info(f'Promise Payment success [{query.message.chat.id}]')
+                await bot.logger.info(f'Promise Payment success [{query.message.chat.id}]')
             else:
                 answer, text, parse_mode = Texts.payments_promise_fail.full()
-                await logger.warning(f'Payment failure [{query.message.chat.id}]')
+                await bot.logger.warning(f'Payment failure [{query.message.chat.id}]')
             await update_inline_query(query, answer, text, parse_mode, alert=True)
             text, parse_mode = await agrm_utils.get_agrm_balances(query.message.chat.id)
             await bot.send_message(query.message.chat.id, text, parse_mode, reply_markup=keyboards.main_menu_kb)
@@ -191,7 +189,7 @@ async def inline_h_payment(message: types.Message, state: FSMContext):
 @exc_handler
 async def checkout_payment_h(pre_checkout_query: types.PreCheckoutQuery, state: FSMContext):
     """ Обработчик для подтверждения транзакции - запускается при нажатии на кнопку "Оплатить" """
-    await logger.info(f'[{pre_checkout_query.from_user.id}] Pre-payment checkout {pre_checkout_query.invoice_payload}')
+    await bot.logger.info(f'[{pre_checkout_query.from_user.id}] Pre-payment checkout {pre_checkout_query.invoice_payload}')
     ok = False
     msg = Texts.payment_error_message
     data = ujson.loads(pre_checkout_query.invoice_payload)
@@ -209,7 +207,7 @@ async def checkout_payment_h(pre_checkout_query: types.PreCheckoutQuery, state: 
             msg = Texts.payments_online_already_have
         elif payment['status'] == 'error':
             msg = Texts.payments_online_error
-    await logger.info(f'[{pre_checkout_query.from_user.id}] Pre-payment status {ok=}')
+    await bot.logger.info(f'[{pre_checkout_query.from_user.id}] Pre-payment status {ok=}')
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=ok, error_message=msg)
 
 
@@ -227,10 +225,10 @@ async def make_payment_h(message: types.Message, state: FSMContext):
     if data.get('hash') and data.get('agrm') and data.get('amount') and data.get('chat_id'):
         record_id = payment_utils.make_payment(data['agrm'], data['amount'], receipt, data['hash'], message.date)
         if record_id:
-            await logger.info(f'[{data["chat_id"]}] Successful Payment: {record_id=} receipt={receipt}')
+            await bot.logger.info(f'[{data["chat_id"]}] Successful Payment: {record_id=} receipt={receipt}')
             text, parse_mode = Texts.payments_online_success_short.pair()
         else:
-            await logger.warning(f'[{data["chat_id"]}] Bad payment. Cannot top up the agreement balance: {record_id=} '
+            await bot.logger.warning(f'[{data["chat_id"]}] Bad payment. Cannot top up the agreement balance: {record_id=} '
                                  f'number={data["agrm"]} amount={data["amount"]} receipt={receipt}')
             text, parse_mode = Texts.payments_online_success.pair()
         kb = keyboards.main_menu_kb if message.chat.id == data['chat_id'] else None
@@ -241,7 +239,7 @@ async def make_payment_h(message: types.Message, state: FSMContext):
             if not await sql.get_sub(message.chat.id):
                 await bot.send_message(message.chat.id, *Texts.payments_after_for_guest.pair())
     else:
-        await logger.error(f'[{data["chat_id"]}] Cannot read a payment payload. Receipt={receipt} '
+        await bot.logger.error(f'[{data["chat_id"]}] Cannot read a payment payload. Receipt={receipt} '
                            f'Payload={message.successful_payment.invoice_payload}')
         await bot.send_message(message.chat.id, *Texts.payments_online_error.pair())
         await sql.upd_payment(data['hash'], status='error')

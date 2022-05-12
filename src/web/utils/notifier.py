@@ -7,5 +7,5 @@ async def telegram_admin_notify(message, payment_id, logger):
     text = f'Irobot Payment Monitor\n\n{message}\n\nPayment ID = {payment_id}'
     if TELEGRAM_NOTIFY_BOT_URL:
         await post_request(TELEGRAM_NOTIFY_BOT_URL, json={'chat_id': TELEGRAM_TEST_CHAT_ID, 'text': text},
-                           _logger=logger)
+                           logger=logger)
     await send_message(TELEGRAM_TEST_CHAT_ID, text)

@@ -1,18 +1,17 @@
-from aiologger import Logger
-from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi import Request, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 from starlette.responses import Response
 
 from src.modules import lb, sql, Texts
 from src.web import GlobalDict
 from src.web.schemas.login import LoginItem
+from src.web.schemas.router import MyAPIRouter
 from src.web.utils.login import logining
 
 
 default_context = GlobalDict('web-default-context')
 default_params = GlobalDict('web-default-parameters')
-router = APIRouter()
-router.logger = Logger.with_default_handlers()
+router = MyAPIRouter()
 templates = Jinja2Templates(directory='templates')
 
 

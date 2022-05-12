@@ -9,7 +9,7 @@ from src.bot import bot, dp
 from config import DEBUG, TELEGRAM_TEST_CHAT_ID, BOT_WEBHOOK_URL, BOT_PORT
 from src.modules import lb, sql, Texts
 from src.modules.sql.checker import CheckerSQL
-from src.utils import logger, logfile, logdir
+from src.utils import logfile, logdir
 
 CERTIFICATE = ''
 WEBHOOK_PATH = '/'
@@ -40,7 +40,7 @@ async def check_postgres():
 
 
 async def on_startup(dp):
-    sql.logger = logger
+    sql.logger = bot.logger
     await check_postgres()
     await check_mongo(dp)
     await upd_texts()
@@ -48,16 +48,17 @@ async def on_startup(dp):
     await bot.set_webhook(url=WEBHOOK_URL,
                           certificate=open(CERTIFICATE, 'rb') if CERTIFICATE else None,
                           drop_pending_updates=True)
-    await logger.info(f'Bot activated. Look at the console output in file "{logdir + logfile.format(logger.name)}"')
+    await bot.logger.info(f'Bot activated. Look at the console output in file '
+                          f'"{logdir + logfile.format(bot.logger.name)}"')
 
 
 async def on_shutdown(dp):
-    await logger.info('Shutting down..')
+    await bot.logger.info('Shutting down..')
     await dp.storage.close()
     await bot.delete_webhook()
     await sql.close_pool()
     await dp.storage.wait_closed()
-    await logger.shutdown()
+    await bot.logger.shutdown()
     print('Bye!')
 
 

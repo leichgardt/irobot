@@ -6,7 +6,6 @@ from src.bot.schemas import keyboards
 from src.bot.schemas.fsm_states import SupportFSM
 from src.bot.utils import support
 from src.modules import Texts
-from src.utils import logger
 from .l5_feedback import bot, dp
 
 
@@ -18,7 +17,7 @@ from .l5_feedback import bot, dp
 async def support_inline_h(query: types.CallbackQuery, state: FSMContext):
     """ Активация режима обращения в поддержку """
     await state.finish()
-    await logger.info(f'Support enabled [{query.message.chat.id}]')
+    await bot.logger.info(f'Support enabled [{query.message.chat.id}]')
     await SupportFSM.support.set()
     await update_inline_query(query, *Texts.support.full())
 

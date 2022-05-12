@@ -3,8 +3,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from src.modules import sql
-from src.web.utils.router import MyAPIRouter
 from src.web.schemas import ops, mailing
+from src.web.schemas.router import MyAPIRouter
 from src.web.schemas.table import Table
 from src.web.utils import ops as ops_utils, mailing as mailing_utils
 from src.web.utils.api import lan_require, get_context

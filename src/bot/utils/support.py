@@ -2,8 +2,8 @@ from datetime import datetime
 
 from aiogram import types
 
+from src.bot.core import bot
 from src.modules import sql
-from src.utils import logger
 
 
 async def create_support(chat_id: int) -> int:
@@ -37,7 +37,7 @@ async def add_support_message(message: types.Message):
     elif message.content_type == 'audio':
         data = {'file_id': message.audio.file_id, 'mime_type': message.audio.mime_type}
     else:
-        await logger.warning(f'Unhandled support message content type: {message} [{message.chat.id}]')
+        await bot.logger.warning(f'Unhandled support message content type: {message} [{message.chat.id}]')
         return
     data = {'caption': message.caption, **data} if 'caption' in message else data
     await update_support_datetime(message.chat.id)

@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Union, List, Dict
 
-import aiologger
 import aiopg
 import asyncio
 import psycopg2
 import psycopg2.errors
 import psycopg2.extensions
 import ujson
+from aiologger import Logger
+from aiologger.handlers.streams import AsyncStreamHandler
 
 from config import DB_NAME, DB_USER, DB_HOST
 
@@ -20,7 +21,7 @@ class SQLCore:
         self.pool_min_size = 3
         self.pool_max_size = 20
         # логгер инициализируется в app.py и в src/bot/bot.py отдельно для irobot-web и irobot соответственно
-        self.logger: aiologger.Logger = None
+        self.logger: Logger = None
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
@@ -42,8 +43,8 @@ class SQLCore:
             maxsize=self.pool_max_size
         )
         if not self.logger:
-            self.logger = aiologger.Logger(name='sql')
-            self.logger.add_handler(aiologger.logger.AsyncStreamHandler())
+            self.logger = Logger.with_default_handlers(name='sql')
+            self.logger.add_handler(AsyncStreamHandler())
 
     async def close_pool(self):
         if self.pool is not None:
@@ -170,11 +171,8 @@ class SQLCore:
 
 
 if __name__ == '__main__':
-    from src.utils import logger
-
     async def main():
         sql = SQLCore()
-        sql.logger = logger
         res = await sql.execute('SELECT * FROM irobot.subs', as_dict=True, fetch_one=True)
         if res:
             [print(f'{key:18}- {value}') for key, value in res.items()]

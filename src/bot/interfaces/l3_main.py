@@ -8,7 +8,6 @@ from src.bot.schemas import keyboards, Keyboard
 from src.bot.schemas.fsm_states import ReviewFSM
 from src.bot.utils import agreements, review
 from src.modules import sql, Texts
-from src.utils import logger
 from .l2_settings import bot, dp
 
 
@@ -77,7 +76,7 @@ async def review_start_inline_h(message: types.Message, state: FSMContext):
     await ReviewFSM.rating.set()
     res = await bot.send_message(message.chat.id, *Texts.review.pair(), reply_markup=kb)
     await sql.upd_inline_message(message.chat.id, res.message_id, *Texts.review.pair())
-    await logger.info(f'Start review [{message.chat.id}]')
+    await bot.logger.info(f'Start review [{message.chat.id}]')
 
 
 @dp.callback_query_handler(Regexp(regexp=r'review-([^\s]*)'), state=[ReviewFSM.rating, ReviewFSM.comment])
@@ -123,7 +122,7 @@ async def review_comment_message_h(message: types.Message, state: FSMContext):
 @exc_handler
 async def review_finish_inline_h(query: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
-        await logger.info(f'New review [{query.message.chat.id}]')
+        await bot.logger.info(f'New review [{query.message.chat.id}]')
         rating = data.get('rating')
         comment = data.get('comment')
         await query.answer(Texts.review_done.answer)

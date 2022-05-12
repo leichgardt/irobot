@@ -1,15 +1,14 @@
-from aiologger import Logger
-from fastapi import APIRouter, Request, Response, BackgroundTasks
+from fastapi import Request, Response, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 
 from config import TELEGRAM_TEST_CHAT_ID
 from src.modules import lb, sql
+from src.web.schemas.router import MyAPIRouter
 from src.web.utils import mailing as mailing_utils
 from src.web.utils.api import lan_require, get_request_data
 from src.web.utils.telegram_api import telegram_api, send_feedback
 
-router = APIRouter(prefix='/api')
-router.logger = Logger.with_default_handlers()
+router = MyAPIRouter(prefix='/api')
 templates = Jinja2Templates(directory='templates')
 
 

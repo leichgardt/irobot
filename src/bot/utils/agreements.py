@@ -1,10 +1,10 @@
+from src.bot.core import bot
 from src.modules import lb, sql, Texts
-from src.utils import logger
 
 
 async def get_agrm_balances(chat_id: int):
     """ Получить текст с балансом всех договоров для пользователя """
-    await logger.info(f'Balance check [{chat_id}]')
+    await bot.logger.info(f'Balance check [{chat_id}]')
     text = []
     data = await get_all_agrm_data(chat_id, only_numbers=True)
     if data:

@@ -74,5 +74,5 @@ def get_context(request: Request, **kwargs):
 
 def add_routers_to_app(*modules, app: FastAPI, logger: Logger):
     for m in modules:
-        m.logger = logger
+        m.router.set_logger(logger)
         app.include_router(m.router)

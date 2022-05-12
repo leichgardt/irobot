@@ -7,7 +7,7 @@ from src.bot.schemas import keyboards, Keyboard
 from src.bot.schemas.fsm_states import AccountSettingsFSM
 from src.bot.utils import agreements, login
 from src.modules import sql, Texts
-from src.utils import logger, get_hash
+from src.utils import get_hash
 from .l1_auth import bot, dp
 
 
@@ -79,7 +79,7 @@ async def inline_h_account_del(query: types.CallbackQuery, state: FSMContext):
             Texts.settings_accounts.parse_mode,
             btn_list=await keyboards.get_agrms_btn(custom=data['accounts']) + [keyboards.account_settings_btn]
         )
-        await logger.info(f'Account {data["acc"]} deactivated [{query.message.chat.id}]')
+        await bot.logger.info(f'Account {data["acc"]} deactivated [{query.message.chat.id}]')
 
 
 @dp.callback_query_handler(text='add-account', state=AccountSettingsFSM.acc)
@@ -91,7 +91,7 @@ async def inline_h_account_del(query: types.CallbackQuery, state: FSMContext):
     kb = Keyboard.inline(keyboards.get_login_btn(url) + keyboards.cancel_btn)
     await update_inline_query(query, *Texts.settings_account_add.full(), reply_markup=kb)
     await sql.upd_hash(query.message.chat.id, hash_code)
-    await logger.info(f'Account adding [{query.message.chat.id}]')
+    await bot.logger.info(f'Account adding [{query.message.chat.id}]')
 
 
 @dp.callback_query_handler(text='settings-notify', state=AccountSettingsFSM.acc)
@@ -114,7 +114,7 @@ async def inline_h_switch_notify(query: types.CallbackQuery, state: FSMContext):
         btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id)]
         await update_inline_query(query, Texts.settings_mailing_switch_answer, text, parse_mode,
                                   reply_markup=Keyboard.inline(btn_list))
-        await logger.info(f'Switching notify settings [{query.message.chat.id}]')
+        await bot.logger.info(f'Switching notify settings [{query.message.chat.id}]')
 
 
 @dp.callback_query_handler(text='exit', state=AccountSettingsFSM.acc)
@@ -129,7 +129,7 @@ async def inline_h_exit_confirm(query: types.CallbackQuery, state: FSMContext):
     await query.answer(Texts.settings_exited.answer, show_alert=True)
     await query.message.delete()
     await bot.send_message(query.message.chat.id, Texts.settings_exited, reply_markup=types.ReplyKeyboardRemove())
-    await logger.info(f'Exiting [{query.message.chat.id}]')
+    await bot.logger.info(f'Exiting [{query.message.chat.id}]')
     await sql.unsubscribe(query.message.chat.id)
     for acc in await agreements.get_all_agrm_data(query.message.chat.id, only_numbers=True):
         await sql.deactivate_account(query.message.chat.id, acc)

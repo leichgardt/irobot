@@ -2,7 +2,7 @@ from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from src.web.utils.router import MyAPIRouter
+from src.web.schemas.router import MyAPIRouter
 from src.web.utils import chat as chat_utils, ops as ops_utils, chat_actions
 from src.web.utils.api import lan_require, get_context
 from src.web.utils.connection_manager import ConnectionManager

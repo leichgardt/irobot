@@ -2,13 +2,14 @@ import asyncio
 
 import httpx
 import uvloop
+from aiologger import Logger
 from zeep import AsyncClient, Settings
 from zeep.client import Factory
 from zeep.exceptions import Fault
 from zeep.transports import AsyncTransport
 
 from config import LAN_BILLING_USER, LAN_BILLING_PASSWORD, LAN_BILLING_URL, LAN_BILLING_LOCATION
-from src.utils import logger, get_datetime, get_phone_number
+from src.utils import get_datetime, get_phone_number
 
 
 class CustomAsyncClient(AsyncClient):
@@ -37,7 +38,7 @@ class LanBillingCore:
     get_datetime = staticmethod(get_datetime)
     get_phone_number = staticmethod(get_phone_number)
 
-    def __init__(self, logger=logger):
+    def __init__(self, logger: Logger = None):
         self.user = LAN_BILLING_USER
         self.__password = LAN_BILLING_PASSWORD
         self._api_url = LAN_BILLING_URL
@@ -79,6 +80,8 @@ class LanBillingCore:
                                                                      wsdl_client=self._wsdl_client))
             self.factory = self.client.type_factory('ns0')
         # self.client.service._binding_options.update({'address': self._api_location})
+        if not self.logger:
+            self.logger = Logger.with_default_handlers()
 
     async def login(self):
         if self.client is None:
