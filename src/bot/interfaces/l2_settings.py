@@ -88,7 +88,7 @@ async def inline_h_account_del(query: types.CallbackQuery, state: FSMContext):
     await AccountSettingsFSM.acc.set()
     hash_code = get_hash(query.message.chat.id)
     url = login.get_login_url(hash_code)
-    kb = Keyboard(keyboards.get_login_btn(url) + keyboards.cancel_btn).inline()
+    kb = Keyboard.inline(keyboards.get_login_btn(url) + keyboards.cancel_btn)
     await update_inline_query(query, *Texts.settings_account_add.full(), reply_markup=kb)
     await sql.upd_hash(query.message.chat.id, hash_code)
     await logger.info(f'Account adding [{query.message.chat.id}]')
@@ -100,7 +100,7 @@ async def inline_h_notify_settings(query: types.CallbackQuery, state: FSMContext
     async with state.proxy() as data:
         texts = Texts.settings_notify.full() if data['mailing'] else Texts.settings_notify_enable.full()
         btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id)]
-        await update_inline_query(query, *texts, reply_markup=Keyboard(btn_list).inline())
+        await update_inline_query(query, *texts, reply_markup=Keyboard.inline(btn_list))
 
 
 @dp.callback_query_handler(text='settings-switch-notify', state=AccountSettingsFSM.acc)
@@ -113,7 +113,7 @@ async def inline_h_switch_notify(query: types.CallbackQuery, state: FSMContext):
         text, parse_mode = Texts.settings_notify.pair() if data['mailing'] else Texts.settings_notify_enable.pair()
         btn_list = [await keyboards.get_notify_settings_btn(query.message.chat.id)]
         await update_inline_query(query, Texts.settings_mailing_switch_answer, text, parse_mode,
-                                  reply_markup=Keyboard(btn_list).inline())
+                                  reply_markup=Keyboard.inline(btn_list))
         await logger.info(f'Switching notify settings [{query.message.chat.id}]')
 
 

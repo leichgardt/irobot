@@ -59,7 +59,7 @@ async def send_message(chat_id: int, text: str, *args, **kwargs):
 
 async def send_feedback(chat_id, task_id):
     res = await send_message(chat_id, Texts.new_feedback, Texts.new_feedback.parse_mode,
-                             reply_markup=Keyboard(keyboards.get_feedback_btn(task_id), row_size=5).inline())
+                             reply_markup=Keyboard.inline(keyboards.get_feedback_btn(task_id), row_size=5))
     if res:
         await sql.upd_inline_message(chat_id, res.message_id, Texts.new_feedback, Texts.new_feedback.parse_mode)
     return res

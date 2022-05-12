@@ -25,5 +25,5 @@ async def logining(chat_id: int, login: str):
         data = await get_all_agrm_data(chat_id, only_numbers=True)
         text, parse_mode = Texts.settings_accounts.pair(accounts=Texts.get_account_agrm_list(data))
         btn_list = await keyboards.get_agrms_btn(custom=data, prefix='account') + [keyboards.account_settings_btn]
-        kb = Keyboard(btn_list).inline()
+        kb = Keyboard.inline(btn_list)
         await telegram_api.send_message(chat_id, text, parse_mode, reply_markup=kb)

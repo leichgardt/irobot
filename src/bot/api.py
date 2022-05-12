@@ -110,7 +110,7 @@ async def edit_inline_message(
     if not reply_markup and btn_list:
         if not isinstance(btn_list, (list, tuple, set)):
             btn_list = [btn_list]
-        reply_markup = Keyboard(btn_list).inline()
+        reply_markup = Keyboard.inline(btn_list)
     if message_id:
         if reply_markup and isinstance(reply_markup, (types.ReplyKeyboardMarkup, types.ReplyKeyboardRemove)):
             await resend_inline_message(chat_id, message_id, text, parse_mode, reply_markup=reply_markup,
@@ -160,7 +160,7 @@ async def update_inline_query(
     :param skip_db_update: Пропустить обновление БД
     """
     if btn_list:
-        reply_markup = Keyboard(btn_list).inline()
+        reply_markup = Keyboard.inline(btn_list)
     try:
         await bot.edit_message_text(text, query.message.chat.id, query.message.message_id,
                                     reply_markup=reply_markup, parse_mode=parse_mode)

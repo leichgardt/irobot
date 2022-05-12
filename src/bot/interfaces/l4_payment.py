@@ -52,12 +52,12 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
             await PaymentFSM.amount.set()
             data['agrm'] = data['agrm_data'][0]['agrm']
             answer, text, parse_mode = Texts.payments_online_amount.full(agrm=data['agrm'])
-            kb = Keyboard(keyboards.back_to_payments_btn).inline()
+            kb = Keyboard.inline(keyboards.back_to_payments_btn)
         else:
             await PaymentFSM.agrm.set()
             answer, text, parse_mode = Texts.payments_online.full()
-            kb = Keyboard(await keyboards.get_agrms_btn(custom=data['agrm_data']) +
-                          [keyboards.back_to_payments_btn]).inline()
+            kb = Keyboard.inline(await keyboards.get_agrms_btn(custom=data['agrm_data']) +
+                                 [keyboards.back_to_payments_btn])
         await update_inline_query(query, answer, text, parse_mode, reply_markup=kb)
 
 
@@ -83,17 +83,17 @@ async def inline_h_payments_choice(query: types.CallbackQuery, state: FSMContext
                 await PaymentFSM.payment.set()
                 data['agrm'] = agrms[0]['agrm']
                 answer, text, parse_mode = Texts.payments_promise_offer.full()
-                kb = Keyboard(keyboards.confirm_btn).inline()
+                kb = Keyboard.inline(keyboards.confirm_btn)
                 answer = answer.format(agrm=data['agrm'])
                 text = text.format(agrm=data['agrm'])
             elif len(agrms) > 1:
                 await PaymentFSM.agrm.set()
                 answer, text, parse_mode = Texts.payments_promise.full()
-                kb = Keyboard(await keyboards.get_agrms_btn(custom=agrms) + [keyboards.back_to_payments_btn]).inline()
+                kb = Keyboard.inline(await keyboards.get_agrms_btn(custom=agrms) + [keyboards.back_to_payments_btn])
             else:
                 await state.finish()
                 answer, text, parse_mode = Texts.payments_promise_already_have.full()
-                kb = Keyboard(keyboards.payment_choice_kb).inline()
+                kb = Keyboard.inline(keyboards.payment_choice_kb)
         await update_inline_query(query, answer, text, parse_mode, reply_markup=kb)
 
 
@@ -109,11 +109,11 @@ async def inline_h_payments_agrm(query: types.CallbackQuery, state: FSMContext):
         if data['operation'] == 'promise':
             await PaymentFSM.payment.set()
             answer, text, parse_mode = Texts.payments_promise_offer.full()
-            kb = Keyboard(keyboards.confirm_btn).inline()
+            kb = Keyboard.inline(keyboards.confirm_btn)
         else:
             await PaymentFSM.amount.set()
             answer, text, parse_mode = Texts.payments_online_amount.full()
-            kb = Keyboard([KeyboardButton(Texts.back.text, callback_data='payments-online')]).inline()
+            kb = Keyboard.inline([KeyboardButton(Texts.back.text, callback_data='payments-online')])
         answer, text = answer.format(agrm=data['agrm']), text.format(agrm=data['agrm'])
         await update_inline_query(query, answer, text, parse_mode, reply_markup=kb)
 

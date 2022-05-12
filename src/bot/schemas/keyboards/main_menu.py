@@ -3,7 +3,7 @@ from src.bot.schemas.keyboard import KeyboardButton, Keyboard
 __all__ = ('main_menu_kb', 'back_to_main', 'help_kb', 'review_btn', 'get_review_btn')
 
 
-main_menu_kb = Keyboard([
+main_menu_kb = Keyboard.reply([
     [
         KeyboardButton(':scales: Баланс', callback_data='balance'),
         KeyboardButton(':moneybag: Платежи', callback_data='payments'),
@@ -16,9 +16,9 @@ main_menu_kb = Keyboard([
     [
         KeyboardButton('💩 Оставить отзыв', callback_data='review'),
     ],
-]).reply(one_time_keyboard=True)
+], one_time_keyboard=True)
 
-help_kb = Keyboard([
+help_kb = Keyboard.inline([
     [
         KeyboardButton('Обратиться в тех.поддержку', callback_data='support')
         # KeyboardButton('Обратиться в тех.поддержку', url='tg://resolve?domain={}'),
@@ -27,7 +27,7 @@ help_kb = Keyboard([
         KeyboardButton('О нас', callback_data='about'),
         KeyboardButton('Назад', callback_data='main-menu')
      ],
-]).inline()
+])
 
 back_to_main = [
     KeyboardButton('Назад', callback_data='main-menu')

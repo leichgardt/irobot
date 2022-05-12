@@ -12,7 +12,7 @@ __all__ = (
 )
 
 
-settings_menu_kb = Keyboard([
+settings_menu_kb = Keyboard.inline([
     [
         KeyboardButton('Учётные записи', callback_data='settings-my-accounts'),
         KeyboardButton('Уведомления', callback_data='settings-notify')
@@ -21,7 +21,7 @@ settings_menu_kb = Keyboard([
         KeyboardButton('Выйти из программы', callback_data='exit'),
         KeyboardButton('Завершить настройки', callback_data='settings-done')
     ],
-]).inline()
+])
 
 exit_confirm_btn = [
     KeyboardButton('Выйти', callback_data='exit-yes'),

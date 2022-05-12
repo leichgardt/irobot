@@ -3,7 +3,7 @@ from src.bot.schemas.keyboard import KeyboardButton, Keyboard
 __all__ = ('payment_choice_kb', 'back_to_payments_btn', 'get_payment_url_btn', 'payment_url_btn')
 
 
-payment_choice_kb = Keyboard([
+payment_choice_kb = Keyboard.inline([
     [
         KeyboardButton('Оплата онлайн', callback_data='payments-online'),
         KeyboardButton('Обещанный платёж', callback_data='payments-promise'),
@@ -11,7 +11,7 @@ payment_choice_kb = Keyboard([
     [
         KeyboardButton('Назад', callback_data='main-menu'),
     ],
-]).inline()
+])
 
 back_to_payments_btn = [
     KeyboardButton('Назад', callback_data='payments')

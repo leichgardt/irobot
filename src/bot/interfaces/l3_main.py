@@ -73,7 +73,7 @@ async def help_message_h(message: types.Message, state: FSMContext):
 async def review_start_inline_h(message: types.Message, state: FSMContext):
     await bot.send_chat_action(message.chat.id, 'typing')
     await state.finish()
-    kb = Keyboard([keyboards.get_review_btn(), keyboards.back_to_main], row_size=5).inline()
+    kb = Keyboard.inline([keyboards.get_review_btn(), keyboards.back_to_main], row_size=5)
     await ReviewFSM.rating.set()
     res = await bot.send_message(message.chat.id, *Texts.review.pair(), reply_markup=kb)
     await sql.upd_inline_message(message.chat.id, res.message_id, *Texts.review.pair())
@@ -95,10 +95,10 @@ async def review_rating_inline_h(query: types.CallbackQuery, state: FSMContext):
                 await query.answer(Texts.review_done.answer)
                 return
             else:
-                kb = Keyboard([keyboards.get_review_btn(data['rating']), keyboards.review_btn], row_size=5).inline()
+                kb = Keyboard.inline([keyboards.get_review_btn(data['rating']), keyboards.review_btn], row_size=5)
                 text, parse_mode = Texts.review_full.pair(comment=data['comment'], rating=data['rating'])
         else:
-            kb = Keyboard([keyboards.get_review_btn(data['rating']), keyboards.cancel_btn], row_size=5).inline()
+            kb = Keyboard.inline([keyboards.get_review_btn(data['rating']), keyboards.cancel_btn], row_size=5)
             text, parse_mode = Texts.review_rate.pair(rating=data['rating'])
         await edit_inline_message(query.message.chat.id, text, parse_mode, reply_markup=kb)
         await query.answer(Texts.review_rate.answer.format(rating=data['rating']))
@@ -115,7 +115,7 @@ async def review_comment_message_h(message: types.Message, state: FSMContext):
             await review.finish_review(message.chat.id, state, data['comment'], rating)
         else:
             text, parse_mode = Texts.review_with_comment.pair(comment=data['comment'])
-            kb = Keyboard([keyboards.get_review_btn(rating), keyboards.review_btn], row_size=5).inline()
+            kb = Keyboard.inline([keyboards.get_review_btn(rating), keyboards.review_btn], row_size=5)
             await edit_inline_message(message.chat.id, text, parse_mode, reply_markup=kb)
 
 
