@@ -1,14 +1,35 @@
 import asyncio
 import os
+from datetime import datetime, timedelta
+from random import random
 
 from fastapi import FastAPI
 from fastapi_utils.tasks import repeat_every
 
-from src.modules import sql
+from src.modules import cache_server
 from src.web.utils.global_dict import GlobalDict
 
 
 __all__ = 'SoloWorker',
+
+
+class SoloWorkerPIDs:
+    def __init__(self, key):
+        self.key = key
+        self._lock = asyncio.Lock()
+
+    async def load_pid_list(self):
+        async with self._lock:
+            res = await cache_server.get(self.key, list)
+        return res or []
+
+    async def update_pid_list(self, pid_list: list):
+        async with self._lock:
+            return await cache_server.set(self.key, pid_list)
+
+    async def clean_pid_list(self):
+        async with self._lock:
+            return await cache_server.delete(self.key)
 
 
 class SoloWorker:
@@ -28,6 +49,7 @@ class SoloWorker:
     Данные о процессах сохраняются в БД "irobot.pids"
     """
     def __init__(self, logger, workers):
+        self.pid_controller = SoloWorkerPIDs('solo-worker-pids')
         self.workers_num = workers
         self.logger = logger
         self.pid = os.getpid()
@@ -38,24 +60,29 @@ class SoloWorker:
         self.__closing = False
         self.monitor_flags = GlobalDict('solo-worker-flags')
 
-    async def close_tasks(self):
+    async def wait_tasks(self):
         self.logger.info(f'Solo Worker: waiting for tasks [{self.pid}] {self.running}')
         self.__closing = True
-        while True in self.running.values():
+        start = datetime.now()
+        while True:
+            if not any(self.running.values()):
+                break
+            if start - datetime.now() > timedelta(seconds=30):
+                break
             await asyncio.sleep(.1)
         self.logger.info(f'Solo Worker: tasks finished at [{self.pid}]')
 
     async def update(self):
         if self.workers_num <= 1:
             return
-        res = await sql.get_pid_list()
-        self.pid_list = [row[0] for row in res] if res else []
+        await asyncio.sleep(random() / 10)
+        self.pid_list = await self.pid_controller.load_pid_list()
         if self.pid not in self.pid_list:
-            await sql.add_pid(self.pid)
-            await asyncio.sleep(.1)
+            self.pid_list.append(self.pid)
+            await self.pid_controller.update_pid_list(self.pid_list)
 
     async def clean_old_pid_list(self):
-        await sql.del_pid_list()
+        await self.pid_controller.clean_pid_list()
         self.pid_list = []
         self.announcement = set()
         self.running = {}

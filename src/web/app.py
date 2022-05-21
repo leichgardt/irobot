@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi_utils.tasks import repeat_every
 
 from config import ABOUT, DEBUG, ROOT_PATH, SUPPORT_BOT  # ABOUT не удалять
-from src.modules import lb, sql, Texts
+from src.modules import lb, cache_server, sql, Texts
 from src.modules.sql.checker import CheckerSQL
 from src.web import (
     SoloWorker,
@@ -19,7 +19,7 @@ from src.web import (
     auto_payment_monitor,
     auto_feedback_monitor,
     new_messages_monitor,
-    add_routers_to_app
+    add_routers_to_app,
 )
 from src.web.gunicorn_config import workers
 from src.web.routers import api
@@ -58,6 +58,9 @@ BACK_LINK = '<a href="https://t.me/{bot_name}">Вернуться к боту @{
 async def update_params():
     """ Загрузить и обновить параметры """
     global BOT_NAME, BACK_TO_BOT_URL, BACK_LINK, ABOUT
+
+    # подключится к серверу Redis
+    cache_server.connect()
 
     # задать размер пула sql соединений
     sql.pool_min_size = 2
@@ -117,10 +120,11 @@ async def feedback_monitor():
 
 @app.on_event('shutdown')
 async def close_connections():
-    await sw.close_tasks()
-    await sql.close_pool()
+    await sw.wait_tasks()
     await telegram_api.close()
+    await sql.close_pool()
     await logger.shutdown()
+    await cache_server.close()
 
 
 @app.get('/')
