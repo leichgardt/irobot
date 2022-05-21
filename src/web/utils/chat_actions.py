@@ -47,20 +47,20 @@ class GetChat(Action):
 class SendMessage(Action):
     async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
         msg = await chat_utils.send_oper_message(data, oper.oper_id, oper.full_name)
-        await manager.broadcast('get_message', msg, firstly=websocket)
+        await manager.broadcast('get_message', msg)
 
 
 class TakeChat(Action):
     async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
         await chat_utils.take_chat(data, oper.oper_id)
         output = {'chat_id': data, 'oper_id': oper.oper_id, 'oper_name': oper.full_name}
-        await manager.broadcast('take_chat', output, firstly=websocket)
+        await manager.broadcast('take_chat', output)
 
 
 class DropChat(Action):
     async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
         await chat_utils.drop_chat(data, oper.oper_id)
-        await manager.broadcast('drop_chat', {'chat_id': data}, firstly=websocket)
+        await manager.broadcast('drop_chat', {'chat_id': data})
 
 
 class FinishSupport(Action):
@@ -68,7 +68,7 @@ class FinishSupport(Action):
         await chat_utils.finish_support(data, oper.oper_id)
         chats = await chat_utils.get_accounts_and_chats()
         output = {'chat_id': data, 'oper_id': oper.oper_id, 'chats': chats}
-        await manager.broadcast('finish_support', output, firstly=websocket)
+        await manager.broadcast('finish_support', output)
         # todo show results: messages count, time left, operators in the support
 
 
@@ -76,7 +76,7 @@ class ReadChat(Action):
     async def func(self, websocket: WebSocket, manager: ConnectionManager, oper: Oper, data):
         await chat_utils.set_chat_status_read(data)
         chats = await chat_utils.get_accounts_and_chats()
-        await manager.broadcast('get_chats', chats, firstly=websocket)
+        await manager.broadcast('get_chats', chats)
 
 
 class CheckMessages(Action):

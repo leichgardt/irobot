@@ -3,11 +3,14 @@ from typing import Dict, List, Union
 
 from starlette.websockets import WebSocket, WebSocketState
 
+from src.modules.cache_storage.schemas.server_full import CacheServer
+
 
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self, cache_storage: CacheServer):
         self.connections: Dict[int, List[WebSocket]] = {}
         self.timeout = 5
+        self.cache_storage = cache_storage
 
     async def connect(self, websocket: WebSocket, oper_id: int):
         await websocket.accept()
@@ -37,16 +40,9 @@ class ConnectionManager:
             self,
             action: str,
             data,
-            firstly: WebSocket = None,
-            ignore_list: List[Union[WebSocket, int]] = None
     ):
         payload = {'action': action, 'data': data}
-        if firstly:
-            await self._send(firstly, payload)
-        await asyncio.gather(
-            *[self._send(connection, payload) for connection in self.get_connections(firstly, ignore_list)],
-            loop=asyncio.get_running_loop()
-        )
+        await self.cache_storage.publish('chat', payload)
 
     async def _send(self, connection: WebSocket, data):
         if connection.application_state == WebSocketState.DISCONNECTED:
