@@ -3,7 +3,7 @@ import asyncio
 from src.modules import lb
 
 
-async def try_make_payment(agrm_num, amount, receipt):
+async def make_payment(agrm_num, amount, receipt):
     count = 5
     while count > 0:
         record_id = await lb.new_payment(agrm_num, amount, receipt)

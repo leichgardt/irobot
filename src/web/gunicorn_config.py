@@ -1,10 +1,10 @@
-from config import DEBUG, WEB_SERVICE_PORT
+from config import WEB_SERVICE_PORT, GUNICORN_WORKERS, GUNICORN_THREADS
 
 # server
 bind = f'0.0.0.0:{WEB_SERVICE_PORT}'
 worker_class = 'src.web.uviworker.CustomUviWorker'
-workers = 1
-threads = 4
+workers = GUNICORN_WORKERS
+threads = GUNICORN_THREADS
 max_requests = 200
 max_requests_jitter = 50
 timeout = 60

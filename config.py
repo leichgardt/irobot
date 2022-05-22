@@ -33,6 +33,10 @@ WEB_SERVICE_HOST = '127.0.0.1'
 # Port of web app
 WEB_SERVICE_PORT = 8000
 
+# Настройки Gunicorn
+GUNICORN_WORKERS = 4
+GUNICORN_THREADS = 4
+
 # root proxy path
 ROOT_PATH = '/irobot'
 

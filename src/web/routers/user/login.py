@@ -3,9 +3,9 @@ from fastapi.templating import Jinja2Templates
 from starlette.responses import Response
 
 from src.modules import lb, sql, Texts
-from src.web import GlobalDict
 from src.web.schemas.login import LoginItem
 from src.web.schemas.router import MyAPIRouter
+from src.web.utils.global_dict import GlobalDict
 from src.web.utils.login import logining
 
 

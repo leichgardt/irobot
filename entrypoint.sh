@@ -12,6 +12,9 @@ if [ "$1" = "web" ]; then
 elif [ "$1" = "bot" ]; then
   python src/bot/run_bot.py
 
+elif [ "$1" = "celery" ]; then
+  celery -A src.web.tasks.celery_app worker --loglevel=INFO
+
 elif [ "$1" = "test" ]; then
   python src/modules/sql/checker.py
   pytest tests

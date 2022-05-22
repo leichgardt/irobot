@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from src.web.utils import ops as ops_utils
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="admin/api/auth")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='admin/api/auth')
 
 
 async def get_current_oper(token: str = Depends(oauth2_scheme)):

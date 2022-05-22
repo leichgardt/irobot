@@ -2,11 +2,12 @@ from fastapi import Request, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from src.web import lan_require, get_context, GlobalDict, get_request_data
 from src.web.schemas import ops
 from src.web.schemas.router import MyAPIRouter
 from src.web.utils import ops as ops_utils
+from src.web.utils.api import lan_require, get_context, get_request_data
 from src.web.utils.dependecies import get_current_oper
+from src.web.utils.global_dict import GlobalDict
 
 
 router = MyAPIRouter(prefix='/admin')
